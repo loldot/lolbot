@@ -4,35 +4,35 @@ public static class Utils
 {
     public static char GetFile(Square square)
     {
-        char[] files = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-        ulong mask = 0xFFul;
+        char[] files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        ulong mask = 0x0101010101010101ul;
         for (int i = 0; i < files.Length; i++)
         {
             if ((mask & square) != 0) return files[i];
-            mask <<= 8;
+            mask <<= 1;
         }
         return '-';
     }
 
     public static byte GetRank(Square square)
     {
-        ulong mask = 0x0101010101010101ul;
+        ulong mask = 0xff;
         for (byte i = 1; i <= 8; i++)
         {
             if ((mask & square) != 0) return i;
-            mask <<= 1;
+            mask <<= 8;
         }
         return 0;
     }
 
 
-    // Little-Endian File-Rank Mapping
+    // Little-Endian Rank-File Mapping
     public static Square SquareFromCoordinates(ReadOnlySpan<char> coords)
     {
-        byte file = (byte)(coords[0] - 'A');
+        byte file = (byte)(char.ToLowerInvariant(coords[0]) - 'a');
         byte rank = (byte)(coords[1] - '1');
 
-        return 1ul << (file * 8 + rank);
+        return 1ul << (rank * 8 + file);
     }
 
     public static ulong Bitboard(params string[] squares)

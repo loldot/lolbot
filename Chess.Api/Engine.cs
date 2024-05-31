@@ -50,14 +50,14 @@ public record Move(Square From, Square To, Capture capture)
 
 public record Position
 {
-    public ulong WhitePawns { get; init; } = 0x0101010101010101ul << 1;
+    public ulong WhitePawns { get; init; } = 0x000000000000ff00;
     public ulong WhiteRooks { get; init; } = Utils.Bitboard("A1", "H1");
     public ulong WhiteBishops { get; init; } = Utils.Bitboard("C1", "F1");
     public ulong WhiteKnights { get; init; } = Utils.Bitboard("B1", "G1");
     public ulong WhiteQueens { get; init; } = Utils.Bitboard("D1");
     public ulong WhiteKing { get; init; } = Utils.Bitboard("E1");
 
-    public ulong BlackPawns { get; init; } = 0x0101010101010101ul << 6;
+    public ulong BlackPawns { get; init; } = 0x00ff000000000000;
     public ulong BlackRooks { get; init; } = Utils.Bitboard("A8", "H8");
     public ulong BlackBishops { get; init; } = Utils.Bitboard("C8", "F8");
     public ulong BlackKnights { get; init; } = Utils.Bitboard("B8", "G8");
@@ -75,7 +75,7 @@ public record Position
         var sb = new StringBuilder(72);
         for (char rank = '8'; rank > '0'; rank--)
         {
-            for (char file = 'A'; file <= 'H'; file++)
+            for (char file = 'a'; file <= 'h'; file++)
             {
                 var sq = Utils.SquareFromCoordinates("" + file + rank);
 
@@ -109,7 +109,7 @@ public record Position
         var sb = new StringBuilder(72);
         for (char rank = '8'; rank > '0'; rank--)
         {
-            for (char file = 'A'; file <= 'H'; file++)
+            for (char file = 'a'; file <= 'h'; file++)
             {
                 var sq = Utils.SquareFromCoordinates("" + file + rank);
 
