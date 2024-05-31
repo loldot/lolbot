@@ -69,6 +69,7 @@ public record Position
     public ulong Black => Utils.Bitboard(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
 
     public ulong Occupied => Utils.Bitboard(White, Black);
+    public ulong Empty => ~Occupied;
 
     public string ToPartialFENString()
     {

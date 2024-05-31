@@ -1,3 +1,4 @@
+using System.Numerics;
 using Chess.Api;
 namespace Chess.Tests;
 

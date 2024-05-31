@@ -1,3 +1,7 @@
+using System.Collections;
+using System.Collections.Specialized;
+using System.Numerics;
+
 namespace Chess.Api;
 
 public static class Utils
@@ -55,13 +59,6 @@ public static class Utils
         return board;
     }
 
-    public static int CountBits(ulong v)
-    {
-        int c; // c accumulates the total bits set in v
-        for (c = 0; v != 0; c++)
-        {
-            v &= v - 1; // clear the least significant bit set
-        }
-        return c;
-    }
+    public static BitArray ToArray (ulong bitboard) => new(BitConverter.GetBytes(bitboard));
+    public static int CountBits(ulong v) => BitOperations.PopCount(v);
 }
