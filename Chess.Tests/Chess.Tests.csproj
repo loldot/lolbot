@@ -22,4 +22,10 @@
     <ProjectReference Include="..\Chess.Api\Chess.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="./Testdata/**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

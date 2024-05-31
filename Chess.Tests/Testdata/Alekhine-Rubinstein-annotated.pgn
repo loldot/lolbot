@@ -1,0 +1,24 @@
+[Event "Vilnius All-Russian Masters"]
+[Site "Vilna (Vilnius) RUE"]
+[Date "1912.08.23"]
+[EventDate "1912.08.19"]
+[Round "5"]
+[Result "0-1"]
+[White "Alexander Alekhine"]
+[Black "Akiba Rubinstein"]
+[ECO "C83"]
+[WhiteElo "?"]
+[BlackElo "?"]
+[PlyCount "54"]
+
+1. e4 {Notes by Dr. Savielly Tartakower.} 1... e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4
+Nf6 5. O-O Nxe4 6. d4 b5 7. Bb3 d5 8. dxe5 Be6 9. c3 Be7 10. Nbd2 Nc5 11. Bc2
+Bg4 12. h3 {The most reasonable course here is 12.Re1, guarding the e-pawn.}
+12... Bh5 13. Qe1 $6 {Here again 13. Re1 ensured a very good game for White.}
+13... Ne6 14. Nh2 $6 Bg6 $1 15. Bxg6 fxg6 {! Far seeing strategy! Black
+recognizes that the f-file and not the e-file will be needed as a base for
+action.} 16. Nb3 {Or 16.f4 d4!.} 16... g5 $1 17. Be3 O-O 18. Nf3 Qd7 19. Qd2
+{White pays insufficient attention to the scope of his opponent's threats. A
+better course is 19.Nfd4 (19...Nxe5 20.Bxg5) seeking to establish equality.}
+19... Rxf3 $1 20. gxf3 Nxe5 21. Qe2 Rf8 22. Nd2 Ng6 23. Rfe1 Bd6 24. f4 Nexf4
+25. Qf1 Nxh3+ 26. Kh1 g4 27. Qe2 Qf5 0-1
