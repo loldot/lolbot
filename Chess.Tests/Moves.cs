@@ -5,6 +5,22 @@ namespace Chess.Tests;
 public class Moves
 {
     [Test]
+    public void CheckLegalMoves()
+    {
+        var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhitePawn);
+        startMoves.Should().BeEquivalentTo([
+            new Move("a2", "a3"), new Move("a2", "a4"),
+            new Move("b2", "b3"), new Move("b2", "b4"), 
+            new Move("c2", "c3"), new Move("c2", "c4"), 
+            new Move("d2", "d3"), new Move("d2", "d4"), 
+            new Move("e2", "e3"), new Move("e2", "e4"), 
+            new Move("f2", "f3"), new Move("f2", "f4"), 
+            new Move("g2", "g3"), new Move("g2", "g4"), 
+            new Move("h2", "h3"), new Move("h2", "h4"), 
+        ]);
+    }
+
+    [Test]
     public void GeneratePawnAttaks()
     {
         var pawnstructure = Utils.FromArray([
@@ -17,17 +33,38 @@ public class Moves
             0,0,0,0,0,0,0,0
         ]);
 
-        var pos = new Position() with
-        {
-            WhitePawns = pawnstructure
-        };
-
-        pos.WhitePawnAttacks().Should().Be(Utils.FromArray([
+        Position.PawnAttacks(pawnstructure).Should().Be(Utils.FromArray([
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
             0,1,0,1,0,0,0,0,
             1,1,1,0,1,1,1,1,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        ]));
+    }
+
+    [Test]
+    public void Pawns_Should_Not_Attack_Around_Board()
+    {
+        var pawnstructure = Utils.FromArray([
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,1,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            1,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,1,
+            0,0,0,0,0,0,0,0
+        ]);
+
+        Position.PawnAttacks(pawnstructure).Should().Be(Utils.FromArray([
+            0,0,0,0,0,0,1,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,1,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,1,0,
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0
         ]));

@@ -49,7 +49,7 @@ public sealed partial class PgnSerializer
                     var coords = match.Groups["square"].ValueSpan;
 
                     var to = Utils.SquareFromCoordinates(coords);
-                    var from = Disambiguate(game.CurrentPosition, to, piece, disambiguation);
+                    var from = Disambiguate(game, to, piece, disambiguation);
 
                     move = new Move(from, to);
                 }
@@ -62,14 +62,19 @@ public sealed partial class PgnSerializer
     }
 
     private static Square Disambiguate(
-        Position position,
+        Game game,
         Square to,
         ReadOnlySpan<char> pieceName,
         ReadOnlySpan<char> disambiguation)
     {
         var piece = Utils.FromName(pieceName[0]);
-        var legalMoves = position.LegalMoves(piece);
-        
+        var legalMoves = game.CurrentPosition.GenerateLegalMoves(game.CurrentPlayer, piece);
+
+        foreach (var move in legalMoves)
+        {
+            if (Utils.SquareFromIndex(move.ToIndex) == to) 
+                return Utils.SquareFromIndex(move.FromIndex);
+        }
 
         return Utils.SquareFromCoordinates("E2");
     }

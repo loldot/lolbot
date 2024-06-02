@@ -12,24 +12,19 @@ public class FenSerializer
             {
                 var sq = Utils.SquareFromCoordinates("" + file + rank);
 
-                if ((sq & p.BlackPawns) != 0) sb.Append('p');
-                else if ((sq & p.BlackRooks) != 0) sb.Append('r');
-                else if ((sq & p.BlackBishops) != 0) sb.Append('b');
-                else if ((sq & p.BlackKnights) != 0) sb.Append('n');
-                else if ((sq & p.BlackQueens) != 0) sb.Append('q');
-                else if ((sq & p.BlackKing) != 0) sb.Append('k');
-
-                else if ((sq & p.WhitePawns) != 0) sb.Append('P');
-                else if ((sq & p.WhiteRooks) != 0) sb.Append('R');
-                else if ((sq & p.WhiteBishops) != 0) sb.Append('B');
-                else if ((sq & p.WhiteKnights) != 0) sb.Append('N');
-                else if ((sq & p.WhiteQueens) != 0) sb.Append('Q');
-                else if ((sq & p.WhiteKing) != 0) sb.Append('K');
-
-                else
+                foreach (var piece in Enum.GetValues<Piece>())
                 {
-                    if (char.IsDigit(sb[^1])) sb[^1]++;
-                    else sb.Append('1');
+                    if ((sq & p[piece]) != 0)
+                    {
+                        if (piece != Piece.None)
+                        {
+                            sb.Append(Utils.PieceName(piece));
+                            continue;
+                        }
+
+                        if (sb.Length > 0 && char.IsDigit(sb[^1])) sb[^1]++;
+                        else sb.Append('1');
+                    }
                 }
             }
             sb.Append('/');

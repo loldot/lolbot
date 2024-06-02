@@ -1,16 +1,20 @@
 using System.Collections;
-using System.Collections.Specialized;
 using System.Numerics;
 
 namespace Chess.Api;
 
 public static class Utils
 {
+    public const ulong file_a = 0x0101010101010101;
+    public const ulong rank_1 = 0xff;
+
     public static char GetFile(Square square)
     {
         char[] files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
         return files[BitOperations.Log2(square) & 7];
     }
+
+    public static ulong GetFileMask(Square target) => file_a << BitOperations.Log2(target);
 
     public static byte GetRank(Square square)
         => (byte)(1 + (BitOperations.Log2(square) >> 3));
@@ -57,6 +61,13 @@ public static class Utils
     public static BitArray ToArray(ulong bitboard) => new(BitConverter.GetBytes(bitboard));
     public static int CountBits(ulong v) => BitOperations.PopCount(v);
 
+    public static Square PopLsb(ref ulong board)
+    {
+        var lsb = 1ul << BitOperations.TrailingZeroCount(board);
+        board ^= lsb;
+        return lsb;
+    }
+
     public static ulong FromArray(ulong[] value)
     {
         ulong l = 0;
@@ -88,18 +99,18 @@ public static class Utils
 
     public static Piece FromName(char name) => name switch
     {
-        'P' => Piece.WhitePawn ,
-        'N' => Piece.WhiteKnight ,
-        'B' => Piece.WhiteBishop ,
-        'R' => Piece.WhiteRook ,
-        'Q' => Piece.WhiteQueen ,
-        'K' => Piece.WhiteKing ,
-        'p' => Piece.BlackPawn ,
-        'n' => Piece.BlackKnight ,
-        'b' => Piece.BlackBishop ,
-        'r' => Piece.BlackRook ,
-        'q' => Piece.BlackQueen ,
-        'k' => Piece.BlackKing ,
+        'P' => Piece.WhitePawn,
+        'N' => Piece.WhiteKnight,
+        'B' => Piece.WhiteBishop,
+        'R' => Piece.WhiteRook,
+        'Q' => Piece.WhiteQueen,
+        'K' => Piece.WhiteKing,
+        'p' => Piece.BlackPawn,
+        'n' => Piece.BlackKnight,
+        'b' => Piece.BlackBishop,
+        'r' => Piece.BlackRook,
+        'q' => Piece.BlackQueen,
+        'k' => Piece.BlackKing,
         _ => Piece.None,
     };
 }

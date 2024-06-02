@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -26,7 +27,7 @@ public enum Piece : byte
 
 
 [StructLayout(LayoutKind.Auto)]
-public readonly struct Move
+public readonly struct Move : IEquatable<Move>
 {
     public readonly byte FromIndex;
     public readonly byte ToIndex;
@@ -35,6 +36,11 @@ public readonly struct Move
     public readonly Piece CapturePiece = Piece.None;
     public readonly Piece PromotionPiece = Piece.None;
 
+    public Move(string from, string to) : this(
+        Utils.SquareFromCoordinates(from),
+        Utils.SquareFromCoordinates(to)
+    )
+    { }
     public Move(Square from, Square to)
     {
         FromIndex = (byte)BitOperations.Log2(from);
@@ -77,6 +83,15 @@ public readonly struct Move
     public static Move QueenSideCastle(Color color)
         => color == Color.White ? WhiteQueenCastle : BlackQueenCastle;
 
+    public bool Equals(Move other)
+    {
+        return FromIndex == other.FromIndex 
+            && ToIndex == other.ToIndex
+            && CaptureIndex == other.CaptureIndex
+            && CastleIndex == other.CastleIndex
+            && CapturePiece == other.CapturePiece
+            && PromotionPiece == other.PromotionPiece;
+    }
 }
 public record Position
 {
@@ -95,24 +110,25 @@ public record Position
     public ulong BlackKing { get; init; } = Utils.Bitboard("E8");
     public ulong EnPassant { get; init; } = 0;
 
-    public ulong GetBitboard(Piece piece) => piece switch
+    public ulong this[Piece piece]
     {
-        Piece.None => Empty,
-        Piece.WhitePawn => WhitePawns,
-        Piece.WhiteKnight => WhiteKnights,
-        Piece.WhiteBishop => WhiteBishops,
-        Piece.WhiteRook => WhiteRooks,
-        Piece.WhiteQueen => WhiteQueens,
-        Piece.WhiteKing => WhiteKing,
-        Piece.BlackPawn => BlackPawns,
-        Piece.BlackKnight => BlackKnights,
-        Piece.BlackBishop => BlackBishops,
-        Piece.BlackRook => BlackRooks,
-        Piece.BlackQueen => BlackQueens,
-        Piece.BlackKing => BlackKing,
-        _ => throw new NotImplementedException(),
-    };
-
+        get => piece switch
+        {
+            Piece.WhitePawn => WhitePawns,
+            Piece.WhiteKnight => WhiteKnights,
+            Piece.WhiteBishop => WhiteBishops,
+            Piece.WhiteRook => WhiteRooks,
+            Piece.WhiteQueen => WhiteQueens,
+            Piece.WhiteKing => WhiteKing,
+            Piece.BlackPawn => BlackPawns,
+            Piece.BlackKnight => BlackKnights,
+            Piece.BlackBishop => BlackBishops,
+            Piece.BlackRook => BlackRooks,
+            Piece.BlackQueen => BlackQueens,
+            Piece.BlackKing => BlackKing,
+            _ => Empty,
+        };
+    }
 
     public ulong White => Utils.Bitboard(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
     public ulong Black => Utils.Bitboard(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
@@ -128,22 +144,10 @@ public record Position
             for (char file = 'a'; file <= 'h'; file++)
             {
                 var sq = Utils.SquareFromCoordinates("" + file + rank);
-
-                if ((sq & BlackPawns) != 0) sb.Append('p');
-                else if ((sq & BlackRooks) != 0) sb.Append('r');
-                else if ((sq & BlackBishops) != 0) sb.Append('b');
-                else if ((sq & BlackKnights) != 0) sb.Append('n');
-                else if ((sq & BlackQueens) != 0) sb.Append('q');
-                else if ((sq & BlackKing) != 0) sb.Append('k');
-
-                else if ((sq & WhitePawns) != 0) sb.Append('P');
-                else if ((sq & WhiteRooks) != 0) sb.Append('R');
-                else if ((sq & WhiteBishops) != 0) sb.Append('B');
-                else if ((sq & WhiteKnights) != 0) sb.Append('N');
-                else if ((sq & WhiteQueens) != 0) sb.Append('Q');
-                else if ((sq & WhiteKing) != 0) sb.Append('K');
-
-                else sb.Append(' ');
+                foreach (var p in Enum.GetValues<Piece>())
+                {
+                    if ((sq & this[p]) != 0) sb.Append(Utils.PieceName(p));
+                }
             }
             sb.AppendLine();
         }
@@ -187,28 +191,89 @@ public record Position
         return bitboard;
     }
 
-    private ulong Castle(ulong mask, Move m) 
+    private static ulong Castle(ulong mask, Move m)
         => mask & Utils.SquareFromIndex(m.CastleIndex);
 
-    public ulong WhitePawnAttacks()
+    public static ulong PawnAttacks(ulong pawns)
     {
         const ulong notAFileMask = 0xfefefefefefefefe;
         const ulong notHFileMask = 0x7f7f7f7f7f7f7f7f;
-        return ((WhitePawns << 7) & notHFileMask)
-            | ((WhitePawns << 9) & notAFileMask);
+        return ((pawns << 7) & notHFileMask)
+            | ((pawns << 9) & notAFileMask);
     }
-    public ulong WhitePawnForward()
+    public static ulong PawnPush(ulong pawns)
     {
-        return WhitePawns << 8 | ((WhitePawns & 0xff00) << 16);
+        return pawns << 8 | ((pawns & 0xff00) << 16);
+    }
+
+    public Move[] GenerateLegalMoves(Color color, Piece? pieceType)
+    {
+        var moves = new Move[218];
+        var count = 0;
+
+        if (!pieceType.HasValue || ((int)pieceType.Value & 0x1) != 0)
+            count += AddPawnMoves(color, ref moves);
+
+        Array.Resize(ref moves, count);
+
+        return moves;
+    }
+
+    private int AddPawnMoves(Color color, ref Move[] moves)
+    {
+        int count = 0;
+
+        var (pawns, targets) = (color == Color.White)
+        ? (WhitePawns, Black)
+        : (BlackPawns, White);
+
+        while (pawns != 0)
+        {
+            var from = Utils.PopLsb(ref pawns);
+            var pushes = PawnPush(from);
+            while (pushes != 0)
+            {
+                var push = Utils.PopLsb(ref pushes);
+                moves[count++] = new Move(from, push);
+            }
+
+            var attacks = PawnAttacks(from) & (targets | EnPassant);
+            while (attacks != 0)
+            {
+                var attack = Utils.PopLsb(ref attacks);
+                moves[count++] = new Move(from, attack, attack, Occupant(attack));
+            }
+        }
+        return count;
+    }
+
+    private Piece Occupant(ulong attack)
+    {
+        foreach (var type in Enum.GetValues<Piece>())
+        {
+            if ((this[type] & attack) != 0) return type;
+        }
+        return Piece.None;
     }
 
     public ulong LegalMoves(Piece piece)
     {
         if (piece == Piece.WhitePawn)
-            return (WhitePawnAttacks() & (Black | EnPassant)) | (WhitePawnForward() & ~Black);
+            return (PawnAttacks(WhitePawns) & (Black | EnPassant)) | (PawnPush(WhitePawns) & ~Black);
 
         return 0;
     }
+
+    // ulong AttackersTo(Square s, ulong occupied)
+    // {
+
+    //     return (pawn_attacks_bb(BLACK, s) & pieces(WHITE, PAWN))
+    //          | (pawn_attacks_bb(WHITE, s) & pieces(BLACK, PAWN))
+    //          | (attacks_bb<KNIGHT>(s) & pieces(KNIGHT))
+    //          | (attacks_bb<ROOK>(s, occupied) & pieces(ROOK, QUEEN))
+    //          | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
+    //          | (attacks_bb<KING>(s) & pieces(KING));
+    // }
 
     // public ulong LegalMoves(Piece piece, Square target)
     // {
