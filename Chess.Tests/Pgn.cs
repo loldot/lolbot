@@ -22,10 +22,6 @@ public class Pgn
         var reader = new PgnSerializer();
         var (game, _) = await reader.Read(pgnFile);
 
-        var move = new Move(
-            Utils.SquareFromCoordinates("E2"),
-            Utils.SquareFromCoordinates("E4")
-        );
-        game.Moves[0].Should().Be(move);
+        game.Moves[0].Should().Be(new Move("E2", "E4"));
     }
 }

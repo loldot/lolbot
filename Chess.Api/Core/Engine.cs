@@ -194,17 +194,11 @@ public record Position
     private static ulong Castle(ulong mask, Move m)
         => mask & Utils.SquareFromIndex(m.CastleIndex);
 
-    public static ulong PawnAttacks(ulong pawns)
-    {
-        const ulong notAFileMask = 0xfefefefefefefefe;
-        const ulong notHFileMask = 0x7f7f7f7f7f7f7f7f;
-        return ((pawns << 7) & notHFileMask)
-            | ((pawns << 9) & notAFileMask);
-    }
-    public static ulong PawnPush(ulong pawns)
-    {
-        return pawns << 8 | ((pawns & 0xff00) << 16);
-    }
+    public static ulong[] KnightAttacks = [
+
+    ];
+
+
 
     public Move[] GenerateLegalMoves(Color color, Piece? pieceType)
     {
@@ -230,14 +224,14 @@ public record Position
         while (pawns != 0)
         {
             var from = Utils.PopLsb(ref pawns);
-            var pushes = PawnPush(from);
+            var pushes = MovePatterns.PawnPush(from);
             while (pushes != 0)
             {
                 var push = Utils.PopLsb(ref pushes);
                 moves[count++] = new Move(from, push);
             }
 
-            var attacks = PawnAttacks(from) & (targets | EnPassant);
+            var attacks = MovePatterns.PawnAttacks(from) & (targets | EnPassant);
             while (attacks != 0)
             {
                 var attack = Utils.PopLsb(ref attacks);
@@ -255,30 +249,6 @@ public record Position
         }
         return Piece.None;
     }
-
-    public ulong LegalMoves(Piece piece)
-    {
-        if (piece == Piece.WhitePawn)
-            return (PawnAttacks(WhitePawns) & (Black | EnPassant)) | (PawnPush(WhitePawns) & ~Black);
-
-        return 0;
-    }
-
-    // ulong AttackersTo(Square s, ulong occupied)
-    // {
-
-    //     return (pawn_attacks_bb(BLACK, s) & pieces(WHITE, PAWN))
-    //          | (pawn_attacks_bb(WHITE, s) & pieces(BLACK, PAWN))
-    //          | (attacks_bb<KNIGHT>(s) & pieces(KNIGHT))
-    //          | (attacks_bb<ROOK>(s, occupied) & pieces(ROOK, QUEEN))
-    //          | (attacks_bb<BISHOP>(s, occupied) & pieces(BISHOP, QUEEN))
-    //          | (attacks_bb<KING>(s) & pieces(KING));
-    // }
-
-    // public ulong LegalMoves(Piece piece, Square target)
-    // {
-
-    // }
 }
 
 public record Game(Position InitialPosition, Move[] Moves)

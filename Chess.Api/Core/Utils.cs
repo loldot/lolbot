@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections;
 using System.Numerics;
 
@@ -29,6 +30,7 @@ public static class Utils
     }
 
     public static Square SquareFromIndex(byte index) => 1ul << index;
+    public static byte IndexFromSquare(Square square) => (byte)BitOperations.Log2(square);
 
     public static string? CoordinateFromSquare(Square? square)
         => (square is not null)
@@ -48,6 +50,11 @@ public static class Utils
         return board;
     }
 
+    public static ulong FlipBitboardVertical(ulong bitboard)
+    {
+        return BinaryPrimitives.ReverseEndianness(bitboard);
+    }
+
     public static ulong Bitboard(params ulong[] squares)
     {
         ulong board = 0;
@@ -58,7 +65,6 @@ public static class Utils
         return board;
     }
 
-    public static BitArray ToArray(ulong bitboard) => new(BitConverter.GetBytes(bitboard));
     public static int CountBits(ulong v) => BitOperations.PopCount(v);
 
     public static Square PopLsb(ref ulong board)
@@ -67,6 +73,8 @@ public static class Utils
         board ^= lsb;
         return lsb;
     }
+
+    public static BitArray ToArray(ulong bitboard) => new(BitConverter.GetBytes(bitboard));
 
     public static ulong FromArray(ulong[] value)
     {
@@ -113,4 +121,12 @@ public static class Utils
         'k' => Piece.BlackKing,
         _ => Piece.None,
     };
+
+    internal static ushort PackMove(ulong from, ulong to)
+    {
+        ushort ret = IndexFromSquare(from);
+        ret <<= 6;
+        ret &= IndexFromSquare(to);
+        return  ret;
+    }
 }

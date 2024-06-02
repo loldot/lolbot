@@ -21,4 +21,14 @@ public class Utilities
     {
         Utils.GetColor(piece).Should().Be(color);
     }
+
+    [Test]
+    public void Test()
+    {
+        var position = new Position();
+        var fromBlack = Utils.FlipBitboardVertical(position.BlackPawns);
+
+        fromBlack.Should().Be(position.WhitePawns);
+
+    }
 }
