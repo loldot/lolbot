@@ -24,10 +24,6 @@ public enum Piece : byte
     BlackKing = 0x26,
 }
 
-public record Capture(char Name, Square Square)
-{
-    public static readonly Capture None = new('-', 0);
-}
 
 [StructLayout(LayoutKind.Auto)]
 public readonly struct Move
@@ -69,10 +65,10 @@ public readonly struct Move
     }
 
     private static readonly Move WhiteCastle = new(4, 6, 7, 5, Piece.WhiteRook, Piece.None);
-    private static readonly Move BlackCastle = new(60, 62, 63, 61, Piece.WhiteRook, Piece.None);
+    private static readonly Move BlackCastle = new(60, 62, 63, 61, Piece.BlackRook, Piece.None);
 
     private static readonly Move WhiteQueenCastle = new(4, 2, 0, 3, Piece.WhiteRook, Piece.None);
-    private static readonly Move BlackQueenCastle = new(60, 62, 63, 61, Piece.WhiteRook, Piece.None);
+    private static readonly Move BlackQueenCastle = new(60, 62, 63, 61, Piece.BlackRook, Piece.None);
 
 
     // TODO: Fisher castling rules :cry:
@@ -82,46 +78,6 @@ public readonly struct Move
         => color == Color.White ? WhiteQueenCastle : BlackQueenCastle;
 
 }
-
-// public record Move(Square From, Square To, Capture capture)
-// {
-//     public Move(Square From, Square To, Capture capture, Square castleFrom, Square castleTo)
-//         : this(From, To, capture)
-//     {
-//         CastleFrom = castleFrom;
-//         CastleTo = castleTo;
-//     }
-
-//     public Square CastleFrom { get; } = 0;
-//     public Square CastleTo { get; } = 0;
-
-//     public static Move Castle(bool isWhitesTurn)
-//     {
-//         var rank = isWhitesTurn ? 1 : 8;
-
-//         return new Move(
-//             Utils.SquareFromCoordinates($"E{rank}"),
-//             Utils.SquareFromCoordinates($"F{rank}"),
-//             Capture.None,
-//             Utils.SquareFromCoordinates($"H{rank}"),
-//             Utils.SquareFromCoordinates($"F{rank}")
-//         );
-//     }
-
-//     public static Move QueenSideCastle(bool isWhitesTurn)
-//     {
-//         var rank = isWhitesTurn ? 1 : 8;
-
-//         return new Move(
-//             Utils.SquareFromCoordinates($"E{rank}"),
-//             Utils.SquareFromCoordinates($"C{rank}"),
-//             Capture.None,
-//             Utils.SquareFromCoordinates($"A{rank}"),
-//             Utils.SquareFromCoordinates($"D{rank}")
-//         );
-//     }
-// }
-
 public record Position
 {
     public ulong WhitePawns { get; init; } = 0x000000000000ff00;
@@ -137,6 +93,25 @@ public record Position
     public ulong BlackKnights { get; init; } = Utils.Bitboard("B8", "G8");
     public ulong BlackQueens { get; init; } = Utils.Bitboard("D8");
     public ulong BlackKing { get; init; } = Utils.Bitboard("E8");
+    public ulong EnPassant { get; init; } = 0;
+
+    public ulong GetBitboard(Piece piece) => piece switch
+    {
+        Piece.None => Empty,
+        Piece.WhitePawn => WhitePawns,
+        Piece.WhiteKnight => WhiteKnights,
+        Piece.WhiteBishop => WhiteBishops,
+        Piece.WhiteRook => WhiteRooks,
+        Piece.WhiteQueen => WhiteQueens,
+        Piece.WhiteKing => WhiteKing,
+        Piece.BlackPawn => BlackPawns,
+        Piece.BlackKnight => BlackKnights,
+        Piece.BlackBishop => BlackBishops,
+        Piece.BlackRook => BlackRooks,
+        Piece.BlackQueen => BlackQueens,
+        Piece.BlackKing => BlackKing,
+        _ => throw new NotImplementedException(),
+    };
 
 
     public ulong White => Utils.Bitboard(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
@@ -182,41 +157,63 @@ public record Position
             WhitePawns = ApplyMove(WhitePawns, m),
             WhiteBishops = ApplyMove(WhiteBishops, m),
             WhiteKnights = ApplyMove(WhiteKnights, m),
-            WhiteRooks = ApplyMove(WhiteRooks, m),
+            WhiteRooks = ApplyMove(WhiteRooks, m) | Castle(0x7e, m),
             WhiteQueens = ApplyMove(WhiteQueens, m),
             WhiteKing = ApplyMove(WhiteKing, m),
 
             BlackPawns = ApplyMove(BlackPawns, m),
             BlackBishops = ApplyMove(BlackBishops, m),
             BlackKnights = ApplyMove(BlackKnights, m),
-            BlackRooks = ApplyMove(BlackRooks, m),
+            BlackRooks = ApplyMove(BlackRooks, m) | Castle(BlackRooks & 0x7e << 55, m),
             BlackQueens = ApplyMove(BlackQueens, m),
             BlackKing = ApplyMove(BlackKing, m),
         };
     }
 
-    public ulong WhitePawnAttacks()
+    private static ulong ApplyMove(ulong bitboard, Move m)
     {
-        return ((WhitePawns << 7) & 0x7f7f7f7f7f7f7f7f)
-            | ((WhitePawns << 9) & 0xfefefefefefefefe);
-    }
-
-    private static  ulong ApplyMove(ulong bitboard, Move m)
-    {
-        if (m.CaptureIndex != 0)
+        if (m.CapturePiece != Piece.None)
         {
-            bitboard ^= 1ul << m.CaptureIndex ;
+            bitboard &= ~Utils.SquareFromIndex(m.CaptureIndex);
         }
 
-        var fromSq = 1ul << m.FromIndex;
+        var fromSq = Utils.SquareFromIndex(m.FromIndex);
         if ((bitboard & fromSq) != 0)
         {
             bitboard ^= fromSq;
-            bitboard |= 1ul << m.ToIndex;
+            bitboard |= Utils.SquareFromIndex(m.ToIndex);
         }
 
         return bitboard;
     }
+
+    private ulong Castle(ulong mask, Move m) 
+        => mask & Utils.SquareFromIndex(m.CastleIndex);
+
+    public ulong WhitePawnAttacks()
+    {
+        const ulong notAFileMask = 0xfefefefefefefefe;
+        const ulong notHFileMask = 0x7f7f7f7f7f7f7f7f;
+        return ((WhitePawns << 7) & notHFileMask)
+            | ((WhitePawns << 9) & notAFileMask);
+    }
+    public ulong WhitePawnForward()
+    {
+        return WhitePawns << 8 | ((WhitePawns & 0xff00) << 16);
+    }
+
+    public ulong LegalMoves(Piece piece)
+    {
+        if (piece == Piece.WhitePawn)
+            return (WhitePawnAttacks() & (Black | EnPassant)) | (WhitePawnForward() & ~Black);
+
+        return 0;
+    }
+
+    // public ulong LegalMoves(Piece piece, Square target)
+    // {
+
+    // }
 }
 
 public record Game(Position InitialPosition, Move[] Moves)
@@ -243,8 +240,6 @@ public class Engine
 
     public static Game Move(Game game, string from, string to)
     {
-        Console.WriteLine(game.CurrentPosition);
-
         return Move(
             game,
             Utils.SquareFromCoordinates(from),
@@ -257,6 +252,11 @@ public class Engine
         var capturePiece = GetCapture(game, to);
         var captureSquare = capturePiece != Piece.None ? to : 0;
         var move = new Move(from, to, captureSquare, capturePiece);
+        return Move(game, move);
+    }
+
+    public static Game Move(Game game, Move move)
+    {
         return new Game(game.InitialPosition, [.. game.Moves, move]);
     }
 

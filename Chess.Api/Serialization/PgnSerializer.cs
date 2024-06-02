@@ -41,14 +41,17 @@ public sealed partial class PgnSerializer
                 {
                     var match = PgnScanners.SanToken().Match(token);
 
-                    var piece = match.Groups["piece"].ValueSpan;
-                    var disambiguation = match.Groups["disambiguation"].ValueSpan;
-                    var square = match.Groups["square"].ValueSpan;
+                    var piece = match.Groups["piece"].Success
+                        ? match.Groups["piece"].ValueSpan
+                        : "P";
 
-                    move = new Move(
-                        Utils.SquareFromCoordinates("E2"),
-                        Utils.SquareFromCoordinates(square)
-                    );
+                    var disambiguation = match.Groups["disambiguation"].ValueSpan;
+                    var coords = match.Groups["square"].ValueSpan;
+
+                    var to = Utils.SquareFromCoordinates(coords);
+                    var from = Disambiguate(game.CurrentPosition, to, piece, disambiguation);
+
+                    move = new Move(from, to);
                 }
 
                 game = game with { Moves = [.. game.Moves, move] };
@@ -56,6 +59,19 @@ public sealed partial class PgnSerializer
         }
 
         return game;
+    }
+
+    private static Square Disambiguate(
+        Position position,
+        Square to,
+        ReadOnlySpan<char> pieceName,
+        ReadOnlySpan<char> disambiguation)
+    {
+        var piece = Utils.FromName(pieceName[0]);
+        var legalMoves = position.LegalMoves(piece);
+        
+
+        return Utils.SquareFromCoordinates("E2");
     }
 
     private static async Task<GameMetadata> ReadTagPairs(TextReader reader)

@@ -27,8 +27,8 @@ export interface ChessboardProps {
 }
 
 const Chessboard = ({ game }: ChessboardProps) => {
-    if(!game) return (<>Loading..</>)
-    const { initialPosition, moves } = game; 
+    if (!game) return (<>Loading..</>)
+    const { initialPosition, moves } = game;
     const file = (x: number) => x % 8;
     const rank = (x: number) => 8 - Math.trunc(x / 8);
 
@@ -42,11 +42,13 @@ const Chessboard = ({ game }: ChessboardProps) => {
     const doMove = () => {
         if (moveNumber >= moves.length) return;
         const [
-            fromSquare, _,
-            toSquare, toPiece,
+            fromSquare,
+            toSquare,
             captureSquare, capturePiece,
             castleSquare
         ] = moves[moveNumber];
+        const toPiece = position[fromSquare];
+        console.log({ fromSquare, toSquare, captureSquare, capturePiece, castleSquare })
         const newPosition = {
             ...position,
             [fromSquare]: undefined,

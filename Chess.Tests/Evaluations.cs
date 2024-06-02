@@ -16,10 +16,9 @@ public class Evaluations
         var game = Engine.NewGame();
 
         game = Engine.Move(game, "E2", "E4");
-        
         game = Engine.Move(game, "D7", "D5");
-        
         game = Engine.Move(game, "E4", "D5");
+        
         var eval = Engine.Evaluate(game.CurrentPosition);
         eval.Should().Be(100);
     }

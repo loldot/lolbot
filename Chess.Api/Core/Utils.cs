@@ -85,4 +85,21 @@ public static class Utils
         Piece.BlackKing => 'k',
         _ => ' ',
     };
+
+    public static Piece FromName(char name) => name switch
+    {
+        'P' => Piece.WhitePawn ,
+        'N' => Piece.WhiteKnight ,
+        'B' => Piece.WhiteBishop ,
+        'R' => Piece.WhiteRook ,
+        'Q' => Piece.WhiteQueen ,
+        'K' => Piece.WhiteKing ,
+        'p' => Piece.BlackPawn ,
+        'n' => Piece.BlackKnight ,
+        'b' => Piece.BlackBishop ,
+        'r' => Piece.BlackRook ,
+        'q' => Piece.BlackQueen ,
+        'k' => Piece.BlackKing ,
+        _ => Piece.None,
+    };
 }

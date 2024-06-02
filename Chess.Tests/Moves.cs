@@ -17,7 +17,8 @@ public class Moves
             0,0,0,0,0,0,0,0
         ]);
 
-        var pos = new Position() with {
+        var pos = new Position() with
+        {
             WhitePawns = pawnstructure
         };
 
@@ -30,7 +31,60 @@ public class Moves
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0
         ]));
-        
+    }
+
+    [Test]
+    public void LegalPawnFirstPawnMoves()
+    {
+        var pos = new Position();
+        pos.LegalMoves(Piece.WhitePawn).Should().Be(Utils.FromArray([
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            1,1,1,1,1,1,1,1,
+            1,1,1,1,1,1,1,1,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        ]));
+    }
+
+    [Test]
+    public void LegalPawnMovesFrom3rdRank()
+    {
+        var pos = new Position() with
+        {
+            WhitePawns = 0xff0000
+        };
+        var legalMoves = pos.LegalMoves(Piece.WhitePawn);
+        legalMoves.Should().Be(Utils.FromArray([
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            1,1,1,1,1,1,1,1,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        ]));
+    }
+
+    [Test]
+    public void Castle()
+    {
+        var game = Engine.NewGame();
+
+        game = Engine.Move(game, "E2", "E4");
+        game = Engine.Move(game, "E7", "E5");
+        game = Engine.Move(game, "g1", "f3");
+        game = Engine.Move(game, "d7", "d6");
+        game = Engine.Move(game, "f1", "c4");
+        game = Engine.Move(game, "f7", "f5");
+        game = Engine.Move(game, Move.Castle(game.CurrentPlayer));
+        Console.WriteLine(game.CurrentPosition);
+
+        var eval = Engine.Evaluate(game.CurrentPosition);
+        eval.Should().Be(0);
     }
 
     [TestCase("A2", "A4", 8, 24)]
