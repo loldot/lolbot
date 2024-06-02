@@ -8,7 +8,7 @@ public class Pgn
     public async Task CanParseMetadata()
     {
         var pgnFile = File.OpenRead(@"./Testdata/Fischer-Spassky-92.pgn");
-        var reader = new PgnReader();
+        var reader = new PgnSerializer();
         var (_, meta) = await reader.Read(pgnFile);
 
         meta["White"].Should().Be("Fischer, Robert J.");
@@ -19,13 +19,12 @@ public class Pgn
     public async Task CanParseGame()
     {
         var pgnFile = File.OpenRead(@"./Testdata/Fischer-Spassky-92.pgn");
-        var reader = new PgnReader();
+        var reader = new PgnSerializer();
         var (game, _) = await reader.Read(pgnFile);
 
         var move = new Move(
             Utils.SquareFromCoordinates("E2"),
-            Utils.SquareFromCoordinates("E4"),
-            Capture.None
+            Utils.SquareFromCoordinates("E4")
         );
         game.Moves[0].Should().Be(move);
     }

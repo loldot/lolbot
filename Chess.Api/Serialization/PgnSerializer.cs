@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Chess.Api;
 
-public sealed partial class PgnReader
+public sealed partial class PgnSerializer
 {
     public async Task<(Game, GameMetadata)> Read(Stream stream)
     {
@@ -35,8 +35,8 @@ public sealed partial class PgnReader
                 if (PgnScanners.Result().IsMatch(token)) continue;
 
                 Move move;
-                if (token == "O-O" || token == "0-0") move = Move.Castle(game.IsWhitesTurn);
-                else if (token == "O-O-O" || token == "0-0-0") move = Move.QueenSideCastle(game.IsWhitesTurn);
+                if (token == "O-O" || token == "0-0") move = Move.Castle(game.CurrentPlayer);
+                else if (token == "O-O-O" || token == "0-0-0") move = Move.QueenSideCastle(game.CurrentPlayer);
                 else
                 {
                     var match = PgnScanners.SanToken().Match(token);
@@ -47,8 +47,7 @@ public sealed partial class PgnReader
 
                     move = new Move(
                         Utils.SquareFromCoordinates("E2"),
-                        Utils.SquareFromCoordinates(square),
-                        Capture.None
+                        Utils.SquareFromCoordinates(square)
                     );
                 }
 

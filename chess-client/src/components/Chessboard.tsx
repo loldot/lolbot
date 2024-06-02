@@ -1,6 +1,7 @@
 import styled, { css } from "styled-components"
 import Piece from "./Piece";
 import { useEffect, useRef, useState } from "react";
+import { Game } from "../game";
 
 const square_size = css`64px`;
 
@@ -21,38 +22,19 @@ width: calc(8 * ${square_size});
 height: calc(8 * ${square_size});
 `;
 
-const Chessboard = () => {
+export interface ChessboardProps {
+    game?: Game
+}
+
+const Chessboard = ({ game }: ChessboardProps) => {
+    if(!game) return (<>Loading..</>)
+    const { initialPosition, moves } = game; 
     const file = (x: number) => x % 8;
     const rank = (x: number) => 8 - Math.trunc(x / 8);
-    
+
     const ref = useRef(window);
     const [moveNumber, setMoveNumber] = useState(0);
-    const [position, setPosition] = useState<any>({
-        "a2": "R",
-        "a4": "R",
-        "a7": "p",
-        "b5": "P",
-        "c4": "K",
-        "c5": "p",
-        "e8": "k",
-        "f6": "q",
-        "h1": "B",
-        "h8": "r"
-    });
-
-    const moves = [
-        ["a7", "p", "a5", "p"],
-        ["b5", "P", "a6", "P", "a5", "p"],
-        ["f6", "q", "e6", "q"],
-        ["c4", "K", "d3", "K"],
-        ["e6", "q", "a2", "q", "a2", "R"],
-        ["a6", "P", "a7", "P"],
-        ["a2", "q", "a4", "q", "a4", "R"],
-        ["a7", "P", "a8", "Q"],
-        ["a4", "q", "a8", "q", "a8", "Q"],
-        ["h1", "B", "a8", "B", "a8", "q"],
-        ["e8", "k", "g8", "k", "h8", "r" , "f8"],
-    ];
+    const [position, setPosition] = useState<any>(initialPosition);
 
     const canMoveForward = moveNumber < moves.length;
     const canMoveBackwards = moveNumber > 0;
@@ -60,15 +42,15 @@ const Chessboard = () => {
     const doMove = () => {
         if (moveNumber >= moves.length) return;
         const [
-            fromSquare, _, 
-            toSquare, toPiece, 
+            fromSquare, _,
+            toSquare, toPiece,
             captureSquare, capturePiece,
             castleSquare
         ] = moves[moveNumber];
-        const newPosition =  {
-            ...position, 
-            [fromSquare]: undefined, 
-            [captureSquare]: undefined, 
+        const newPosition = {
+            ...position,
+            [fromSquare]: undefined,
+            [captureSquare]: undefined,
             [castleSquare]: capturePiece,
             [toSquare]: toPiece
         };
@@ -81,8 +63,8 @@ const Chessboard = () => {
         if (moveNumber <= 0) return;
 
         const [
-            fromSquare, fromPiece, 
-            toSquare, _, 
+            fromSquare, fromPiece,
+            toSquare, _,
             captureSquare, capturePiece,
             castleSquare
         ] = moves[moveNumber - 1];
@@ -104,7 +86,7 @@ const Chessboard = () => {
             if (e.key === 'ArrowLeft') undoMove();
             else if (e.key === 'ArrowRight') doMove();
         };
-        
+
         ref.current.addEventListener('keydown', keyHandler);
 
         return () => ref.current.removeEventListener('keydown', keyHandler);
