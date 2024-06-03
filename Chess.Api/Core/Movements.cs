@@ -17,23 +17,46 @@ public static class MovePatterns
             KnightMoves[i] = GenerateKnightMoves(i);
         }
     }
-
-    private static ushort[] GenerateKnightMoves(byte i)
+    public static ushort[] GetPseudoLegalMove(Piece piece, Square square)
     {
-        ushort packed = (ushort)(i << 6);
-        ushort tr(int offset)
+        var index = Utils.IndexFromSquare(square);
+        return piece switch
         {
-            int to = offset + i;
-            if (to < 0 || to > 63) return 0;
-            if (Distance(i, (byte)to) > 2) return 0;
+            Piece.WhitePawn => PawnMoves[index],
+            Piece.WhiteKnight => KnightMoves[index],
+            Piece.WhiteBishop => throw new NotImplementedException(),
+            Piece.WhiteRook => throw new NotImplementedException(),
+            Piece.WhiteQueen => throw new NotImplementedException(),
+            Piece.WhiteKing => throw new NotImplementedException(),
+            Piece.BlackPawn => throw new NotFiniteNumberException(),
+            Piece.BlackKnight => KnightMoves[index],
+            Piece.BlackBishop => throw new NotImplementedException(),
+            Piece.BlackRook => throw new NotImplementedException(),
+            Piece.BlackQueen => throw new NotImplementedException(),
+            Piece.BlackKing => throw new NotImplementedException(),
+            _ => []
+        };
+    }
 
-            return (ushort)(packed & to);
+    private static ushort[] GenerateKnightMoves(byte squareIndex)
+    {
+        int count = 0;
+        var moves = new ushort[8];
+
+        int[] offsets = [-17, -15, -10, -6, 6, 10, 15, 17];
+
+        var packed = (ushort)(squareIndex << 6);
+        foreach (var offset in offsets)
+        {
+            int to = offset + squareIndex;
+            if (to < 0 || to > 63) continue;
+            if (Distance(squareIndex, (byte)to) > 2) continue;
+
+            moves[count++] = (ushort)(packed | to);
         }
 
-        return [
-            tr(-17), tr(-15), tr(-10), tr(-6),
-            tr(6), tr(10), tr(15), tr(17)
-        ];
+        Array.Resize(ref moves, count);
+        return moves;
     }
 
     private static int Distance(byte x, byte y)

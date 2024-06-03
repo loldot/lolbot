@@ -31,6 +31,13 @@ public static class Utils
 
     public static Square SquareFromIndex(byte index) => 1ul << index;
     public static byte IndexFromSquare(Square square) => (byte)BitOperations.Log2(square);
+    public static byte IndexFromCoordinate(string coords)
+    {
+        byte file = (byte)(char.ToLowerInvariant(coords[0]) - 'a');
+        byte rank = (byte)(coords[1] - '1');
+
+        return (byte)(rank * 8 + file);
+    }
 
     public static string? CoordinateFromSquare(Square? square)
         => (square is not null)
@@ -126,7 +133,7 @@ public static class Utils
     {
         ushort ret = IndexFromSquare(from);
         ret <<= 6;
-        ret &= IndexFromSquare(to);
-        return  ret;
+        ret |= IndexFromSquare(to);
+        return ret;
     }
 }

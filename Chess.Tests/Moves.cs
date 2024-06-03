@@ -10,13 +10,13 @@ public class Moves
         var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhitePawn);
         startMoves.Should().BeEquivalentTo([
             new Move("a2", "a3"), new Move("a2", "a4"),
-            new Move("b2", "b3"), new Move("b2", "b4"), 
-            new Move("c2", "c3"), new Move("c2", "c4"), 
-            new Move("d2", "d3"), new Move("d2", "d4"), 
-            new Move("e2", "e3"), new Move("e2", "e4"), 
-            new Move("f2", "f3"), new Move("f2", "f4"), 
-            new Move("g2", "g3"), new Move("g2", "g4"), 
-            new Move("h2", "h3"), new Move("h2", "h4"), 
+            new Move("b2", "b3"), new Move("b2", "b4"),
+            new Move("c2", "c3"), new Move("c2", "c4"),
+            new Move("d2", "d3"), new Move("d2", "d4"),
+            new Move("e2", "e3"), new Move("e2", "e4"),
+            new Move("f2", "f3"), new Move("f2", "f4"),
+            new Move("g2", "g3"), new Move("g2", "g4"),
+            new Move("h2", "h3"), new Move("h2", "h4"),
         ]);
     }
 
@@ -52,5 +52,18 @@ public class Moves
 
         move.FromIndex.Should().Be(fromIdx);
         move.ToIndex.Should().Be(toIdx);
+    }
+
+    [TestCase(Piece.WhitePawn, "A2", (string[])["A3", "A4", "B3"])]
+    [TestCase(Piece.WhiteKnight, "A2", (string[])["C1", "C3", "B4"])]
+    public void MoveGen(Piece piece, string square, string[] expectedSquares)
+    {
+        var from = Utils.SquareFromCoordinates(square);
+        var moves = MovePatterns.GetPseudoLegalMove(piece, from);
+        var expectedTargetIndices = expectedSquares.Select(Utils.IndexFromCoordinate);
+
+        moves
+            .Select(x => (byte)(x & 0x3f))
+            .Should().Contain(expectedTargetIndices);
     }
 }
