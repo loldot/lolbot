@@ -1,19 +1,21 @@
-namespace Chess.Api;
+using Lolbot.Core;
+
+namespace Lolbot.Api;
 
 public static class ApiMove
 {
     public static string?[] Create(Move move)
     {
         string?[] basic = [
-                Utils.CoordinateFromIndex(move.FromIndex),
-                Utils.CoordinateFromIndex(move.ToIndex),
+                Squares.CoordinateFromIndex(move.FromIndex),
+                Squares.CoordinateFromIndex(move.ToIndex),
         ];
 
         if (move.CaptureIndex != 0)
         {
             return [
                 ..basic,
-                Utils.CoordinateFromIndex(move.CaptureIndex),
+                Squares.CoordinateFromIndex(move.CaptureIndex),
                 Utils.PieceName(move.CapturePiece).ToString()
             ];
         }
@@ -21,9 +23,9 @@ public static class ApiMove
         {
             return [
                 ..basic,
-                Utils.CoordinateFromIndex(move.CaptureIndex),
+                Squares.CoordinateFromIndex(move.CaptureIndex),
                 Utils.PieceName(move.CapturePiece).ToString(),
-                Utils.CoordinateFromIndex(move.CastleIndex),
+                Squares.CoordinateFromIndex(move.CastleIndex),
             ];
         }
 

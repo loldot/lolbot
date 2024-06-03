@@ -1,6 +1,6 @@
-using Chess.Api;
+using Lolbot.Core;
 
-namespace Chess.Tests;
+namespace Lolbot.Tests;
 
 public class Pgn
 {

@@ -1,4 +1,5 @@
-using Chess.Api;
+using Lolbot.Api;
+using Lolbot.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 

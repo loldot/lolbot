@@ -1,5 +1,5 @@
 
-namespace Chess.Api;
+namespace Lolbot.Core;
 
 public class GameMetadata : Dictionary<string, string>
 {

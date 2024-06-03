@@ -1,8 +1,10 @@
-namespace Chess.Api;
+namespace Lolbot.Core;
 
 public static class MovePatterns
 {
-    public static ulong[] PawnMoves = new ulong[64];
+    public static ulong[] PawnPushes = new ulong[64];
+    public static ulong[] PawnAttacks = new ulong[64];
+
     public static ulong[] KnightMoves = new ulong[64];
     public static ulong[] BishopMoves = new ulong[64];
     public static ulong[] RookMoves = new ulong[64];
@@ -11,8 +13,9 @@ public static class MovePatterns
     {
         for (byte i = 0; i < 64; i++)
         {
-            var square = Utils.SquareFromIndex(i);
-            PawnMoves[i] = PawnAttacks(square) | PawnPush(square);
+            var square = Squares.FromIndex(i);
+            PawnPushes[i] = GetPawnPushes(square);
+            PawnAttacks[i] = GetPawnAttacks(square);
             KnightMoves[i] = GenerateKnightMoves(i);
             BishopMoves[i] = GenerateBishopMoves(i);
             RookMoves[i] = GenerateRookMoves(i);
@@ -62,7 +65,7 @@ public static class MovePatterns
             if (to < 0 || to > 63) continue;
             if (Distance(squareIndex, (byte)to) > 2) continue;
 
-            attacks |= Utils.SquareFromIndex((byte)to);
+            attacks |= Squares.FromIndex((byte)to);
         }
 
         return attacks;
@@ -70,21 +73,21 @@ public static class MovePatterns
 
     private static int Distance(byte x, byte y)
     {
-        var (sx, sy) = (Utils.SquareFromIndex(x), Utils.SquareFromIndex(y));
-        var (r1, r2) = (Utils.GetRank(sx), Utils.GetRank(sy));
-        var (f1, f2) = (Utils.GetFile(sx), Utils.GetFile(sy));
+        var (sx, sy) = (Squares.FromIndex(x), Squares.FromIndex(y));
+        var (r1, r2) = (Squares.GetRank(sx), Squares.GetRank(sy));
+        var (f1, f2) = (Squares.GetFile(sx), Squares.GetFile(sy));
 
         return Math.Max(Math.Abs(r2 - r1), Math.Abs(f2 - f1));
     }
 
-    public static ulong PawnAttacks(ulong pawns)
+    private static ulong GetPawnAttacks(ulong pawns)
     {
         const ulong notAFileMask = 0xfefefefefefefefe;
         const ulong notHFileMask = 0x7f7f7f7f7f7f7f7f;
         return ((pawns << 7) & notHFileMask)
             | ((pawns << 9) & notAFileMask);
     }
-    public static ulong PawnPush(ulong pawns)
+    private static ulong GetPawnPushes(ulong pawns)
     {
         return pawns << 8 | ((pawns & 0xff00) << 16);
     }

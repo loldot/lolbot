@@ -1,6 +1,6 @@
 using System.Numerics;
-using Chess.Api;
-namespace Chess.Tests;
+using Lolbot.Core;
+namespace Lolbot.Tests;
 
 public class Tests
 {
@@ -17,7 +17,7 @@ public class Tests
     [TestCase("h8", 1ul << 63)]
     public void SquareFromCoordinates(string coordinate, ulong value)
     {
-        var square = Utils.SquareFromCoordinates(coordinate);
+        var square = Squares.FromCoordinates(coordinate);
         square.Should().Be(value);
     }
 
@@ -33,7 +33,7 @@ public class Tests
     [TestCase("h8", 1ul << 63)]
     public void GetFilAndRankFromSquare(string coordinate, ulong square)
     {
-        Utils.GetFile(square).Should().Be(coordinate[0]);
-        Utils.GetRank(square).Should().Be(byte.Parse("" + coordinate[1]));
+        Squares.GetFile(square).Should().Be(coordinate[0]);
+        Squares.GetRank(square).Should().Be(byte.Parse("" + coordinate[1]));
     }
 }

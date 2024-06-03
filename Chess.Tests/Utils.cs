@@ -1,6 +1,6 @@
-using Chess.Api;
+using Lolbot.Core;
 
-namespace Chess.Tests;
+namespace Lolbot.Tests;
 
 public class Utilities
 {
@@ -26,7 +26,7 @@ public class Utilities
     public void Test()
     {
         var position = new Position();
-        var fromBlack = Utils.FlipBitboardVertical(position.BlackPawns);
+        var fromBlack = Bitboards.FlipAlongVertical(position.BlackPawns);
 
         fromBlack.Should().Be(position.WhitePawns);
 

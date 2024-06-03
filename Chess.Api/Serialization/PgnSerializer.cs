@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Chess.Api;
+namespace Lolbot.Core;
 
 public sealed partial class PgnSerializer
 {
@@ -48,7 +48,7 @@ public sealed partial class PgnSerializer
                     var disambiguation = match.Groups["disambiguation"].ValueSpan;
                     var coords = match.Groups["square"].ValueSpan;
 
-                    var to = Utils.SquareFromCoordinates(coords);
+                    var to = Squares.FromCoordinates(coords);
                     var from = Disambiguate(game, to, piece, disambiguation);
 
                     move = new Move(from, to);
@@ -72,11 +72,11 @@ public sealed partial class PgnSerializer
 
         foreach (var move in legalMoves)
         {
-            if (Utils.SquareFromIndex(move.ToIndex) == to) 
-                return Utils.SquareFromIndex(move.FromIndex);
+            if (Squares.FromIndex(move.ToIndex) == to) 
+                return Squares.FromIndex(move.FromIndex);
         }
 
-        return Utils.SquareFromCoordinates("E2");
+        return Squares.FromCoordinates("E2");
     }
 
     private static async Task<GameMetadata> ReadTagPairs(TextReader reader)

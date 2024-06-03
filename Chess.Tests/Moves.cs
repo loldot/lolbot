@@ -1,6 +1,6 @@
-using Chess.Api;
+using Lolbot.Core;
 
-namespace Chess.Tests;
+namespace Lolbot.Tests;
 
 public class Moves
 {
@@ -58,8 +58,8 @@ public class Moves
     public void CheckMoveType(string from, string to, byte fromIdx, byte toIdx)
     {
         var move = new Move(
-            Utils.SquareFromCoordinates(from),
-            Utils.SquareFromCoordinates(to)
+            Squares.FromCoordinates(from),
+            Squares.FromCoordinates(to)
         );
 
         move.FromIndex.Should().Be(fromIdx);
@@ -70,45 +70,30 @@ public class Moves
     [TestCase("B1", (string[])["a3", "c3", "d2"])]
     public void KnightMoves(string square, string[] expectedSquares)
     {
-        var from = Utils.IndexFromCoordinate(square);
-        var moves = MovePatterns.KnightMoves[from];
-
-        Utils.BitboardToCoords(moves)
-            .Should().BeEquivalentTo(expectedSquares);
+        VerifyMovePattern(MovePatterns.KnightMoves, square, expectedSquares);
     }
 
-    [TestCase("A2", (string[])["a3", "a4", "b3"])]
-    public void PawnMoves(string square, string[] expectedSquares)
+    [TestCase("A2", (string[])["a3", "a4"])]
+    public void PawnPushes(string square, string[] expectedSquares)
     {
-        var from = Utils.IndexFromCoordinate(square);
-        var moves = MovePatterns.PawnMoves[from];
-
-        Utils.BitboardToCoords(moves)
-            .Should().BeEquivalentTo(expectedSquares);
+        VerifyMovePattern(MovePatterns.PawnPushes, square, expectedSquares);
     }
-
 
     [TestCase("A2", (string[])[
         "a1", "a3", "a4", "a5", "a6", "a7", "a8",
         "b2", "c2", "d2", "e2", "f2", "g2", "h2"
     ])]
-
     [TestCase("E4", (string[])[
         "e1", "e2", "e3", "e5", "e6", "e7", "e8",
         "a4", "b4", "c4", "d4", "f4", "g4", "h4"
     ])]
-
     [TestCase("H8", (string[])[
         "h1", "h2", "h3", "h4", "h5", "h6", "h7",
         "a8", "b8", "c8", "d8", "e8", "f8", "g8"
     ])]
     public void RookMoves(string square, string[] expectedSquares)
     {
-        var from = Utils.IndexFromCoordinate(square);
-        var moves = MovePatterns.RookMoves[from];
-
-        Utils.BitboardToCoords(moves)
-            .Should().BeEquivalentTo(expectedSquares);
+        VerifyMovePattern(MovePatterns.RookMoves, square, expectedSquares);
     }
 
     [TestCase("A2", (string[])[
@@ -123,10 +108,15 @@ public class Moves
     ])]
     public void BishopMoves(string square, string[] expectedSquares)
     {
-        var from = Utils.IndexFromCoordinate(square);
-        var moves = MovePatterns.BishopMoves[from];
+        VerifyMovePattern(MovePatterns.BishopMoves, square, expectedSquares);
+    }
 
-        Utils.BitboardToCoords(moves)
+    private void VerifyMovePattern(ulong[] pattern, string square, string[] expectedSquares)
+    {
+        var from = Squares.IndexFromCoordinate(square);
+        var moves = pattern[from];
+
+        Bitboards.ToCoordinates(moves)
             .Should().BeEquivalentTo(expectedSquares);
     }
 }

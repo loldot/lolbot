@@ -1,6 +1,6 @@
-using Chess.Api;
+using Lolbot.Core;
 
-namespace Chess.Tests;
+namespace Lolbot.Tests;
 
 public class Positions
 {
@@ -15,7 +15,7 @@ public class Positions
     [Test]
     public void FromArray_Should_Set_A1_Squares()
     {
-        var a1 = Utils.FromArray([
+        var a1 = Bitboards.Create((int[])([
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
@@ -24,7 +24,7 @@ public class Positions
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
             1,0,0,0,0,0,0,0,
-        ]);
+        ]));
 
         a1.Should().Be(1);
     }
@@ -32,7 +32,7 @@ public class Positions
     [Test]
     public void FromArray_Should_Set_Squares()
     {
-        var occupiedAtStart = Utils.FromArray([
+        var occupiedAtStart = Bitboards.Create((int[])([
             1,1,1,1,1,1,1,1,
             1,1,1,1,1,1,1,1,
             0,0,0,0,0,0,0,0,
@@ -41,7 +41,7 @@ public class Positions
             0,0,0,0,0,0,0,0,
             1,1,1,1,1,1,1,1,
             1,1,1,1,1,1,1,1,
-        ]);
+        ]));
 
         occupiedAtStart.Should().Be(new Position().Occupied);
     }

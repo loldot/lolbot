@@ -1,5 +1,5 @@
 using System.Text;
-namespace Chess.Api;
+namespace Lolbot.Core;
 
 public class FenSerializer
 {
@@ -10,7 +10,7 @@ public class FenSerializer
         {
             for (char file = 'a'; file <= 'h'; file++)
             {
-                var sq = Utils.SquareFromCoordinates("" + file + rank);
+                var sq = Squares.FromCoordinates("" + file + rank);
 
                 foreach (var piece in Enum.GetValues<Piece>())
                 {

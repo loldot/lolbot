@@ -1,4 +1,5 @@
-using Chess.Api;
+using Lolbot.Api;
+namespace Lolbot.Core;
 
 public class ApiPosition : Dictionary<string, char>
 {
@@ -9,7 +10,7 @@ public class ApiPosition : Dictionary<string, char>
             for (char rank = '8'; rank > '0'; rank--)
             {
                 var coordinate = "" + file + rank;
-                var sq = Utils.SquareFromCoordinates(coordinate);
+                var sq = Squares.FromCoordinates(coordinate);
 
                 if ((sq & position.BlackPawns) != 0) Add(coordinate, 'p');
                 else if ((sq & position.BlackRooks) != 0) Add(coordinate, 'r');

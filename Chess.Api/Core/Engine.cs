@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Chess.Api;
+namespace Lolbot.Core;
 
 public enum Color : byte { None = 0, White = 1, Black = 2 }
 public enum Piece : byte
@@ -36,15 +36,22 @@ public readonly struct Move : IEquatable<Move>
     public readonly Piece PromotionPiece = Piece.None;
 
     public Move(string from, string to) : this(
-        Utils.SquareFromCoordinates(from),
-        Utils.SquareFromCoordinates(to)
+        Squares.FromCoordinates(from),
+        Squares.FromCoordinates(to)
     )
     { }
+
     public Move(Square from, Square to)
     {
         FromIndex = (byte)BitOperations.Log2(from);
         ToIndex = (byte)BitOperations.Log2(to);
     }
+
+    public Move(byte fromIndex, byte toIndex)
+    : this(fromIndex, toIndex, 0, 0, Piece.None, Piece.None) { }
+
+    public Move(byte fromIndex, byte toIndex, byte captureIndex, Piece capturePiece)
+    : this(fromIndex, toIndex, captureIndex, 0, capturePiece, Piece.None) { }
 
 
     public Move(Square from, Square to, Square captureSquare, Piece capturePiece) : this(from, to)
@@ -53,7 +60,7 @@ public readonly struct Move : IEquatable<Move>
         CapturePiece = capturePiece;
     }
 
-    private Move(
+    public Move(
         byte fromIndex,
         byte toIndex,
         byte captureIndex,
@@ -84,7 +91,7 @@ public readonly struct Move : IEquatable<Move>
 
     public override string ToString()
     {
-        return $"{Utils.CoordinateFromIndex(FromIndex)}{Utils.CoordinateFromIndex(ToIndex)}";
+        return $"{Squares.CoordinateFromIndex(FromIndex)}{Squares.CoordinateFromIndex(ToIndex)}";
     }
 
     public bool Equals(Move other)
@@ -96,22 +103,44 @@ public readonly struct Move : IEquatable<Move>
             && CapturePiece == other.CapturePiece
             && PromotionPiece == other.PromotionPiece;
     }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Move && Equals((Move)obj);
+    }
+
+    public static bool operator ==(Move left, Move right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(Move left, Move right)
+    {
+        return !(left == right);
+    }
+
+    public override int GetHashCode()
+    {
+        int firstHalf = FromIndex << 24 | ToIndex << 16;
+        int secondHalf = CastleIndex + CaptureIndex + (int)CapturePiece + (int)PromotionPiece;
+        return firstHalf | (secondHalf & 0xffff);
+    }
 }
 public record Position
 {
     public ulong WhitePawns { get; init; } = 0x000000000000ff00;
-    public ulong WhiteRooks { get; init; } = Utils.Bitboard("A1", "H1");
-    public ulong WhiteBishops { get; init; } = Utils.Bitboard("C1", "F1");
-    public ulong WhiteKnights { get; init; } = Utils.Bitboard("B1", "G1");
-    public ulong WhiteQueens { get; init; } = Utils.Bitboard("D1");
-    public ulong WhiteKing { get; init; } = Utils.Bitboard("E1");
+    public ulong WhiteRooks { get; init; } = Bitboards.Create("A1", "H1");
+    public ulong WhiteBishops { get; init; } = Bitboards.Create("C1", "F1");
+    public ulong WhiteKnights { get; init; } = Bitboards.Create("B1", "G1");
+    public ulong WhiteQueens { get; init; } = Bitboards.Create("D1");
+    public ulong WhiteKing { get; init; } = Bitboards.Create("E1");
 
     public ulong BlackPawns { get; init; } = 0x00ff000000000000;
-    public ulong BlackRooks { get; init; } = Utils.Bitboard("A8", "H8");
-    public ulong BlackBishops { get; init; } = Utils.Bitboard("C8", "F8");
-    public ulong BlackKnights { get; init; } = Utils.Bitboard("B8", "G8");
-    public ulong BlackQueens { get; init; } = Utils.Bitboard("D8");
-    public ulong BlackKing { get; init; } = Utils.Bitboard("E8");
+    public ulong BlackRooks { get; init; } = Bitboards.Create("A8", "H8");
+    public ulong BlackBishops { get; init; } = Bitboards.Create("C8", "F8");
+    public ulong BlackKnights { get; init; } = Bitboards.Create("B8", "G8");
+    public ulong BlackQueens { get; init; } = Bitboards.Create("D8");
+    public ulong BlackKing { get; init; } = Bitboards.Create("E8");
     public ulong EnPassant { get; init; } = 0;
 
     public ulong this[Piece piece]
@@ -134,10 +163,10 @@ public record Position
         };
     }
 
-    public ulong White => Utils.Bitboard(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
-    public ulong Black => Utils.Bitboard(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
+    public ulong White => Bitboards.Create(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
+    public ulong Black => Bitboards.Create(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
 
-    public ulong Occupied => Utils.Bitboard(White, Black);
+    public ulong Occupied => Bitboards.Create(White, Black);
     public ulong Empty => ~Occupied;
 
     public override string ToString()
@@ -147,7 +176,7 @@ public record Position
         {
             for (char file = 'a'; file <= 'h'; file++)
             {
-                var sq = Utils.SquareFromCoordinates("" + file + rank);
+                var sq = Squares.FromCoordinates("" + file + rank);
                 foreach (var p in Enum.GetValues<Piece>())
                 {
                     if ((sq & this[p]) != 0) sb.Append(Utils.PieceName(p));
@@ -182,21 +211,21 @@ public record Position
     {
         if (m.CapturePiece != Piece.None)
         {
-            bitboard &= ~Utils.SquareFromIndex(m.CaptureIndex);
+            bitboard &= ~Squares.FromIndex(m.CaptureIndex);
         }
 
-        var fromSq = Utils.SquareFromIndex(m.FromIndex);
+        var fromSq = Squares.FromIndex(m.FromIndex);
         if ((bitboard & fromSq) != 0)
         {
             bitboard ^= fromSq;
-            bitboard |= Utils.SquareFromIndex(m.ToIndex);
+            bitboard |= Squares.FromIndex(m.ToIndex);
         }
 
         return bitboard;
     }
 
     private static ulong Castle(ulong mask, Move m)
-        => mask & Utils.SquareFromIndex(m.CastleIndex);
+        => mask & Squares.FromIndex(m.CastleIndex);
 
     public Move[] GenerateLegalMoves(Color color, Piece? pieceType)
     {
@@ -222,21 +251,20 @@ public record Position
 
         while (knights != 0)
         {
-            var from = Utils.PopLsb(ref knights);
-            var fromIndex = Utils.IndexFromSquare(from);
+            var fromIndex = Bitboards.PopLsb(ref knights);
 
             var quiets = MovePatterns.KnightMoves[fromIndex] & ~Occupied;
             while (quiets != 0)
             {
-                var to = Utils.PopLsb(ref quiets);
-                moves[count++] = new Move(from, to);
+                var toIndex = Bitboards.PopLsb(ref quiets);
+                moves[count++] = new Move(fromIndex, toIndex);
             }
 
             var attacks = MovePatterns.KnightMoves[fromIndex] & targets;
             while (attacks != 0)
             {
-                var attack = Utils.PopLsb(ref attacks);
-                moves[count++] = new Move(from, attack, attack, Occupant(attack));
+                var attack = Bitboards.PopLsb(ref attacks);
+                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
             }
         }
         return count;
@@ -252,25 +280,26 @@ public record Position
 
         while (pawns != 0)
         {
-            var from = Utils.PopLsb(ref pawns);
-            var pushes = MovePatterns.PawnPush(from) & ~blockers;
+            var sq = Bitboards.PopLsb(ref pawns);
+
+            var pushes = MovePatterns.PawnPushes[sq] & ~blockers;
             while (pushes != 0)
             {
-                var push = Utils.PopLsb(ref pushes);
-                moves[count++] = new Move(from, push);
+                var push = Bitboards.PopLsb(ref pushes);
+                moves[count++] = new Move(sq, push);
             }
 
-            var attacks = MovePatterns.PawnAttacks(from) & (targets | EnPassant);
+            var attacks = MovePatterns.PawnAttacks[sq] & (targets | EnPassant);
             while (attacks != 0)
             {
-                var attack = Utils.PopLsb(ref attacks);
-                moves[count++] = new Move(from, attack, attack, Occupant(attack));
+                var attack = Bitboards.PopLsb(ref attacks);
+                moves[count++] = new Move(sq, attack, attack, GetOccupant(attack));
             }
         }
         return count;
     }
 
-    private Piece Occupant(ulong attack)
+    public Piece GetOccupant(ulong attack)
     {
         foreach (var type in Enum.GetValues<Piece>())
         {
@@ -306,8 +335,8 @@ public class Engine
     {
         return Move(
             game,
-            Utils.SquareFromCoordinates(from),
-            Utils.SquareFromCoordinates(to)
+            Squares.FromCoordinates(from),
+            Squares.FromCoordinates(to)
         );
     }
 
@@ -326,43 +355,21 @@ public class Engine
 
     private static Piece GetCapture(Game game, Square to)
     {
-        if ((game.CurrentPosition.BlackPawns & to) != 0)
-            return Piece.BlackPawn;
-        if ((game.CurrentPosition.BlackBishops & to) != 0)
-            return Piece.BlackBishop;
-        if ((game.CurrentPosition.BlackKnights & to) != 0)
-            return Piece.BlackKnight;
-        if ((game.CurrentPosition.BlackRooks & to) != 0)
-            return Piece.BlackRook;
-        if ((game.CurrentPosition.BlackQueens & to) != 0)
-            return Piece.BlackQueen;
-
-        if ((game.CurrentPosition.WhitePawns & to) != 0)
-            return Piece.WhitePawn;
-        if ((game.CurrentPosition.WhiteBishops & to) != 0)
-            return Piece.WhiteBishop;
-        if ((game.CurrentPosition.WhiteKnights & to) != 0)
-            return Piece.WhiteKnight;
-        if ((game.CurrentPosition.WhiteRooks & to) != 0)
-            return Piece.WhiteRook;
-        if ((game.CurrentPosition.WhiteQueens & to) != 0)
-            return Piece.WhiteQueen;
-
-        return Piece.None;
+        return game.CurrentPosition.GetOccupant(to);
     }
 
     public static int Evaluate(Position position)
     {
-        return Utils.CountBits(position.WhitePawns) * 100
-            + Utils.CountBits(position.WhiteKnights) * 300
-            + Utils.CountBits(position.WhiteBishops) * 325
-            + Utils.CountBits(position.WhiteRooks) * 500
-            + Utils.CountBits(position.BlackQueens) * 900
+        return Bitboards.CountOccupied(position.WhitePawns) * 100
+            + Bitboards.CountOccupied(position.WhiteKnights) * 300
+            + Bitboards.CountOccupied(position.WhiteBishops) * 325
+            + Bitboards.CountOccupied(position.WhiteRooks) * 500
+            + Bitboards.CountOccupied(position.BlackQueens) * 900
 
-            + Utils.CountBits(position.BlackPawns) * -100
-            + Utils.CountBits(position.BlackKnights) * -300
-            + Utils.CountBits(position.BlackBishops) * -325
-            + Utils.CountBits(position.BlackRooks) * -500
-            + Utils.CountBits(position.BlackQueens) * -900;
+            + Bitboards.CountOccupied(position.BlackPawns) * -100
+            + Bitboards.CountOccupied(position.BlackKnights) * -300
+            + Bitboards.CountOccupied(position.BlackBishops) * -325
+            + Bitboards.CountOccupied(position.BlackRooks) * -500
+            + Bitboards.CountOccupied(position.BlackQueens) * -900;
     }
 }
