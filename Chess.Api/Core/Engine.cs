@@ -274,22 +274,22 @@ public record Position
     {
         int count = 0;
 
-        var (pawns, blockers, targets) = (color == Color.White)
-        ? (WhitePawns, White, Black)
-        : (BlackPawns, Black, White);
+        var (pawns, blockers, targets, pushPattern, attackPattern) = (color == Color.White)
+            ? (WhitePawns, White, Black, MovePatterns.WhitePawnPushes, MovePatterns.WhitePawnAttacks)
+            : (BlackPawns, Black, White, MovePatterns.BlackPawnPushes, MovePatterns.BlackPawnAttacks);
 
         while (pawns != 0)
         {
             var sq = Bitboards.PopLsb(ref pawns);
 
-            var pushes = MovePatterns.PawnPushes[sq] & ~blockers;
+            var pushes = pushPattern[sq] & ~blockers;
             while (pushes != 0)
             {
                 var push = Bitboards.PopLsb(ref pushes);
                 moves[count++] = new Move(sq, push);
             }
 
-            var attacks = MovePatterns.PawnAttacks[sq] & (targets | EnPassant);
+            var attacks = attackPattern[sq] & (targets | EnPassant);
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);

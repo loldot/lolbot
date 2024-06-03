@@ -21,6 +21,22 @@ public class Moves
     }
 
     [Test]
+    public void LegalBlackPawnMovesAtStart()
+    {
+        var startMoves = new Position().GenerateLegalMoves(Color.Black, Piece.BlackPawn);
+        startMoves.Should().BeEquivalentTo([
+            new Move("a7", "a6"), new Move("a7", "a5"),
+            new Move("b7", "b6"), new Move("b7", "b5"),
+            new Move("c7", "c6"), new Move("c7", "c5"),
+            new Move("d7", "d6"), new Move("d7", "d5"),
+            new Move("e7", "e6"), new Move("e7", "e5"),
+            new Move("f7", "f6"), new Move("f7", "f5"),
+            new Move("g7", "g6"), new Move("g7", "g5"),
+            new Move("h7", "h6"), new Move("h7", "h5"),
+        ]);
+    }
+
+    [Test]
     public void LegalKnightMovesAtStart()
     {
         var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhiteKnight);
@@ -76,7 +92,7 @@ public class Moves
     [TestCase("A2", (string[])["a3", "a4"])]
     public void PawnPushes(string square, string[] expectedSquares)
     {
-        VerifyMovePattern(MovePatterns.PawnPushes, square, expectedSquares);
+        VerifyMovePattern(MovePatterns.WhitePawnPushes, square, expectedSquares);
     }
 
     [TestCase("A2", (string[])[

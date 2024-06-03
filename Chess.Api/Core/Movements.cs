@@ -2,8 +2,12 @@ namespace Lolbot.Core;
 
 public static class MovePatterns
 {
-    public static ulong[] PawnPushes = new ulong[64];
-    public static ulong[] PawnAttacks = new ulong[64];
+    public static ulong[] WhitePawnPushes = new ulong[64];
+    public static ulong[] WhitePawnAttacks = new ulong[64];
+
+    
+    public static ulong[] BlackPawnPushes = new ulong[64];
+    public static ulong[] BlackPawnAttacks = new ulong[64];
 
     public static ulong[] KnightMoves = new ulong[64];
     public static ulong[] BishopMoves = new ulong[64];
@@ -14,8 +18,10 @@ public static class MovePatterns
         for (byte i = 0; i < 64; i++)
         {
             var square = Squares.FromIndex(i);
-            PawnPushes[i] = GetPawnPushes(square);
-            PawnAttacks[i] = GetPawnAttacks(square);
+            WhitePawnPushes[i] = GetPawnPushes(square);
+            WhitePawnAttacks[i] = GetPawnAttacks(square);
+            BlackPawnPushes[i] = Bitboards.FlipAlongVertical(WhitePawnPushes[i^56]);
+            BlackPawnAttacks[i] = Bitboards.FlipAlongVertical(WhitePawnAttacks[i^56]);
             KnightMoves[i] = GenerateKnightMoves(i);
             BishopMoves[i] = GenerateBishopMoves(i);
             RookMoves[i] = GenerateRookMoves(i);
