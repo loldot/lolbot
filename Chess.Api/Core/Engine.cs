@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -198,12 +197,6 @@ public record Position
 
     private static ulong Castle(ulong mask, Move m)
         => mask & Utils.SquareFromIndex(m.CastleIndex);
-
-    public static ulong[] KnightAttacks = [
-
-    ];
-
-
 
     public Move[] GenerateLegalMoves(Color color, Piece? pieceType)
     {

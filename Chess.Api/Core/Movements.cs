@@ -1,13 +1,11 @@
-
-using System.Numerics;
-
 namespace Chess.Api;
 
 public static class MovePatterns
 {
     public static ulong[] PawnMoves = new ulong[64];
     public static ulong[] KnightMoves = new ulong[64];
-
+    public static ulong[] BishopMoves = new ulong[64];
+    public static ulong[] RookMoves = new ulong[64];
 
     static MovePatterns()
     {
@@ -16,7 +14,40 @@ public static class MovePatterns
             var square = Utils.SquareFromIndex(i);
             PawnMoves[i] = PawnAttacks(square) | PawnPush(square);
             KnightMoves[i] = GenerateKnightMoves(i);
+            BishopMoves[i] = GenerateBishopMoves(i);
+            RookMoves[i] = GenerateRookMoves(i);
         }
+    }
+
+    private static ulong GenerateRookMoves(byte i)
+    {
+        return (GetRank(i) | GetFile(i)) ^ 1ul << i;
+    }
+
+    private static ulong GetRank(int sq) { return 0xfful << (sq & 56); }
+
+    private static ulong GetFile(int sq) { return 0x0101010101010101ul << (sq & 7); }
+
+    static ulong GetDiagonal(int sq)
+    {
+        const ulong maindia = 0x8040201008040201;
+        int diag = 8 * (sq & 7) - (sq & 56);
+        int nort = -diag & (diag >> 31);
+        int sout = diag & (-diag >> 31);
+        return (maindia >> sout) << nort;
+    }
+
+    static ulong GetAntiadiagonal(int sq)
+    {
+        const ulong maindia = 0x0102040810204080;
+        int diag = 56 - 8 * (sq & 7) - (sq & 56);
+        int nort = -diag & (diag >> 31);
+        int sout = diag & (-diag >> 31);
+        return (maindia >> sout) << nort;
+    }
+    private static ulong GenerateBishopMoves(byte sq)
+    {
+        return (GetDiagonal(sq) | GetAntiadiagonal(sq)) ^ 1ul << sq;
     }
 
     private static ulong GenerateKnightMoves(byte squareIndex)
