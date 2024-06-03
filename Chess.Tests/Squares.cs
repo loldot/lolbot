@@ -13,6 +13,7 @@ public class Tests
     [TestCase("e4", 1ul << 28)]
     [TestCase("e5", 1ul << 36)]
     [TestCase("h1", 1ul << 7)]
+    [TestCase("f3", 1ul << 21)]
     [TestCase("h8", 1ul << 63)]
     public void SquareFromCoordinates(string coordinate, ulong value)
     {

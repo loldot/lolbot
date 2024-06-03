@@ -83,9 +83,14 @@ public readonly struct Move : IEquatable<Move>
     public static Move QueenSideCastle(Color color)
         => color == Color.White ? WhiteQueenCastle : BlackQueenCastle;
 
+    public override string ToString()
+    {
+        return $"{Utils.CoordinateFromIndex(FromIndex)}{Utils.CoordinateFromIndex(ToIndex)}";
+    }
+
     public bool Equals(Move other)
     {
-        return FromIndex == other.FromIndex 
+        return FromIndex == other.FromIndex
             && ToIndex == other.ToIndex
             && CaptureIndex == other.CaptureIndex
             && CastleIndex == other.CastleIndex
@@ -205,26 +210,57 @@ public record Position
         var moves = new Move[218];
         var count = 0;
 
-        if (!pieceType.HasValue || ((int)pieceType.Value & 0x1) != 0)
+        if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 1)
             count += AddPawnMoves(color, ref moves);
+        if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 2)
+            count += AddKnightMoves(color, ref moves);
 
         Array.Resize(ref moves, count);
 
         return moves;
     }
 
+    private int AddKnightMoves(Color color, ref Move[] moves)
+    {
+        var count = 0;
+        var (knights, targets) = (color == Color.White)
+            ? (WhiteKnights, Black)
+            : (BlackKnights, White);
+
+        while (knights != 0)
+        {
+            var from = Utils.PopLsb(ref knights);
+            var fromIndex = Utils.IndexFromSquare(from);
+
+            var quiets = MovePatterns.KnightMoves[fromIndex] & ~Occupied;
+            while (quiets != 0)
+            {
+                var to = Utils.PopLsb(ref quiets);
+                moves[count++] = new Move(from, to);
+            }
+
+            var attacks = MovePatterns.KnightMoves[fromIndex] & targets;
+            while (attacks != 0)
+            {
+                var attack = Utils.PopLsb(ref attacks);
+                moves[count++] = new Move(from, attack, attack, Occupant(attack));
+            }
+        }
+        return count;
+    }
+
     private int AddPawnMoves(Color color, ref Move[] moves)
     {
         int count = 0;
 
-        var (pawns, targets) = (color == Color.White)
-        ? (WhitePawns, Black)
-        : (BlackPawns, White);
+        var (pawns, blockers, targets) = (color == Color.White)
+        ? (WhitePawns, White, Black)
+        : (BlackPawns, Black, White);
 
         while (pawns != 0)
         {
             var from = Utils.PopLsb(ref pawns);
-            var pushes = MovePatterns.PawnPush(from);
+            var pushes = MovePatterns.PawnPush(from) & ~blockers;
             while (pushes != 0)
             {
                 var push = Utils.PopLsb(ref pushes);

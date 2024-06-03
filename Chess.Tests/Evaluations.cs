@@ -1,4 +1,6 @@
-namespace Chess.Api;
+using Chess.Api;
+
+namespace Chess.Tests;
 
 public class Evaluations
 {

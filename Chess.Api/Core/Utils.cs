@@ -57,6 +57,20 @@ public static class Utils
         return board;
     }
 
+    public static string[] BitboardToCoords(ulong board)
+    {
+        var squares = new List<string>();
+
+        while (board != 0)
+        {
+            var square = PopLsb(ref board);
+
+            squares.Add(CoordinateFromSquare(square)!);
+        }
+        
+        return [.. squares];
+    }
+
     public static ulong FlipBitboardVertical(ulong bitboard)
     {
         return BinaryPrimitives.ReverseEndianness(bitboard);
@@ -129,11 +143,16 @@ public static class Utils
         _ => Piece.None,
     };
 
-    internal static ushort PackMove(ulong from, ulong to)
+    public static ushort PackMove(ulong from, ulong to)
     {
         ushort ret = IndexFromSquare(from);
         ret <<= 6;
         ret |= IndexFromSquare(to);
         return ret;
+    }
+
+    public static (Square from, Square to) UnpackMove(ushort packed)
+    {
+        return (SquareFromIndex((byte)(packed >> 6)), SquareFromIndex((byte)(packed & 0x3f)));
     }
 }

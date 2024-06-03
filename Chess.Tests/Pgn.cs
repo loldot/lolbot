@@ -22,6 +22,7 @@ public class Pgn
         var reader = new PgnSerializer();
         var (game, _) = await reader.Read(pgnFile);
 
-        game.Moves[0].Should().Be(new Move("E2", "E4"));
+        game.Moves[0].Should().Be(new Move("e2", "e4"));
+        game.Moves[2].Should().Be(new Move("g1", "f3"));
     }
 }

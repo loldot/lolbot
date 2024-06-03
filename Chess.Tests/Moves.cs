@@ -5,7 +5,7 @@ namespace Chess.Tests;
 public class Moves
 {
     [Test]
-    public void CheckLegalMoves()
+    public void LegalPawnMovesAtStart()
     {
         var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhitePawn);
         startMoves.Should().BeEquivalentTo([
@@ -17,6 +17,19 @@ public class Moves
             new Move("f2", "f3"), new Move("f2", "f4"),
             new Move("g2", "g3"), new Move("g2", "g4"),
             new Move("h2", "h3"), new Move("h2", "h4"),
+        ]);
+    }
+
+    [Test]
+    public void LegaalKnightMovesAtStart()
+    {
+        var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhiteKnight);
+        startMoves.Should().BeEquivalentTo([
+            new Move("b1", "a3"),
+            new Move("b1", "c3"),
+
+            new Move("g1", "h3"),
+            new Move("g1", "f3"),
         ]);
     }
 
@@ -33,7 +46,6 @@ public class Moves
         game = Engine.Move(game, "f1", "c4");
         game = Engine.Move(game, "f7", "f5");
         game = Engine.Move(game, Move.Castle(game.CurrentPlayer));
-        Console.WriteLine(game.CurrentPosition);
 
         var eval = Engine.Evaluate(game.CurrentPosition);
         eval.Should().Be(0);
@@ -54,16 +66,24 @@ public class Moves
         move.ToIndex.Should().Be(toIdx);
     }
 
-    [TestCase(Piece.WhitePawn, "A2", (string[])["A3", "A4", "B3"])]
-    [TestCase(Piece.WhiteKnight, "A2", (string[])["C1", "C3", "B4"])]
-    public void MoveGen(Piece piece, string square, string[] expectedSquares)
+    [TestCase("A1", (string[])["b3", "c2"])]
+    [TestCase("B1", (string[])["a3", "c3", "d2"])]
+    public void KnightMoves(string square, string[] expectedSquares)
     {
-        var from = Utils.SquareFromCoordinates(square);
-        var moves = MovePatterns.GetPseudoLegalMove(piece, from);
-        var expectedTargetIndices = expectedSquares.Select(Utils.IndexFromCoordinate);
+        var from = Utils.IndexFromCoordinate(square);
+        var moves = MovePatterns.KnightMoves[from];
 
-        moves
-            .Select(x => (byte)(x & 0x3f))
-            .Should().Contain(expectedTargetIndices);
+        Utils.BitboardToCoords(moves)
+            .Should().BeEquivalentTo(expectedSquares);
+    }
+
+    [TestCase("A2", (string[])["a3", "a4", "b3"])]
+    public void PawnMoves(string square, string[] expectedSquares)
+    {
+        var from = Utils.IndexFromCoordinate(square);
+        var moves = MovePatterns.PawnMoves[from];
+
+        Utils.BitboardToCoords(moves)
+            .Should().BeEquivalentTo(expectedSquares);
     }
 }
