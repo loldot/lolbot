@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.Runtime.Intrinsics.X86;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -34,13 +35,6 @@ public class Utilities
     }
 
     [Test]
-    public unsafe void MoveSize()
-    {
-        sizeof(MM).Should().Be(4);
-    }
-
-
-    [Test]
     public void EP()
     {
         var position = new Position()
@@ -64,20 +58,9 @@ public class Utilities
         position.EnPassant.Should().Be(43);
     }
 
-    public readonly struct MM
+    [Test]
+    public void HasPext()
     {
-        public static BitVector32.Section A = BitVector32.CreateSection(6);
-        public static BitVector32.Section B = BitVector32.CreateSection(6, A);
-        public static BitVector32.Section C = BitVector32.CreateSection(6, B);
-        public static BitVector32.Section D = BitVector32.CreateSection(6, C);
-
-        public readonly BitVector32 X;
-        public MM(byte x, byte y, byte z, byte f)
-        {
-            X[A] = x;
-            X[B] = y;
-            X[C] = z;
-            X[D] = f;
-        }
+        Bmi2.IsSupported.Should().BeTrue();
     }
 }

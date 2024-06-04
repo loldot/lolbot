@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Lolbot.Core;
@@ -49,9 +50,8 @@ public sealed partial class PgnSerializer
                     var coords = match.Groups["square"].ValueSpan;
 
                     var to = Squares.FromCoordinates(coords);
-                    var from = Disambiguate(game, to, piece, disambiguation);
 
-                    move = new Move(from, to);
+                    move = Disambiguate(game, to, piece, disambiguation);
                 }
 
                 game = game with { Moves = [.. game.Moves, move] };
@@ -61,22 +61,31 @@ public sealed partial class PgnSerializer
         return game;
     }
 
-    private static Square Disambiguate(
+    private static Move Disambiguate(
         Game game,
         Square to,
         ReadOnlySpan<char> pieceName,
         ReadOnlySpan<char> disambiguation)
     {
+        if(disambiguation.Length > 0) Debugger.Break();
+
         var piece = Utils.FromName(pieceName[0]);
         var legalMoves = game.CurrentPosition.GenerateLegalMoves(game.CurrentPlayer, piece);
 
-        foreach (var move in legalMoves)
+        char? fileAmbiguity = null;
+        byte? rankAmbiguity = null;
+
+        for (int i = 0; i < disambiguation.Length; i++)
         {
-            if (Squares.FromIndex(move.ToIndex) == to) 
-                return Squares.FromIndex(move.FromIndex);
+            if(char.IsDigit(disambiguation[i])) rankAmbiguity = (byte)(disambiguation[i] - '0');
+            if(char.IsBetween(disambiguation[i], 'a', 'h')) fileAmbiguity = disambiguation[i];
         }
 
-        return Squares.FromCoordinates("E2");
+        return legalMoves
+            .Where(move => Squares.FromIndex(move.ToIndex) == to)
+            .Where(move => fileAmbiguity == null || fileAmbiguity == Squares.GetFile(1ul << move.FromIndex))
+            .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(1ul << move.FromIndex))
+            .FirstOrDefault();
     }
 
     private static async Task<GameMetadata> ReadTagPairs(TextReader reader)

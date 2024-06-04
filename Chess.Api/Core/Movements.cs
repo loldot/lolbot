@@ -1,3 +1,6 @@
+using System.Buffers.Binary;
+using System.Numerics;
+
 namespace Lolbot.Core;
 
 public static class MovePatterns
@@ -54,14 +57,10 @@ public static class MovePatterns
 
     private static ulong GenerateRookMoves(byte i)
     {
-        return (GetRank(i) | GetFile(i)) ^ 1ul << i;
+        return (Bitboards.Masks.GetRank(i) | Bitboards.Masks.GetFile(i)) ^ 1ul << i;
     }
 
-    private static ulong GetRank(int sq) { return 0xfful << (sq & 56); }
-
-    private static ulong GetFile(int sq) { return 0x0101010101010101ul << (sq & 7); }
-
-    static ulong GetDiagonal(int sq)
+    private static ulong GetDiagonal(int sq)
     {
         const ulong maindia = 0x8040201008040201;
         int diag = 8 * (sq & 7) - (sq & 56);
@@ -70,7 +69,7 @@ public static class MovePatterns
         return (maindia >> sout) << nort;
     }
 
-    static ulong GetAntiadiagonal(int sq)
+    private static ulong GetAntiadiagonal(int sq)
     {
         const ulong maindia = 0x0102040810204080;
         int diag = 56 - 8 * (sq & 7) - (sq & 56);
@@ -122,4 +121,52 @@ public static class MovePatterns
         return pawns << 8 | ((pawns & 0xff00) << 16);
     }
 
+    private static ulong OccludedFill(ulong gen, ulong pro, int dir8)
+    {
+        int r = shift[dir8];
+        pro &= avoidWrap[dir8];
+        gen |= pro & BitOperations.RotateLeft(gen, r);
+        pro &= BitOperations.RotateLeft(pro, r);
+        gen |= pro & BitOperations.RotateLeft(gen, 2 * r);
+        pro &= BitOperations.RotateLeft(pro, 2 * r);
+        gen |= pro & BitOperations.RotateLeft(gen, 4 * r);
+        return gen;
+    }
+
+    private static ulong ShiftOne(ulong b, int dir8)
+    {
+        int r = shift[dir8];
+        return BitOperations.RotateLeft(b, r) & avoidWrap[dir8];
+    }
+
+    private static ulong SlidingAttacks(ulong sliders, ulong empty, int dir8)
+    {
+        ulong fill = OccludedFill(sliders, empty, dir8);
+        return ShiftOne(fill, dir8);
+    }
+
+    // positve left, negative right shifts
+    private static readonly int[] shift = { 9, 1, -7, -8, -9, -1, 7, 8 };
+    private static readonly ulong[] avoidWrap =
+    [
+        0xfefefefefefefe00,
+        0xfefefefefefefefe,
+        0x00fefefefefefefe,
+        0x00ffffffffffffff,
+        0x007f7f7f7f7f7f7f,
+        0x7f7f7f7f7f7f7f7f,
+        0x7f7f7f7f7f7f7f00,
+        0xffffffffffffff00
+    ];
+
+
+
+    public static ulong RookAttacks(ulong rooks, ulong empty)
+    {
+        return SlidingAttacks(rooks, empty, 7)
+            | SlidingAttacks(rooks, empty, 1)
+            | SlidingAttacks(rooks, empty, 3)
+            | SlidingAttacks(rooks, empty, 5);
+
+    }
 }

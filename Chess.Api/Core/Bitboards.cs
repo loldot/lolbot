@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
 using System.Collections;
 using System.Numerics;
+using System.Text;
+using Microsoft.Extensions.Primitives;
 
 namespace Lolbot.Core;
 
@@ -12,13 +14,17 @@ public static class Bitboards
     public static class Masks
     {
         public const ulong A_File = 0x0101010101010101;
+        public const ulong H_File = 0x8080808080808080;
         public const ulong Rank_1 = 0xff;
+        public const ulong Rank_8 = 0xFF00000000000000;
 
-        public static ulong GetFile(Square square) => A_File << BitOperations.Log2(square);
-        public static ulong GetFile(byte index) => A_File << index;
+        public const ulong MainDiagonal = 0x8040201008040201;
+        public const ulong MainAntidiagonal = 0x0102040810204080;
+        public const ulong LightSquares = 0x55AA55AA55AA55AA;
+        public const ulong DarkSquares = 0xAA55AA55AA55AA55;
 
-        public static ulong GetRank(Square square) => Rank_1 << BitOperations.Log2(square);
-        public static ulong GetRank(byte index) => Rank_1 << index;
+        public static ulong GetRank(int sq) { return 0xfful << (sq & 56); }
+        public static ulong GetFile(int sq) { return 0x0101010101010101ul << (sq & 7); }
     }
 
     public static int CountOccupied(ulong bitboard)
@@ -86,4 +92,30 @@ public static class Bitboards
     }
 
     public static BitArray ToArray(ulong bitboard) => new(BitConverter.GetBytes(bitboard));
+
+    public static void Debug(ulong bitboard)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"val:{bitboard:X}");
+        sb.AppendLine($"pop: {CountOccupied(bitboard)}");
+
+        sb.AppendLine("+-+-+-+-+-+-+-+-+");
+        for (char rank = '8'; rank > '0'; rank--)
+        {
+            sb.Append('|');
+            for (char file = 'a'; file <= 'h'; file++)
+            {
+                var sq = Squares.FromCoordinates("" + file + rank);
+                var c = ((bitboard & sq) != 0) ? "*|" : " |";
+                sb.Append(c);
+            }
+            sb.AppendLine($"{rank}");
+
+        }
+
+        sb.AppendLine("+-+-+-+-+-+-+-+-+");
+        sb.AppendLine("|a|b|c|d|e|f|g|h|");
+
+        Console.Write(sb);
+    }
 }

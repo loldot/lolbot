@@ -22,7 +22,17 @@ public class Pgn
         var reader = new PgnSerializer();
         var (game, _) = await reader.Read(pgnFile);
 
-        game.Moves[0].Should().Be(new Move("e2", "e4"));
-        game.Moves[2].Should().Be(new Move("g1", "f3"));
+        Move[] expectedMoves = [
+            new Move("e2", "e4"),
+            new Move("e7", "e5"),
+            new Move("g1", "f3"),
+            new Move("b8", "c6"),
+            new Move("f1", "b5"),
+            new Move("a7", "a6"),
+            new Move("b5", "a4")
+        ];
+
+        game.Moves[0..expectedMoves.Length].Should().BeEquivalentTo(expectedMoves);
+        game.Moves[19].Should().Be(new Move("b8", "d7"));
     }
 }

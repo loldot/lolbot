@@ -169,11 +169,11 @@ public record struct Position
         };
     }
 
-    public ulong White => Bitboards.Create(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
-    public ulong Black => Bitboards.Create(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
+    public readonly ulong White => Bitboards.Create(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
+    public readonly ulong Black => Bitboards.Create(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
 
-    public ulong Occupied => Bitboards.Create(White, Black);
-    public ulong Empty => ~Occupied;
+    public readonly ulong Occupied => Bitboards.Create(White, Black);
+    public readonly ulong Empty => ~Occupied;
 
     public override string ToString()
     {
@@ -214,7 +214,7 @@ public record struct Position
         };
     }
 
-    public byte SetEnPassant(Move m)
+    public readonly byte SetEnPassant(Move m)
     {
         var from = 1ul << m.FromIndex;
         var to = 1ul << m.ToIndex;
@@ -327,22 +327,24 @@ public record struct Position
     private int AddRookMoves(Color color, ref Move[] moves)
     {
         var count = 0;
-        var (rooks, targets) = (color == Color.White)
-            ? (WhiteRooks, Black)
-            : (BlackRooks, White);
+        var (rooks, targets, friendlies) = (color == Color.White)
+            ? (WhiteRooks, Black, White)
+            : (BlackRooks, White, Black);
 
         while (rooks != 0)
         {
             var fromIndex = Bitboards.PopLsb(ref rooks);
+            var from = Squares.FromIndex(fromIndex);
 
-            var quiets = MovePatterns.Rooks[fromIndex] & ~Occupied;
+            var valid = MovePatterns.RookAttacks(from, Empty) & ~friendlies;
+            var quiets = valid & ~targets;
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.Rooks[fromIndex] & targets;
+            var attacks = valid & targets;
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
