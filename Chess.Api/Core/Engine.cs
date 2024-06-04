@@ -261,10 +261,95 @@ public record struct Position
             count += AddKnightMoves(color, ref moves);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 3)
             count += AddBishopMoves(color, ref moves);
+        if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 4)
+            count += AddRookMoves(color, ref moves);
+        if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 6)
+            count += AddKingMoves(color, ref moves);
+
 
         Array.Resize(ref moves, count);
 
         return moves;
+    }
+
+    private int GetPseudoLegalMove(ref Move[] moves, ulong[] movepattern, ulong pieces, ulong targets)
+    {
+        var count = 0;
+        while (pieces != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref pieces);
+
+            var quiets = MovePatterns.Rooks[fromIndex] & ~Occupied;
+            while (quiets != 0)
+            {
+                var toIndex = Bitboards.PopLsb(ref quiets);
+                moves[count++] = new Move(fromIndex, toIndex);
+            }
+
+            var attacks = MovePatterns.Rooks[fromIndex] & targets;
+            while (attacks != 0)
+            {
+                var attack = Bitboards.PopLsb(ref attacks);
+                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
+            }
+        }
+        return count;
+    }
+
+    private int AddKingMoves(Color color, ref Move[] moves)
+    {
+        var count = 0;
+        var (rooks, targets) = (color == Color.White)
+            ? (WhiteKing, Black)
+            : (BlackKing, White);
+
+        while (rooks != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref rooks);
+
+            var quiets = MovePatterns.Kings[fromIndex] & ~Occupied;
+            while (quiets != 0)
+            {
+                var toIndex = Bitboards.PopLsb(ref quiets);
+                moves[count++] = new Move(fromIndex, toIndex);
+            }
+
+            var attacks = MovePatterns.Kings[fromIndex] & targets;
+            while (attacks != 0)
+            {
+                var attack = Bitboards.PopLsb(ref attacks);
+                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
+            }
+        }
+        return count;
+    }
+
+    private int AddRookMoves(Color color, ref Move[] moves)
+    {
+        var count = 0;
+        var (rooks, targets) = (color == Color.White)
+            ? (WhiteRooks, Black)
+            : (BlackRooks, White);
+
+        while (rooks != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref rooks);
+
+            var quiets = MovePatterns.Rooks[fromIndex] & ~Occupied;
+            while (quiets != 0)
+            {
+                var toIndex = Bitboards.PopLsb(ref quiets);
+                moves[count++] = new Move(fromIndex, toIndex);
+            }
+
+            var attacks = MovePatterns.Rooks[fromIndex] & targets;
+            while (attacks != 0)
+            {
+                var attack = Bitboards.PopLsb(ref attacks);
+                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
+            }
+        }
+        return count;
     }
 
     private int AddBishopMoves(Color color, ref Move[] moves)
@@ -278,14 +363,14 @@ public record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref bishops);
 
-            var quiets = MovePatterns.BishopMoves[fromIndex] & ~Occupied;
+            var quiets = MovePatterns.Bishops[fromIndex] & ~Occupied;
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.BishopMoves[fromIndex] & targets;
+            var attacks = MovePatterns.Bishops[fromIndex] & targets;
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
@@ -306,14 +391,14 @@ public record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref knights);
 
-            var quiets = MovePatterns.KnightMoves[fromIndex] & ~Occupied;
+            var quiets = MovePatterns.Knights[fromIndex] & ~Occupied;
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.KnightMoves[fromIndex] & targets;
+            var attacks = MovePatterns.Knights[fromIndex] & targets;
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);

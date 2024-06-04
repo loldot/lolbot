@@ -86,7 +86,7 @@ public class Moves
     [TestCase("B1", (string[])["a3", "c3", "d2"])]
     public void KnightMoves(string square, string[] expectedSquares)
     {
-        VerifyMovePattern(MovePatterns.KnightMoves, square, expectedSquares);
+        VerifyMovePattern(MovePatterns.Knights, square, expectedSquares);
     }
 
     [TestCase("A2", (string[])["a3", "a4"])]
@@ -109,7 +109,7 @@ public class Moves
     ])]
     public void RookMoves(string square, string[] expectedSquares)
     {
-        VerifyMovePattern(MovePatterns.RookMoves, square, expectedSquares);
+        VerifyMovePattern(MovePatterns.Rooks, square, expectedSquares);
     }
 
     [TestCase("A2", (string[])[
@@ -124,7 +124,7 @@ public class Moves
     ])]
     public void BishopMoves(string square, string[] expectedSquares)
     {
-        VerifyMovePattern(MovePatterns.BishopMoves, square, expectedSquares);
+        VerifyMovePattern(MovePatterns.Bishops, square, expectedSquares);
     }
 
     private void VerifyMovePattern(ulong[] pattern, string square, string[] expectedSquares)

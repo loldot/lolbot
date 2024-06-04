@@ -11,14 +11,6 @@ public static class ApiMove
                 Squares.CoordinateFromIndex(move.ToIndex),
         ];
 
-        if (move.CaptureIndex != 0)
-        {
-            return [
-                ..basic,
-                Squares.CoordinateFromIndex(move.CaptureIndex),
-                Utils.PieceName(move.CapturePiece).ToString()
-            ];
-        }
         if (move.CastleIndex != 0)
         {
             return [
@@ -28,6 +20,16 @@ public static class ApiMove
                 Squares.CoordinateFromIndex(move.CastleIndex),
             ];
         }
+        
+        if (move.CaptureIndex != 0)
+        {
+            return [
+                ..basic,
+                Squares.CoordinateFromIndex(move.CaptureIndex),
+                Utils.PieceName(move.CapturePiece).ToString()
+            ];
+        }
+
 
         return basic;
     }
