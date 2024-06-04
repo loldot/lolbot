@@ -71,7 +71,7 @@ public class Moves
     [TestCase("E5", "D4", 36, 27)]
     [TestCase("H8", "A1", 63, 0)]
     [TestCase("B1", "H4", 1, 31)]
-    public void CheckMoveType(string from, string to, byte fromIdx, byte toIdx)
+    public void From_Coordinates_Should_Map_To_Indices(string from, string to, byte fromIdx, byte toIdx)
     {
         var move = new Move(
             Squares.FromCoordinates(from),

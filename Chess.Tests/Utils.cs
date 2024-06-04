@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -30,5 +31,53 @@ public class Utilities
 
         fromBlack.Should().Be(position.WhitePawns);
 
+    }
+
+    [Test]
+    public unsafe void MoveSize()
+    {
+        sizeof(MM).Should().Be(4);
+    }
+
+
+    [Test]
+    public void EP()
+    {
+        var position = new Position()
+            .Move(new Move(11, 27));
+        position.EnPassant.Should().Be(19);
+    }
+
+    [Test]
+    public void NEP()
+    {
+        var position = new Position()
+            .Move(new Move(11, 19));
+        position.EnPassant.Should().Be(0);
+    }
+
+    [Test]
+    public void EP_Bl()
+    {
+        var position = new Position()
+            .Move(new Move(51, 35));
+        position.EnPassant.Should().Be(43);
+    }
+
+    public readonly struct MM
+    {
+        public static BitVector32.Section A = BitVector32.CreateSection(6);
+        public static BitVector32.Section B = BitVector32.CreateSection(6, A);
+        public static BitVector32.Section C = BitVector32.CreateSection(6, B);
+        public static BitVector32.Section D = BitVector32.CreateSection(6, C);
+
+        public readonly BitVector32 X;
+        public MM(byte x, byte y, byte z, byte f)
+        {
+            X[A] = x;
+            X[B] = y;
+            X[C] = z;
+            X[D] = f;
+        }
     }
 }

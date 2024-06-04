@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -25,7 +26,7 @@ public enum Piece : byte
 }
 
 
-[StructLayout(LayoutKind.Auto)]
+[StructLayout(LayoutKind.Sequential)]
 public readonly struct Move : IEquatable<Move>
 {
     public readonly byte FromIndex;
@@ -121,12 +122,12 @@ public readonly struct Move : IEquatable<Move>
 
     public override int GetHashCode()
     {
-        int firstHalf = FromIndex << 24 | ToIndex << 16;
+        int firstHalf = FromIndex << 26 | ToIndex << 20;
         int secondHalf = CastleIndex + CaptureIndex + (int)CapturePiece + (int)PromotionPiece;
-        return firstHalf | (secondHalf & 0xffff);
+        return firstHalf | (secondHalf & 0xffffff);
     }
 }
-public record Position
+public record struct Position
 {
     public ulong WhitePawns { get; init; } = 0x000000000000ff00;
     public ulong WhiteRooks { get; init; } = Bitboards.Create("A1", "H1");
@@ -141,7 +142,12 @@ public record Position
     public ulong BlackKnights { get; init; } = Bitboards.Create("B8", "G8");
     public ulong BlackQueens { get; init; } = Bitboards.Create("D8");
     public ulong BlackKing { get; init; } = Bitboards.Create("E8");
-    public ulong EnPassant { get; init; } = 0;
+    public byte EnPassant { get; init; } = 0;
+
+    public Position()
+    {
+
+    }
 
     public ulong this[Piece piece]
     {
@@ -191,6 +197,7 @@ public record Position
     {
         return this with
         {
+            EnPassant = SetEnPassant(m),
             WhitePawns = ApplyMove(WhitePawns, m),
             WhiteBishops = ApplyMove(WhiteBishops, m),
             WhiteKnights = ApplyMove(WhiteKnights, m),
@@ -205,6 +212,22 @@ public record Position
             BlackQueens = ApplyMove(BlackQueens, m),
             BlackKing = ApplyMove(BlackKing, m),
         };
+    }
+
+    public byte SetEnPassant(Move m)
+    {
+        var from = 1ul << m.FromIndex;
+        var to = 1ul << m.ToIndex;
+
+        // Pawn moves leading to en passant has the en passant square
+        // 1 square in front of the start and 1 square behind the target
+        var fromWhite = from & WhitePawns;
+        var enPassant = (fromWhite << 8) & (to >> 8);
+
+        var fromBlack = from & BlackPawns;
+        enPassant ^= (fromBlack >> 8) & (to << 8);
+
+        return Squares.ToIndex(enPassant);
     }
 
     private static ulong ApplyMove(ulong bitboard, Move m)
@@ -236,10 +259,40 @@ public record Position
             count += AddPawnMoves(color, ref moves);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 2)
             count += AddKnightMoves(color, ref moves);
+        if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 3)
+            count += AddBishopMoves(color, ref moves);
 
         Array.Resize(ref moves, count);
 
         return moves;
+    }
+
+    private int AddBishopMoves(Color color, ref Move[] moves)
+    {
+        var count = 0;
+        var (bishops, targets) = (color == Color.White)
+            ? (WhiteBishops, Black)
+            : (BlackBishops, White);
+
+        while (bishops != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref bishops);
+
+            var quiets = MovePatterns.BishopMoves[fromIndex] & ~Occupied;
+            while (quiets != 0)
+            {
+                var toIndex = Bitboards.PopLsb(ref quiets);
+                moves[count++] = new Move(fromIndex, toIndex);
+            }
+
+            var attacks = MovePatterns.BishopMoves[fromIndex] & targets;
+            while (attacks != 0)
+            {
+                var attack = Bitboards.PopLsb(ref attacks);
+                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
+            }
+        }
+        return count;
     }
 
     private int AddKnightMoves(Color color, ref Move[] moves)
@@ -289,7 +342,7 @@ public record Position
                 moves[count++] = new Move(sq, push);
             }
 
-            var attacks = attackPattern[sq] & (targets | EnPassant);
+            var attacks = attackPattern[sq] & (targets | (1ul << EnPassant));
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);

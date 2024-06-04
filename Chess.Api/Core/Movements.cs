@@ -4,7 +4,6 @@ public static class MovePatterns
 {
     public static ulong[] WhitePawnPushes = new ulong[64];
     public static ulong[] WhitePawnAttacks = new ulong[64];
-
     
     public static ulong[] BlackPawnPushes = new ulong[64];
     public static ulong[] BlackPawnAttacks = new ulong[64];
