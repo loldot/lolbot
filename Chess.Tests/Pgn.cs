@@ -34,5 +34,11 @@ public class Pgn
 
         game.Moves[0..expectedMoves.Length].Should().BeEquivalentTo(expectedMoves);
         game.Moves[19].Should().Be(new Move("b8", "d7"));
+        game.Moves[22].Should().Be(new Move(
+            Squares.IndexFromCoordinate("c4"), 
+            Squares.IndexFromCoordinate("b5"),
+            Squares.IndexFromCoordinate("b5"),
+            Piece.BlackPawn
+        ));
     }
 }

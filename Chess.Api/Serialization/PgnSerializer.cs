@@ -67,8 +67,6 @@ public sealed partial class PgnSerializer
         ReadOnlySpan<char> pieceName,
         ReadOnlySpan<char> disambiguation)
     {
-        if(disambiguation.Length > 0) Debugger.Break();
-
         var piece = Utils.FromName(pieceName[0]);
         var legalMoves = game.CurrentPosition.GenerateLegalMoves(game.CurrentPlayer, piece);
 

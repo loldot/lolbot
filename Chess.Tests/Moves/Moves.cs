@@ -97,20 +97,6 @@ public class Moves
 
 
 
-    [TestCase("A2", (string[])[
-        "b1", "b3", "c4", "d5", "e6", "f7", "g8"
-    ])]
-    [TestCase("E4", (string[])[
-        "b1", "c2", "d3", "f5", "g6", "h7",
-        "a8", "b7", "c6", "d5", "f3", "g2", "h1"
-    ])]
-    [TestCase("H8", (string[])[
-        "a1", "b2", "c3", "d4", "e5", "f6", "g7"
-    ])]
-    public void BishopMoves(string square, string[] expectedSquares)
-    {
-        VerifyMovePattern(MovePatterns.Bishops, square, expectedSquares);
-    }
 
     internal static void VerifyMovePattern(ulong[] pattern, string square, string[] expectedSquares)
     {

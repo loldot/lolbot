@@ -1,10 +1,15 @@
 using System.Buffers.Binary;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Lolbot.Core;
 
 public static class MovePatterns
 {
+    const int    NW =  7, N =  8, NE =  9;
+    const int     W = -1, O =  0,  E =  1;
+    const int    SW = -9, S = -8, SE = -7;
+
     public static ulong[] WhitePawnPushes = new ulong[64];
     public static ulong[] WhitePawnAttacks = new ulong[64];
 
@@ -38,9 +43,9 @@ public static class MovePatterns
         var attacks = 0ul;
 
         int[] offsets = [
-            +7, +8, +9
-            -1,/*k*/+1
-            -9, -8, -7
+            NW, N, NE,
+            W,/*k*/ E,
+            SW, S, SE
         ];
 
         foreach (var offset in offsets)
@@ -147,6 +152,7 @@ public static class MovePatterns
 
     // positve left, negative right shifts
     private static readonly int[] shift = { 9, 1, -7, -8, -9, -1, 7, 8 };
+
     private static readonly ulong[] avoidWrap =
     [
         0xfefefefefefefe00,
@@ -159,14 +165,24 @@ public static class MovePatterns
         0xffffffffffffff00
     ];
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static int dir8(int direction) => Array.IndexOf(shift, direction);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong BishopAttacks(ulong bishops, ulong empty)
+    {
+        return SlidingAttacks(bishops, empty, dir8(NE))
+            | SlidingAttacks(bishops, empty, dir8(SE))
+            | SlidingAttacks(bishops, empty, dir8(SW))
+            | SlidingAttacks(bishops, empty, dir8(NW));
+    }
 
     public static ulong RookAttacks(ulong rooks, ulong empty)
     {
-        return SlidingAttacks(rooks, empty, 7)
-            | SlidingAttacks(rooks, empty, 1)
-            | SlidingAttacks(rooks, empty, 3)
-            | SlidingAttacks(rooks, empty, 5);
+        return SlidingAttacks(rooks, empty, dir8(N))
+            | SlidingAttacks(rooks, empty, dir8(E))
+            | SlidingAttacks(rooks, empty, dir8(S))
+            | SlidingAttacks(rooks, empty, dir8(W));
 
     }
 }
