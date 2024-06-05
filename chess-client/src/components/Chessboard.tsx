@@ -1,7 +1,7 @@
 import styled, { css } from "styled-components"
 import Piece from "./Piece";
 import { useEffect, useRef, useState } from "react";
-import { Game } from "../game";
+import { Game, move } from "../game";
 
 const square_size = css`64px`;
 
@@ -41,43 +41,20 @@ const Chessboard = ({ game }: ChessboardProps) => {
 
     const doMove = () => {
         if (moveNumber >= moves.length) return;
-        const [
-            fromSquare,
-            toSquare,
-            captureSquare, capturePiece,
-            castleSquare
-        ] = moves[moveNumber];
-        const toPiece = position[fromSquare];
-        console.log({ fromSquare, toSquare, captureSquare, capturePiece, castleSquare })
-        const newPosition = {
-            ...position,
-            [fromSquare]: undefined,
-            [captureSquare]: undefined,
-            [castleSquare]: capturePiece,
-            [toSquare]: toPiece
-        };
+        const newPosition = move(position, moves[moveNumber]);
 
         setPosition(newPosition);
         setMoveNumber(moveNumber + 1);
     };
 
+
+
     const undoMove = () => {
         if (moveNumber <= 0) return;
 
-        const [
-            fromSquare, fromPiece,
-            toSquare, _,
-            captureSquare, capturePiece,
-            castleSquare
-        ] = moves[moveNumber - 1];
-
-        const newPosition = {
-            ...position,
-            [fromSquare]: fromPiece,
-            [toSquare]: undefined,
-            [castleSquare]: undefined,
-            [captureSquare]: capturePiece,
-        };
+        const newPosition = moves
+            .slice(0, moveNumber - 1)
+            .reduce(move, initialPosition);
 
         setPosition(newPosition);
         setMoveNumber(moveNumber - 1);

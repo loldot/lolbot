@@ -95,6 +95,11 @@ public static class Bitboards
 
     public static void Debug(ulong bitboard)
     {
+        Console.Write(ToDebugString(bitboard));
+    }
+
+    private static string ToDebugString(ulong bitboard)
+    {
         var sb = new StringBuilder();
         sb.AppendLine($"val: 0x{bitboard:X}");
         sb.AppendLine($"pop: {CountOccupied(bitboard)}");
@@ -115,7 +120,6 @@ public static class Bitboards
 
         sb.AppendLine("+-+-+-+-+-+-+-+-+");
         sb.AppendLine("|a|b|c|d|e|f|g|h|");
-
-        Console.Write(sb);
+        return sb.ToString();
     }
 }

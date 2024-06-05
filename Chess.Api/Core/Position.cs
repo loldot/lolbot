@@ -83,7 +83,7 @@ public readonly record struct Position
             BlackPawns = ApplyMove(BlackPawns, m),
             BlackBishops = ApplyMove(BlackBishops, m),
             BlackKnights = ApplyMove(BlackKnights, m),
-            BlackRooks = ApplyMove(BlackRooks, m) | Castle(BlackRooks & 0x7e << 55, m),
+            BlackRooks = ApplyMove(BlackRooks, m) | Castle(0x7e00000000000000, m),
             BlackQueens = ApplyMove(BlackQueens, m),
             BlackKing = ApplyMove(BlackKing, m),
         };

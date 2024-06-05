@@ -22,11 +22,11 @@ public class Rooks
     }
 
     [Test]
-    public void RookBlockersUp( )
+    public void RookBlockersUp()
     {
         var rooks = Bitboards.Create("A1", "H1");
         var blockers = Bitboards.Create("A3", "A4", "C1", "E1", "H6", "H7", "E5");
-        
+
         var rookMoves = MovePatterns.RookAttacks(rooks, ~blockers);
         rookMoves.Should().Be(Bitboards.Create((int[])[
             0,0,0,0,0,0,0,0,
@@ -38,5 +38,25 @@ public class Rooks
             1,0,0,0,0,0,0,1,
             0,1,1,0,1,1,1,0
         ]));
+    }
+
+    [Test]
+    public void BlackCastle()
+    {
+        var g = new Game(new Position(), [
+            new Move("e2", "e4"),
+            new Move("e7", "e5"),
+            new Move("d2", "d4"),
+            new Move("f8", "d6"),
+            new Move("d4", "d5"),
+            new Move("g8", "f6"),
+            new Move("f2", "f3"),
+            Move.Castle(Color.Black)
+        ]);
+        var rooks = g.CurrentPosition.BlackRooks;
+        Bitboards.Debug(rooks);
+        
+        rooks.Should().Be(Bitboards.Create("a8", "f8"));
+
     }
 }

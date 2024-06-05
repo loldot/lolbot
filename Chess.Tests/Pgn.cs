@@ -40,5 +40,12 @@ public class Pgn
             Squares.IndexFromCoordinate("b5"),
             Piece.BlackPawn
         ));
+
+        game.Moves[47].Should().Be(new Move(
+            Squares.IndexFromCoordinate("f8"), 
+            Squares.IndexFromCoordinate("f7"),
+            Squares.IndexFromCoordinate("f7"),
+            Piece.WhiteBishop
+        ));
     }
 }
