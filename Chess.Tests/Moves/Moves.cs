@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -18,6 +19,17 @@ public class Moves
             new Move("g2", "g3"), new Move("g2", "g4"),
             new Move("h2", "h3"), new Move("h2", "h4"),
         ]);
+    }
+
+    [Test]
+    public void Should_Have_10_Legal_Moves_At_Start()
+    {
+        var sw = Stopwatch.StartNew();
+        var moves = new Position()
+            .GenerateLegalMoves(Color.White);
+        sw.Stop();
+        Console.WriteLine(sw.ElapsedTicks);
+        moves.Should().HaveCount(20);
     }
 
     [Test]

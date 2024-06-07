@@ -125,30 +125,29 @@ public readonly record struct Position
     private static ulong Castle(ulong mask, Move m)
         => mask & Squares.FromIndex(m.CastleIndex);
 
-    public Move[] GenerateLegalMoves(Color color, Piece? pieceType)
+    public Move[] GenerateLegalMoves(Color color, Piece? pieceType = null)
     {
-        var moves = new Move[218];
+        const int max_moves = 218;
+        Memory<Move> moves = new Move[max_moves];
         var count = 0;
 
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 1)
-            count += AddPawnMoves(color, ref moves);
+            count += AddPawnMoves(color, moves.Slice(count, max_moves).Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 2)
-            count += AddKnightMoves(color, ref moves);
+            count += AddKnightMoves(color, moves.Slice(count, max_moves - count).Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 3)
-            count += AddBishopMoves(color, ref moves);
+            count += AddBishopMoves(color, moves.Slice(count, max_moves - count).Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 4)
-            count += AddRookMoves(color, ref moves);
+            count += AddRookMoves(color, moves.Slice(count, max_moves - count).Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 5)
-            count += AddQueenMoves(color, ref moves);
+            count += AddQueenMoves(color, moves.Slice(count, max_moves - count).Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 6)
-            count += AddKingMoves(color, ref moves);
+            count += AddKingMoves(color, moves.Slice(count, max_moves - count).Span);
 
-        Array.Resize(ref moves, count);
-
-        return moves;
+        return moves.Slice(0, count).ToArray();
     }
 
-    private int AddQueenMoves(Color color, ref Move[] moves)
+    private int AddQueenMoves(Color color, Span<Move> moves)
     {
         var count = 0;
         var (rooks, targets, friendlies) = (color == Color.White)
@@ -182,7 +181,7 @@ public readonly record struct Position
         return count;
     }
 
-    private int AddKingMoves(Color color, ref Move[] moves)
+    private int AddKingMoves(Color color, Span<Move> moves)
     {
         var count = 0;
         var (rooks, targets) = (color == Color.White)
@@ -210,7 +209,7 @@ public readonly record struct Position
         return count;
     }
 
-    private int AddRookMoves(Color color, ref Move[] moves)
+    private int AddRookMoves(Color color, Span<Move> moves)
     {
         var count = 0;
         var (rooks, targets, friendlies) = (color == Color.White)
@@ -240,7 +239,7 @@ public readonly record struct Position
         return count;
     }
 
-    private int AddBishopMoves(Color color, ref Move[] moves)
+    private int AddBishopMoves(Color color, Span<Move> moves)
     {
         var count = 0;
         var (bishops, targets, friendlies) = (color == Color.White)
@@ -270,7 +269,7 @@ public readonly record struct Position
         return count;
     }
 
-    private int AddKnightMoves(Color color, ref Move[] moves)
+    private int AddKnightMoves(Color color, Span<Move> moves)
     {
         var count = 0;
         var (knights, targets) = (color == Color.White)
@@ -298,7 +297,7 @@ public readonly record struct Position
         return count;
     }
 
-    private int AddPawnMoves(Color color, ref Move[] moves)
+    private int AddPawnMoves(Color color, Span<Move> moves)
     {
         int count = 0;
 

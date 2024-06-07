@@ -5,7 +5,7 @@ import { Game, move } from "../game";
 
 const square_size = css`64px`;
 
-const Square = styled.div<{ dark: boolean; selected : boolean; isLegal: boolean }>`
+const Square = styled.div<{ dark: boolean; selected: boolean; isLegal: boolean }>`
 background: ${props => props.dark ? "#b58863" : "#f0d9b5"};
 ${({ selected }) => selected && `
      box-shadow: 0px 0px 25px #baca44 inset;
@@ -80,9 +80,23 @@ const Chessboard = ({ game }: ChessboardProps) => {
         return () => ref.current.removeEventListener('keydown', keyHandler);
     }, [moveNumber, position])
 
-    const choosePiece = (id : string) => {
+    useEffect(() => {
+        const getLegalMoves = async () => {
+            if (!selectedSquare) return;
+
+            const piece = m.get(selectedSquare);
+            const result = await fetch(`https://localhost:7097/game/legal-moves/${selectedSquare}/${piece}`);
+            if (result.status === 200){
+                const moves = await result.json();
+                setIsLegal(moves);
+            }
+        };
+        getLegalMoves();
+    }, [selectedSquare])
+
+    const choosePiece = (id: string) => {
         const newSelection = m.has(id) ? id : '';
-        setSelectedSquare(newSelection); 
+        setSelectedSquare(newSelection);
     }
 
 
@@ -104,11 +118,11 @@ const Chessboard = ({ game }: ChessboardProps) => {
                     const r = rank(i);
                     const id = "abcdefgh"[f] + r;
 
-                    return (<Square key={id} 
+                    return (<Square key={id}
                         dark={(f % 2) !== (r % 2)}
                         selected={id === selectedSquare}
                         isLegal={isLegal.includes(id)}
-                        onClick={()=> choosePiece(id)}
+                        onClick={() => choosePiece(id)}
                         onDragEnter={onDragEnter}
                         onDragOver={onDragEnter}
                         onDrop={onDrop}>

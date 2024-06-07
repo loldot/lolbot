@@ -12,7 +12,8 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors(opts => {
+    app.UseCors(opts =>
+    {
         opts.WithOrigins("http://localhost:5173")
         .AllowAnyHeader()
         .AllowAnyMethod();
@@ -22,10 +23,33 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.MapGet("/game/legal-moves/{square}/{piece}", (string square, string piece) => {
-    
+
+app.MapGet("/game/legal-moves/", () =>
+{
+    var game = Engine.NewGame();
+
+    var moves = game.CurrentPosition
+        .GenerateLegalMoves(Color.White)
+        .Select(x => (string[])[Squares.CoordinateFromIndex(x.FromIndex)!, Squares.CoordinateFromIndex(x.ToIndex)!])
+        .ToArray();
+
+    return Results.Ok(moves);
 });
-app.MapGet("/game/{id}", async (string id) => {
+
+app.MapGet("/game/legal-moves/{square}/{piece}", (string square, string piece) =>
+{
+    var game = Engine.NewGame();
+
+    var moves = game.CurrentPosition
+        .GenerateLegalMoves(Color.White, Utils.FromName(piece[0]))
+        .Where(x => Squares.IndexFromCoordinate(square) == x.FromIndex)
+        .Select(x => Squares.CoordinateFromIndex(x.ToIndex))
+        .ToArray();
+
+    return Results.Ok(moves);
+});
+app.MapGet("/game/{id}", async (string id) =>
+{
     var pgn = @"""
 [Event ""F/S Return Match""]
 [Site ""Belgrade, Serbia JUG""]
