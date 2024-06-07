@@ -22,7 +22,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.MapGet("/game/legal-moves/{square}/{piece}", (string square, string piece) => {
+    
+});
 app.MapGet("/game/{id}", async (string id) => {
     var pgn = @"""
 [Event ""F/S Return Match""]

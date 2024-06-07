@@ -29,8 +29,16 @@ const Chessmen = new Map<string, string>([
 
 const Piece = ({ value } : { value : string | undefined}) => {
     const source = value ? Chessmen.get(value) : value; 
+
+    const startDrag = (e : DragEvent<HTMLImageElement>)=> {
+        console.log(e);
+        e.dataTransfer.setData("textPlain", value);
+        e.dataTransfer.dropEffect = "move";
+
+    }
+
     return (source) 
-        ? <img src={source} alt={value} />
+        ? <img src={source} alt={value} draggable onDragStart={startDrag} />
         : <></>;
 }
 

@@ -24,7 +24,6 @@ export const move = (position : Position, move : Move) : Position => {
         castleSquare
     ] = move;
     const toPiece = position[fromSquare];
-    console.log({ fromSquare, toSquare, captureSquare, capturePiece, castleSquare })
     return {
         ...position,
         [fromSquare]: undefined,

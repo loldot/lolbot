@@ -5,8 +5,14 @@ import { Game, move } from "../game";
 
 const square_size = css`64px`;
 
-const Square = styled.div<{ dark: boolean; }>`
+const Square = styled.div<{ dark: boolean; selected : boolean; isLegal: boolean }>`
 background: ${props => props.dark ? "#b58863" : "#f0d9b5"};
+${({ selected }) => selected && `
+     box-shadow: 0px 0px 25px #baca44 inset;
+  `}
+${({ isLegal }) => isLegal && `
+     box-shadow: 0px 0px 25px #add8e6 inset;
+  `}
 display: flex;
 align-items: center;
 justify-content: center;
@@ -33,6 +39,9 @@ const Chessboard = ({ game }: ChessboardProps) => {
     const rank = (x: number) => 8 - Math.trunc(x / 8);
 
     const ref = useRef(window);
+    const [selectedSquare, setSelectedSquare] = useState("e2");
+    const [isLegal, setIsLegal] = useState(["e3", "e4"]);
+
     const [moveNumber, setMoveNumber] = useState(0);
     const [position, setPosition] = useState<any>(initialPosition);
 
@@ -71,7 +80,21 @@ const Chessboard = ({ game }: ChessboardProps) => {
         return () => ref.current.removeEventListener('keydown', keyHandler);
     }, [moveNumber, position])
 
+    const choosePiece = (id : string) => {
+        const newSelection = m.has(id) ? id : '';
+        setSelectedSquare(newSelection); 
+    }
+
+
     const m = new Map<string, string>(Object.entries(position));
+
+    const onDragEnter = (e: DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+    };
+    const onDrop = (e: DragEvent<HTMLDivElement>) => {
+        console.log(e);
+        e.preventDefault();
+    };
 
     return (
         <div>
@@ -81,7 +104,14 @@ const Chessboard = ({ game }: ChessboardProps) => {
                     const r = rank(i);
                     const id = "abcdefgh"[f] + r;
 
-                    return (<Square key={id} dark={(f % 2) !== (r % 2)}>
+                    return (<Square key={id} 
+                        dark={(f % 2) !== (r % 2)}
+                        selected={id === selectedSquare}
+                        isLegal={isLegal.includes(id)}
+                        onClick={()=> choosePiece(id)}
+                        onDragEnter={onDragEnter}
+                        onDragOver={onDragEnter}
+                        onDrop={onDrop}>
                         <Piece value={m.get(id)} />
                     </Square>)
                 })
