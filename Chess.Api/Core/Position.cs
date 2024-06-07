@@ -132,19 +132,19 @@ public readonly record struct Position
         var count = 0;
 
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 1)
-            count += AddPawnMoves(color, moves.Slice(count, max_moves).Span);
+            count += AddPawnMoves(color, moves.Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 2)
-            count += AddKnightMoves(color, moves.Slice(count, max_moves - count).Span);
+            count += AddKnightMoves(color, moves[count..].Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 3)
-            count += AddBishopMoves(color, moves.Slice(count, max_moves - count).Span);
+            count += AddBishopMoves(color, moves[count..].Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 4)
-            count += AddRookMoves(color, moves.Slice(count, max_moves - count).Span);
+            count += AddRookMoves(color, moves[count..].Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 5)
-            count += AddQueenMoves(color, moves.Slice(count, max_moves - count).Span);
+            count += AddQueenMoves(color, moves[count..].Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 6)
-            count += AddKingMoves(color, moves.Slice(count, max_moves - count).Span);
+            count += AddKingMoves(color, moves[count..].Span);
 
-        return moves.Slice(0, count).ToArray();
+        return moves[..count].ToArray();
     }
 
     private int AddQueenMoves(Color color, Span<Move> moves)

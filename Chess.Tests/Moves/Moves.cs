@@ -22,14 +22,20 @@ public class Moves
     }
 
     [Test]
-    public void Should_Have_10_Legal_Moves_At_Start()
+    public void Each_Player_Should_Have_20_Legal_Moves_From_Start_Position()
     {
+        var position = new Position();
         var sw = Stopwatch.StartNew();
-        var moves = new Position()
+        var whiteMoves = position
             .GenerateLegalMoves(Color.White);
+
+        var blackMoves = position
+            .GenerateLegalMoves(Color.Black);
+
         sw.Stop();
         Console.WriteLine(sw.ElapsedTicks);
-        moves.Should().HaveCount(20);
+        whiteMoves.Should().HaveCount(20);
+        blackMoves.Should().HaveCount(20);
     }
 
     [Test]
