@@ -33,6 +33,13 @@ public static class ApiMove
 
         return basic;
     }
+
+    public static Move Parse(string[] movedata)
+    {
+        if (movedata.Length < 2) throw new ArgumentException("Invalid movedata");
+        
+        return new Move(movedata[0], movedata[1]);
+    }
 }
 
 public class ApiGame

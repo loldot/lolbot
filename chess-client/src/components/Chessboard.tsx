@@ -1,7 +1,7 @@
 import styled, { css } from "styled-components"
 import Piece from "./Piece";
 import { useEffect, useRef, useState } from "react";
-import { Game, move } from "../game";
+import { Game, Move, Position, move } from "../game";
 
 const square_size = css`64px`;
 
@@ -29,12 +29,15 @@ height: calc(8 * ${square_size});
 `;
 
 export interface ChessboardProps {
+    seq: number,
     game?: Game
 }
 
-const Chessboard = ({ game }: ChessboardProps) => {
+const Chessboard = ({ game, seq }: ChessboardProps) => {
     if (!game) return (<>Loading..</>)
-    const { initialPosition, moves } = game;
+    const { initialPosition } = game;
+    const [moves, setMoves] = useState(game.moves);
+
     const file = (x: number) => x % 8;
     const rank = (x: number) => 8 - Math.trunc(x / 8);
 
@@ -43,20 +46,17 @@ const Chessboard = ({ game }: ChessboardProps) => {
     const [isLegal, setIsLegal] = useState(["e3", "e4"]);
 
     const [moveNumber, setMoveNumber] = useState(0);
-    const [position, setPosition] = useState<any>(initialPosition);
+    const [position, setPosition] = useState<Position>(initialPosition);
 
     const canMoveForward = moveNumber < moves.length;
     const canMoveBackwards = moveNumber > 0;
 
     const doMove = () => {
         if (moveNumber >= moves.length) return;
-        const newPosition = move(position, moves[moveNumber]);
 
-        setPosition(newPosition);
+        setPosition(prev => move(prev, moves[moveNumber]));
         setMoveNumber(moveNumber + 1);
     };
-
-
 
     const undoMove = () => {
         if (moveNumber <= 0) return;
@@ -67,6 +67,13 @@ const Chessboard = ({ game }: ChessboardProps) => {
 
         setPosition(newPosition);
         setMoveNumber(moveNumber - 1);
+    };
+
+    const sendDebug = async () => {
+        const result = await fetch(`https://localhost:7097/game/${seq}/debug`);
+        if (result.status === 204) {
+            console.log(result.statusText);
+        }
     };
 
     useEffect(() => {
@@ -85,8 +92,8 @@ const Chessboard = ({ game }: ChessboardProps) => {
             if (!selectedSquare) return;
 
             const piece = m.get(selectedSquare);
-            const result = await fetch(`https://localhost:7097/game/legal-moves/${selectedSquare}/${piece}`);
-            if (result.status === 200){
+            const result = await fetch(`https://localhost:7097/game/${seq}/legal-moves/${selectedSquare}/${piece}`);
+            if (result.status === 200) {
                 const moves = await result.json();
                 setIsLegal(moves);
             }
@@ -99,14 +106,32 @@ const Chessboard = ({ game }: ChessboardProps) => {
         setSelectedSquare(newSelection);
     }
 
-
     const m = new Map<string, string>(Object.entries(position));
+
+    const onDragStart = (e: DragEvent<HTMLDivElement>, id: string) => {
+        e.dataTransfer.setData("text/plain", id);
+    };
 
     const onDragEnter = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
     };
-    const onDrop = (e: DragEvent<HTMLDivElement>) => {
-        console.log(e);
+    const onDrop = (e: DragEvent<HTMLDivElement>, id: string) => {
+        const from = e.dataTransfer.getData("text/plain") as string;
+        const to = id;
+
+        const m = [from, to] as Move;
+        setMoves(prev => [...prev, m]);
+        setPosition(prev => move(prev, m));
+        setMoveNumber(prev => prev + 1);
+
+        fetch(`https://localhost:7097/game/${seq}`, { 
+            method: 'POST', 
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(m) 
+        });
+
         e.preventDefault();
     };
 
@@ -123,9 +148,10 @@ const Chessboard = ({ game }: ChessboardProps) => {
                         selected={id === selectedSquare}
                         isLegal={isLegal.includes(id)}
                         onClick={() => choosePiece(id)}
+                        onDragStart={(e) => onDragStart(e, id)}
                         onDragEnter={onDragEnter}
                         onDragOver={onDragEnter}
-                        onDrop={onDrop}>
+                        onDrop={(e) => onDrop(e, id)}>
                         <Piece value={m.get(id)} />
                     </Square>)
                 })
@@ -133,6 +159,7 @@ const Chessboard = ({ game }: ChessboardProps) => {
             </BoardContainer>
             <button onClick={() => undoMove()} disabled={!canMoveBackwards} >Back</button>
             <button onClick={() => doMove()} disabled={!canMoveForward} >Next</button>
+            <button onClick={() => sendDebug()}  >Debug</button>
         </div>
     )
 }

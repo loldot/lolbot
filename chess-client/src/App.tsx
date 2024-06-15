@@ -1,23 +1,15 @@
-import { useEffect, useState } from 'react'
-import Chessboard from './components/Chessboard'
-import { Game } from './game';
+import { Suspense } from 'react';
 
-function App() {
-  const [gameId, setGameId] = useState("asd");
-  const [game, setGame] = useState<Game>();
+import routes from '~react-pages';
+import { useRoutes } from 'react-router';
 
-  useEffect(() => {
-    const loadData = async () => {
-      const result = await fetch(`https://localhost:7097/game/${gameId}`);
-      if (result.status === 200) {
-        const data = await result.json();
-        setGame(data);
-      }
-    };
-    loadData();
-  }, [gameId])
-
-  return (<Chessboard game={game} />)
+const App = () => {
+  console.log(routes);
+  return (
+    <Suspense fallback={<p>Loading...</p>}>
+      {useRoutes(routes)}
+    </Suspense>
+  );
 }
 
 export default App

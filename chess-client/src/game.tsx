@@ -11,8 +11,8 @@ export interface Position {
 }
 
 export type Move = [
-    fromSquare: string, fromPiece: string,
-    toSquare: string, toPiece: string,
+    fromSquare: string,
+    toSquare: string,
     captureSquare?: string, capturePiece?: string,
     castleSquare?: string];
 
@@ -27,7 +27,7 @@ export const move = (position : Position, move : Move) : Position => {
     return {
         ...position,
         [fromSquare]: undefined,
-        [captureSquare]: undefined,
+        [captureSquare || '_']: undefined,
         [castleSquare || '_']: capturePiece,
         [toSquare]: toPiece
     } as Position;
