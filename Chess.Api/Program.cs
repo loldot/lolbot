@@ -72,8 +72,7 @@ app.MapPost("/game/{seq}", (int seq, string[] movedata) =>
     var game = GameDatabase.Instance.Get(seq);
     if (game is null) return Results.NotFound();
 
-    var move = ApiMove.Parse(movedata);
-    var updated = Engine.Move(game, move);
+    var updated = Engine.Move(game, movedata[0], movedata[1]);
 
     GameDatabase.Instance.Update(seq, updated);
     return Results.Ok(new ApiGame(updated));
@@ -94,7 +93,9 @@ app.MapGet("/game/{seq}/debug", (int seq) =>
     }
 
     Console.WriteLine("En passant:");
-    Bitboards.Debug(game.CurrentPosition.EnPassant);
+    Bitboards.Debug(1ul << game.CurrentPosition.EnPassant);
+
+    Console.WriteLine("Evaluation: {0}", Engine.Evaluate(game.CurrentPosition));
 
     return Results.NoContent();
 });

@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -6,9 +5,9 @@ namespace Lolbot.Core;
 
 public static class MovePatterns
 {
-    const int    NW =  7, N =  8, NE =  9;
-    const int     W = -1, O =  0,  E =  1;
-    const int    SW = -9, S = -8, SE = -7;
+    const int NW = 7, N = 8, NE = 9;
+    const int W = -1, O = 0, E = 1;
+    const int SW = -9, S = -8, SE = -7;
 
     public static ulong[] WhitePawnPushes = new ulong[64];
     public static ulong[] WhitePawnAttacks = new ulong[64];
@@ -29,12 +28,17 @@ public static class MovePatterns
             var square = Squares.FromIndex(i);
             WhitePawnPushes[i] = GetPawnPushes(square);
             WhitePawnAttacks[i] = GetPawnAttacks(square);
-            BlackPawnPushes[i] = Bitboards.FlipAlongVertical(WhitePawnPushes[i ^ 56]);
-            BlackPawnAttacks[i] = Bitboards.FlipAlongVertical(WhitePawnAttacks[i ^ 56]);
             Knights[i] = GenerateKnightMoves(i);
             Bishops[i] = GenerateBishopMoves(i);
             Rooks[i] = GenerateRookMoves(i);
             Kings[i] = GenerateKingMoves(i);
+        }
+
+        // need to run after generating all squares for white 
+        for (int i = 0; i < 64; i++)
+        {
+            BlackPawnPushes[i] = Bitboards.FlipAlongVertical(WhitePawnPushes[i ^ 56]);
+            BlackPawnAttacks[i] = Bitboards.FlipAlongVertical(WhitePawnAttacks[i ^ 56]);
         }
     }
 

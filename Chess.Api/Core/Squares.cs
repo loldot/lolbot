@@ -1,5 +1,4 @@
 using System.Numerics;
-using Lolbot.Core;
 
 ///<summary>
 /// Provide utility methods for squares (ulong) using 

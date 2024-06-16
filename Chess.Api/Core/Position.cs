@@ -301,15 +301,15 @@ public readonly record struct Position
     {
         int count = 0;
 
-        var (pawns, blockers, targets, pushPattern, attackPattern) = (color == Color.White)
-            ? (WhitePawns, White, Black, MovePatterns.WhitePawnPushes, MovePatterns.WhitePawnAttacks)
-            : (BlackPawns, Black, White, MovePatterns.BlackPawnPushes, MovePatterns.BlackPawnAttacks);
+        var (pawns, targets, pushPattern, attackPattern) = (color == Color.White)
+            ? (WhitePawns, Black, MovePatterns.WhitePawnPushes, MovePatterns.WhitePawnAttacks)
+            : (BlackPawns, White, MovePatterns.BlackPawnPushes, MovePatterns.BlackPawnAttacks);
 
         while (pawns != 0)
         {
             var sq = Bitboards.PopLsb(ref pawns);
 
-            var pushes = pushPattern[sq] & ~blockers;
+            var pushes = pushPattern[sq] & Empty;
             while (pushes != 0)
             {
                 var push = Bitboards.PopLsb(ref pushes);

@@ -2,7 +2,6 @@ using System.Buffers.Binary;
 using System.Collections;
 using System.Numerics;
 using System.Text;
-using Microsoft.Extensions.Primitives;
 
 namespace Lolbot.Core;
 

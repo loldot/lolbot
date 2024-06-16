@@ -1,7 +1,5 @@
-using System.Collections.Specialized;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace Lolbot.Core;
 
@@ -139,6 +137,12 @@ public record Game(Position InitialPosition, Move[] Moves)
         return position;
     }
 
+    public bool IsLegalMove(Move move)
+    {
+        return CurrentPosition
+            .GenerateLegalMoves(CurrentPlayer)
+            .Contains(move);
+    }
 }
 
 
@@ -165,6 +169,8 @@ public class Engine
 
     public static Game Move(Game game, Move move)
     {
+        if (!game.IsLegalMove(move)) throw new ArgumentException("Invalid move");
+
         return new Game(game.InitialPosition, [.. game.Moves, move]);
     }
 

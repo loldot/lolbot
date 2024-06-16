@@ -1,4 +1,3 @@
-using Lolbot.Api;
 namespace Lolbot.Core;
 
 public class ApiPosition : Dictionary<string, char>
