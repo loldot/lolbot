@@ -29,6 +29,7 @@ public sealed partial class PgnSerializer
         {
             foreach (var token in PgnScanners.NonToken().Split(line))
             {
+                Console.WriteLine(token);
                 if (string.IsNullOrEmpty(token)) continue;
                 if (PgnScanners.MoveNumber().IsMatch(token)) continue;
                 if (PgnScanners.Comment().IsMatch(token)) continue;
@@ -82,7 +83,7 @@ public sealed partial class PgnSerializer
             .Where(move => Squares.FromIndex(move.ToIndex) == to)
             .Where(move => fileAmbiguity == null || fileAmbiguity == Squares.GetFile(1ul << move.FromIndex))
             .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(1ul << move.FromIndex))
-            .FirstOrDefault();
+            .Single();
     }
 
     private static async Task<GameMetadata> ReadTagPairs(TextReader reader)

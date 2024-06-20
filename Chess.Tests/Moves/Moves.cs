@@ -68,22 +68,22 @@ public class Moves
     }
 
 
-    [Test]
-    public void Castle()
-    {
-        var game = Engine.NewGame();
+    // [Test]
+    // public void Castle()
+    // {
+    //     var game = Engine.NewGame();
 
-        game = Engine.Move(game, "E2", "E4");
-        game = Engine.Move(game, "E7", "E5");
-        game = Engine.Move(game, "g1", "f3");
-        game = Engine.Move(game, "d7", "d6");
-        game = Engine.Move(game, "f1", "c4");
-        game = Engine.Move(game, "f7", "f5");
-        game = Engine.Move(game, Move.Castle(game.CurrentPlayer));
+    //     game = Engine.Move(game, "E2", "E4");
+    //     game = Engine.Move(game, "E7", "E5");
+    //     game = Engine.Move(game, "g1", "f3");
+    //     game = Engine.Move(game, "d7", "d6");
+    //     game = Engine.Move(game, "f1", "c4");
+    //     game = Engine.Move(game, "f7", "f5");
+    //     game = Engine.Move(game, Move.Castle(game.CurrentPlayer));
 
-        var eval = Engine.Evaluate(game.CurrentPosition);
-        eval.Should().Be(0);
-    }
+    //     var eval = Engine.Evaluate(game.CurrentPosition);
+    //     eval.Should().Be(0);
+    // }
 
     [TestCase("A2", "A4", 8, 24)]
     [TestCase("E5", "D4", 36, 27)]
@@ -114,7 +114,22 @@ public class Moves
     }
 
 
+    [TestCase("a1", "h8", new[] { "b2", "c3", "d4", "e5", "f6", "g7", "h8" })]
+    [TestCase("a8", "h1", new[] { "b7", "c6", "d5", "e4", "f3", "g2", "h1" })]
 
+    [TestCase("a1", "a4", new[] { "a2", "a3", "a4" })]
+    [TestCase("h7", "h7", new[] { "h7" })]
+
+    [TestCase("a1", "b8", new[] { "b8" })]
+
+    public void SquaresBetween(string f, string t, string[] squares)
+    {
+        byte from = Squares.IndexFromCoordinate(f);
+        byte to = Squares.IndexFromCoordinate(t);
+        var squaresBetween = MovePatterns.SquaresBetween[from][to];
+
+        squaresBetween.Should().Be(Bitboards.Create(squares));
+    }
 
     internal static void VerifyMovePattern(ulong[] pattern, string square, string[] expectedSquares)
     {

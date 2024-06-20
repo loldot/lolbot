@@ -4,6 +4,7 @@ namespace Lolbot.Core;
 
 public readonly record struct Position
 {
+    public Color CurrentPlayer { get; init; } = Color.White;
     public ulong WhitePawns { get; init; } = 0x000000000000ff00;
     public ulong WhiteRooks { get; init; } = Bitboards.Create("A1", "H1");
     public ulong WhiteBishops { get; init; } = Bitboards.Create("C1", "F1");
@@ -18,6 +19,8 @@ public readonly record struct Position
     public ulong BlackQueens { get; init; } = Bitboards.Create("D8");
     public ulong BlackKing { get; init; } = Bitboards.Create("E8");
     public byte EnPassant { get; init; } = 0;
+
+    public ulong Checkmask => FindCheckMask(CurrentPlayer, out var _);
 
     public Position()
     {
@@ -70,6 +73,7 @@ public readonly record struct Position
 
     public Position Move(Move m)
     {
+        Color next = CurrentPlayer == Color.White ? Color.Black : Color.White;
         return this with
         {
             EnPassant = SetEnPassant(m),
@@ -86,6 +90,7 @@ public readonly record struct Position
             BlackRooks = ApplyMove(BlackRooks, m) | Castle(0x7e00000000000000, m),
             BlackQueens = ApplyMove(BlackQueens, m),
             BlackKing = ApplyMove(BlackKing, m),
+            CurrentPlayer = next,
         };
     }
 
@@ -131,6 +136,8 @@ public readonly record struct Position
         Memory<Move> moves = new Move[max_moves];
         var count = 0;
 
+        var pinmask = ulong.MaxValue;
+
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 1)
             count += AddPawnMoves(color, moves.Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 2)
@@ -147,6 +154,43 @@ public readonly record struct Position
         return moves[..count].ToArray();
     }
 
+    private ulong FindCheckMask(Color color, out int countCheckers)
+    {
+        ulong checkmask = 0;
+        countCheckers = 0;
+
+        int opponentColor = color == Color.White ? 0x20 : 0x10;
+        byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
+
+        // king can never check
+        for (int i = 1; i < 6; i++)
+        {
+            var pieceType = (Piece)(opponentColor + i);
+            var pieceBitboard = this[pieceType];
+            while (pieceBitboard != 0)
+            {
+                var piece = Bitboards.PopLsb(ref pieceBitboard);
+
+                var squares = MovePatterns.SquaresBetween[piece][king];
+                // Bitboards.Debug(squares);
+                var attacks = MovePatterns.GetAttack(pieceType, 1ul << piece, Empty);
+                if (pieceType == Piece.WhiteBishop) Bitboards.Debug(attacks);
+
+                var pieceCheckmask = attacks & squares;
+                checkmask |= pieceCheckmask;
+                if (pieceCheckmask != 0) countCheckers++;
+            }
+        }
+        return countCheckers > 0 ? checkmask : ulong.MaxValue;
+    }
+
+    private ulong GetSuperKing(Color color) => color switch
+    {
+        Color.White => MovePatterns.GenerateSuper(Squares.ToIndex(WhiteKing), Empty) & Black,
+        Color.Black => MovePatterns.GenerateSuper(Squares.ToIndex(BlackKing), Empty) & White,
+        _ => 0,
+    };
+
     private int AddQueenMoves(Color color, Span<Move> moves)
     {
         var count = 0;
@@ -162,7 +206,7 @@ public readonly record struct Position
             var valid = (
                 MovePatterns.RookAttacks(from, Empty)
               | MovePatterns.BishopAttacks(from, Empty)
-            ) & ~friendlies;
+            ) & ~friendlies & Checkmask;
 
             var quiets = valid & ~targets;
             while (quiets != 0)
@@ -221,7 +265,7 @@ public readonly record struct Position
             var fromIndex = Bitboards.PopLsb(ref rooks);
             var from = Squares.FromIndex(fromIndex);
 
-            var valid = MovePatterns.RookAttacks(from, Empty) & ~friendlies;
+            var valid = MovePatterns.RookAttacks(from, Empty) & ~friendlies & Checkmask;
             var quiets = valid & ~targets;
             while (quiets != 0)
             {
@@ -251,7 +295,7 @@ public readonly record struct Position
             var fromIndex = Bitboards.PopLsb(ref bishops);
             var from = Squares.FromIndex(fromIndex);
 
-            var valid = MovePatterns.BishopAttacks(from, Empty) & ~friendlies;
+            var valid = MovePatterns.BishopAttacks(from, Empty) & ~friendlies & Checkmask;
             var quiets = valid & ~Occupied;
             while (quiets != 0)
             {
@@ -280,7 +324,7 @@ public readonly record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref knights);
 
-            var quiets = MovePatterns.Knights[fromIndex] & ~Occupied;
+            var quiets = MovePatterns.Knights[fromIndex] & ~Occupied & Checkmask;
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
@@ -309,14 +353,14 @@ public readonly record struct Position
         {
             var sq = Bitboards.PopLsb(ref pawns);
 
-            var pushes = pushPattern[sq] & Empty;
+            var pushes = pushPattern[sq] & Checkmask & Empty;
             while (pushes != 0)
             {
                 var push = Bitboards.PopLsb(ref pushes);
                 moves[count++] = new Move(sq, push);
             }
 
-            var attacks = attackPattern[sq] & (targets | (1ul << EnPassant));
+            var attacks = attackPattern[sq] & (targets | (1ul << EnPassant)) & Checkmask;
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);

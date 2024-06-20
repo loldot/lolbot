@@ -54,7 +54,6 @@ public class Rooks
             Move.Castle(Color.Black)
         ]);
         var rooks = g.CurrentPosition.BlackRooks;
-        Bitboards.Debug(rooks);
         
         rooks.Should().Be(Bitboards.Create("a8", "f8"));
 

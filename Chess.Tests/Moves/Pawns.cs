@@ -1,11 +1,13 @@
 using Lolbot.Core;
 
+namespace Lolbot.Tests;
 public class Pawns
 {
     [Test]
     public void Should_Be_Blocked_By_Opponent()
     {
-        var position = new Position() with {
+        var position = new Position() with
+        {
             BlackPawns = 0x404002000000,
             WhitePawns = 0x40220000
         };

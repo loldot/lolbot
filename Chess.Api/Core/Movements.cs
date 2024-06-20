@@ -21,6 +21,8 @@ public static class MovePatterns
 
     public static ulong[] Kings = new ulong[64];
 
+    public static ulong[][] SquaresBetween = new ulong[64][];
+
     static MovePatterns()
     {
         for (byte i = 0; i < 64; i++)
@@ -32,13 +34,27 @@ public static class MovePatterns
             Bishops[i] = GenerateBishopMoves(i);
             Rooks[i] = GenerateRookMoves(i);
             Kings[i] = GenerateKingMoves(i);
+
         }
 
         // need to run after generating all squares for white 
-        for (int i = 0; i < 64; i++)
+        for (byte i = 0; i < 64; i++)
         {
             BlackPawnPushes[i] = Bitboards.FlipAlongVertical(WhitePawnPushes[i ^ 56]);
             BlackPawnAttacks[i] = Bitboards.FlipAlongVertical(WhitePawnAttacks[i ^ 56]);
+
+            var origin = Squares.FromIndex(i);
+            SquaresBetween[i] = new ulong[64];
+            for (byte j = 0; j < 64; j++)
+            {
+                var target = Squares.FromIndex(j);
+                if ((Rooks[i] & target) != 0)
+                    SquaresBetween[i][j] = RookAttacks(origin, ~target) & Rooks[j];
+                else if ((Bishops[i] & target) != 0)
+                    SquaresBetween[i][j] = BishopAttacks(origin, ~target) & Bishops[j];
+                
+                SquaresBetween[i][j] |= target;
+            }
         }
     }
 
@@ -109,6 +125,31 @@ public static class MovePatterns
         return attacks;
     }
 
+    public static ulong GenerateSuper(ulong pieces, ulong empty)
+    {
+        return Knights[Squares.ToIndex(pieces)]
+        | BishopAttacks(pieces, empty)
+        | RookAttacks(pieces, empty)
+        | GetPawnAttacks(pieces);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong BishopAttacks(ulong bishops, ulong empty)
+    {
+        return SlidingAttacks(bishops, empty, dir8(NE))
+            | SlidingAttacks(bishops, empty, dir8(SE))
+            | SlidingAttacks(bishops, empty, dir8(SW))
+            | SlidingAttacks(bishops, empty, dir8(NW));
+    }
+
+    public static ulong RookAttacks(ulong rooks, ulong empty)
+    {
+        return SlidingAttacks(rooks, empty, dir8(N))
+            | SlidingAttacks(rooks, empty, dir8(E))
+            | SlidingAttacks(rooks, empty, dir8(S))
+            | SlidingAttacks(rooks, empty, dir8(W));
+
+    }
     private static int Distance(byte x, byte y)
     {
         var (sx, sy) = (Squares.FromIndex(x), Squares.FromIndex(y));
@@ -154,8 +195,7 @@ public static class MovePatterns
         return ShiftOne(fill, dir8);
     }
 
-    // positve left, negative right shifts
-    private static readonly int[] shift = { 9, 1, -7, -8, -9, -1, 7, 8 };
+    private static readonly int[] shift = [9, 1, -7, -8, -9, -1, 7, 8];
 
     private static readonly ulong[] avoidWrap =
     [
@@ -172,21 +212,31 @@ public static class MovePatterns
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static int dir8(int direction) => Array.IndexOf(shift, direction);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong BishopAttacks(ulong bishops, ulong empty)
+    internal static ulong GetAttack(Piece piece, ulong bitboard, ulong empty)
     {
-        return SlidingAttacks(bishops, empty, dir8(NE))
-            | SlidingAttacks(bishops, empty, dir8(SE))
-            | SlidingAttacks(bishops, empty, dir8(SW))
-            | SlidingAttacks(bishops, empty, dir8(NW));
-    }
+        switch (piece)
+        {
+            case Piece.WhiteKnight:
+                return Knights[Squares.ToIndex(bitboard)];
+            case Piece.BlackKnight:
+                return Knights[Squares.ToIndex(bitboard)];
 
-    public static ulong RookAttacks(ulong rooks, ulong empty)
-    {
-        return SlidingAttacks(rooks, empty, dir8(N))
-            | SlidingAttacks(rooks, empty, dir8(E))
-            | SlidingAttacks(rooks, empty, dir8(S))
-            | SlidingAttacks(rooks, empty, dir8(W));
+            case Piece.WhiteBishop:
+                return BishopAttacks(bitboard, empty);
+            case Piece.BlackBishop:
+                return BishopAttacks(bitboard, empty);
 
+            case Piece.WhiteRook:
+                return RookAttacks(bitboard, empty);
+            case Piece.WhiteQueen:
+                return RookAttacks(bitboard, empty) | BishopAttacks(bitboard, empty);
+
+            case Piece.BlackRook:
+                return RookAttacks(bitboard, empty);
+            case Piece.BlackQueen:
+                return RookAttacks(bitboard, empty) | BishopAttacks(bitboard, empty);
+            default:
+                return 0;
+        }
     }
 }
