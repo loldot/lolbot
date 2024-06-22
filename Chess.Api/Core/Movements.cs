@@ -8,6 +8,7 @@ public static class MovePatterns
     const int NW = 7, N = 8, NE = 9;
     const int W = -1, O = 0, E = 1;
     const int SW = -9, S = -8, SE = -7;
+    static readonly int[] Directions =  [NW, N, NE, W, E, SW, S, SE];
 
     public static ulong[] WhitePawnPushes = new ulong[64];
     public static ulong[] WhitePawnAttacks = new ulong[64];
@@ -34,7 +35,6 @@ public static class MovePatterns
             Bishops[i] = GenerateBishopMoves(i);
             Rooks[i] = GenerateRookMoves(i);
             Kings[i] = GenerateKingMoves(i);
-
         }
 
         // need to run after generating all squares for white 
@@ -48,11 +48,20 @@ public static class MovePatterns
             for (byte j = 0; j < 64; j++)
             {
                 var target = Squares.FromIndex(j);
-                if ((Rooks[i] & target) != 0)
-                    SquaresBetween[i][j] = RookAttacks(origin, ~target) & Rooks[j];
-                else if ((Bishops[i] & target) != 0)
-                    SquaresBetween[i][j] = BishopAttacks(origin, ~target) & Bishops[j];
+                foreach(var dir in Directions)
+                {
+                    var ray = SlidingAttacks(origin, ~target, dir);
+                    if((ray & target) != 0)
+                    {
+                        SquaresBetween[i][j] |= ray;
+                    }
+                }
                 
+                // if ((Rooks[i] & target) != 0)
+                //     SquaresBetween[i][j] = RookAttacks(origin, ~target) & Rooks[j];
+                // else if ((Bishops[i] & target) != 0)
+                //     SquaresBetween[i][j] = BishopAttacks(origin, ~target) & Bishops[j];
+
                 SquaresBetween[i][j] |= target;
             }
         }
@@ -136,18 +145,18 @@ public static class MovePatterns
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong BishopAttacks(ulong bishops, ulong empty)
     {
-        return SlidingAttacks(bishops, empty, dir8(NE))
-            | SlidingAttacks(bishops, empty, dir8(SE))
-            | SlidingAttacks(bishops, empty, dir8(SW))
-            | SlidingAttacks(bishops, empty, dir8(NW));
+        return SlidingAttacks(bishops, empty, NE)
+            | SlidingAttacks(bishops, empty, SE)
+            | SlidingAttacks(bishops, empty, SW)
+            | SlidingAttacks(bishops, empty, NW);
     }
 
     public static ulong RookAttacks(ulong rooks, ulong empty)
     {
-        return SlidingAttacks(rooks, empty, dir8(N))
-            | SlidingAttacks(rooks, empty, dir8(E))
-            | SlidingAttacks(rooks, empty, dir8(S))
-            | SlidingAttacks(rooks, empty, dir8(W));
+        return SlidingAttacks(rooks, empty, N)
+            | SlidingAttacks(rooks, empty, E)
+            | SlidingAttacks(rooks, empty, S)
+            | SlidingAttacks(rooks, empty, W);
 
     }
     private static int Distance(byte x, byte y)
@@ -171,10 +180,10 @@ public static class MovePatterns
         return pawns << 8 | ((pawns & 0xff00) << 16);
     }
 
-    private static ulong OccludedFill(ulong gen, ulong pro, int dir8)
+    private static ulong OccludedFill(ulong gen, ulong pro, int direction)
     {
-        int r = shift[dir8];
-        pro &= avoidWrap[dir8];
+        int r = direction;
+        pro &= AvoidWrap(direction);
         gen |= pro & BitOperations.RotateLeft(gen, r);
         pro &= BitOperations.RotateLeft(pro, r);
         gen |= pro & BitOperations.RotateLeft(gen, 2 * r);
@@ -185,8 +194,7 @@ public static class MovePatterns
 
     private static ulong ShiftOne(ulong b, int dir8)
     {
-        int r = shift[dir8];
-        return BitOperations.RotateLeft(b, r) & avoidWrap[dir8];
+        return BitOperations.RotateLeft(b, dir8) & AvoidWrap(dir8);
     }
 
     private static ulong SlidingAttacks(ulong sliders, ulong empty, int dir8)
@@ -195,22 +203,20 @@ public static class MovePatterns
         return ShiftOne(fill, dir8);
     }
 
-    private static readonly int[] shift = [9, 1, -7, -8, -9, -1, 7, 8];
-
-    private static readonly ulong[] avoidWrap =
-    [
-        0xfefefefefefefe00,
-        0xfefefefefefefefe,
-        0x00fefefefefefefe,
-        0x00ffffffffffffff,
-        0x007f7f7f7f7f7f7f,
-        0x7f7f7f7f7f7f7f7f,
-        0x7f7f7f7f7f7f7f00,
-        0xffffffffffffff00
-    ];
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static int dir8(int direction) => Array.IndexOf(shift, direction);
+    private static ulong AvoidWrap(int direction)
+    {
+        return direction switch {
+            NE => 0xfefefefefefefe00,
+            E => 0xfefefefefefefefe,
+            SE => 0x00fefefefefefefe,
+            S => 0x00ffffffffffffff,
+            SW => 0x007f7f7f7f7f7f7f,
+            W => 0x7f7f7f7f7f7f7f7f,
+            NW => 0x7f7f7f7f7f7f7f00,
+            N => 0xffffffffffffff00,
+            _ => 0
+        };
+    }
 
     internal static ulong GetAttack(Piece piece, ulong bitboard, ulong empty)
     {

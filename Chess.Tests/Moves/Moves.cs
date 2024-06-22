@@ -121,12 +121,13 @@ public class Moves
     [TestCase("h7", "h7", new[] { "h7" })]
 
     [TestCase("a1", "b8", new[] { "b8" })]
-
+    [TestCase("b5", "e8", new[] { "c6", "d7", "e8" })]
     public void SquaresBetween(string f, string t, string[] squares)
     {
         byte from = Squares.IndexFromCoordinate(f);
         byte to = Squares.IndexFromCoordinate(t);
         var squaresBetween = MovePatterns.SquaresBetween[from][to];
+        Bitboards.Debug(squaresBetween);
 
         squaresBetween.Should().Be(Bitboards.Create(squares));
     }

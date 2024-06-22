@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Collections;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -26,9 +27,11 @@ public static class Bitboards
         public static ulong GetFile(int sq) { return 0x0101010101010101ul << (sq & 7); }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int CountOccupied(ulong bitboard)
         => BitOperations.PopCount(bitboard);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong FlipAlongVertical(ulong bitboard)
         => BinaryPrimitives.ReverseEndianness(bitboard);
 
