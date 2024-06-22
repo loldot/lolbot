@@ -5,10 +5,10 @@ namespace Lolbot.Core;
 
 public static class MovePatterns
 {
-    const int NW = 7, N = 8, NE = 9;
-    const int W = -1, O = 0, E = 1;
-    const int SW = -9, S = -8, SE = -7;
-    static readonly int[] Directions =  [NW, N, NE, W, E, SW, S, SE];
+    public const int NW = 7, N = 8, NE = 9;
+    public const int W = -1, O = 0, E = 1;
+    public const int SW = -9, S = -8, SE = -7;
+    public static readonly int[] Directions =  [NW, N, NE, W, E, SW, S, SE];
 
     public static ulong[] WhitePawnPushes = new ulong[64];
     public static ulong[] WhitePawnAttacks = new ulong[64];
@@ -57,11 +57,6 @@ public static class MovePatterns
                     }
                 }
                 
-                // if ((Rooks[i] & target) != 0)
-                //     SquaresBetween[i][j] = RookAttacks(origin, ~target) & Rooks[j];
-                // else if ((Bishops[i] & target) != 0)
-                //     SquaresBetween[i][j] = BishopAttacks(origin, ~target) & Bishops[j];
-
                 SquaresBetween[i][j] |= target;
             }
         }

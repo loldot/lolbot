@@ -45,7 +45,8 @@ public readonly struct Move : IEquatable<Move>
         Squares.IndexFromCoordinate(to),
         Squares.IndexFromCoordinate(captureSquare),
         Utils.FromName(capturePiece)
-    ) { }
+    )
+    { }
 
     public Move(Square from, Square to)
     {
@@ -168,9 +169,10 @@ public class Engine
 
     public static Game Move(Game game, Square from, Square to)
     {
-        var capturePiece = GetCapture(game, to);
-        var captureSquare = capturePiece != Piece.None ? to : 0;
-        var move = new Move(Squares.ToIndex(from), Squares.ToIndex(to), Squares.ToIndex(captureSquare), capturePiece);
+
+        var move = game.CurrentPosition
+            .GenerateLegalMoves(game.CurrentPlayer)
+            .FirstOrDefault(x => x.FromIndex == Squares.ToIndex(from) && x.ToIndex == Squares.ToIndex(to));
         return Move(game, move);
     }
 

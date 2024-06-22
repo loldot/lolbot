@@ -1,7 +1,8 @@
 # TODO:
 
 - [ ] Pawns jumping over piece on first move
-- [ ] Checks
+- [ ] En passant should capture
+- [x] Checks
 - [ ] Pins
 - [ ] Display castling as legal move
 - [ ] SignalR

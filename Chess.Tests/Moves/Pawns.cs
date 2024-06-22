@@ -18,4 +18,18 @@ public class Pawns
         whiteMoves.Should().BeEquivalentTo([new Move("f3", "f4")]);
         blackMoves.Should().BeEmpty();
     }
+
+    [Test]
+    public void Should_Capture_En_Passant_Square()
+    {
+        var game = Engine.NewGame();
+        game = Engine.Move(game, "e2", "e4");
+        game = Engine.Move(game, "d7", "d5");
+        game = Engine.Move(game, "f1", "e2");
+        game = Engine.Move(game, "d5", "e4");
+        game = Engine.Move(game, "f2", "f4");
+        game = Engine.Move(game, "e4", "f3");
+
+        Bitboards.Debug(game.CurrentPosition.WhitePawns);
+    }
 }

@@ -179,7 +179,7 @@ public readonly record struct Position
 
 
                 var pieceCheckmask = attacks & squares;
-                if((pieceCheckmask & (1ul << king)) != 0)
+                if ((pieceCheckmask & (1ul << king)) != 0)
                 {
                     checkmask |= pieceCheckmask;
                     countCheckers++;
@@ -369,18 +369,28 @@ public readonly record struct Position
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
-                moves[count++] = new Move(sq, attack, attack, GetOccupant(attack));
+
+                moves[count++] = (attack != EnPassant)
+                    ? new Move(sq, attack, attack, GetOccupant(attack))
+                    : DoEnPassant(sq, attack);
             }
         }
         return count;
     }
 
+    private Move DoEnPassant(byte sq, byte attack)
+    {
+        var captureOffset = CurrentPlayer == Color.White ? MovePatterns.S : MovePatterns.N;
+        var epCapture = (byte)(EnPassant + captureOffset);
+
+        return new Move(sq, attack, epCapture, GetOccupant(epCapture));
+    }
+
     public Piece GetOccupant(byte attack)
     {
         var square = Squares.FromIndex(attack);
-        foreach (var type in Enum.GetValues<Piece>())
+        foreach (var type in Enum.GetValues<Piece>().Except([Piece.None]))
         {
-            if (type == Piece.None) continue;
             if ((this[type] & square) != 0) return type;
         }
         return Piece.None;
