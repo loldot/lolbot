@@ -40,6 +40,13 @@ public readonly struct Move : IEquatable<Move>
     )
     { }
 
+    public Move(string from, string to, string captureSquare, char capturePiece) : this(
+        Squares.IndexFromCoordinate(from),
+        Squares.IndexFromCoordinate(to),
+        Squares.IndexFromCoordinate(captureSquare),
+        Utils.FromName(capturePiece)
+    ) { }
+
     public Move(Square from, Square to)
     {
         FromIndex = (byte)BitOperations.Log2(from);

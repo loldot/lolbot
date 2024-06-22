@@ -214,29 +214,17 @@ public static class MovePatterns
 
     internal static ulong GetAttack(Piece piece, ulong bitboard, ulong empty)
     {
-        switch (piece)
+        return piece switch
         {
-            case Piece.WhiteKnight:
-                return Knights[Squares.ToIndex(bitboard)];
-            case Piece.BlackKnight:
-                return Knights[Squares.ToIndex(bitboard)];
-
-            case Piece.WhiteBishop:
-                return BishopAttacks(bitboard, empty);
-            case Piece.BlackBishop:
-                return BishopAttacks(bitboard, empty);
-
-            case Piece.WhiteRook:
-                return RookAttacks(bitboard, empty);
-            case Piece.WhiteQueen:
-                return RookAttacks(bitboard, empty) | BishopAttacks(bitboard, empty);
-
-            case Piece.BlackRook:
-                return RookAttacks(bitboard, empty);
-            case Piece.BlackQueen:
-                return RookAttacks(bitboard, empty) | BishopAttacks(bitboard, empty);
-            default:
-                return 0;
-        }
+            Piece.WhiteKnight => Knights[Squares.ToIndex(bitboard)],
+            Piece.BlackKnight => Knights[Squares.ToIndex(bitboard)],
+            Piece.WhiteBishop => BishopAttacks(bitboard, empty),
+            Piece.BlackBishop => BishopAttacks(bitboard, empty),
+            Piece.WhiteRook => RookAttacks(bitboard, empty),
+            Piece.WhiteQueen => RookAttacks(bitboard, empty) | BishopAttacks(bitboard, empty),
+            Piece.BlackRook => RookAttacks(bitboard, empty),
+            Piece.BlackQueen => RookAttacks(bitboard, empty) | BishopAttacks(bitboard, empty),
+            _ => 0,
+        };
     }
 }

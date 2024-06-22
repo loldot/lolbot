@@ -170,15 +170,20 @@ public readonly record struct Position
             while (pieceBitboard != 0)
             {
                 var piece = Bitboards.PopLsb(ref pieceBitboard);
+                var checker = Squares.FromIndex(piece);
 
                 var squares = MovePatterns.SquaresBetween[piece][king];
                 // Bitboards.Debug(squares);
-                var attacks = MovePatterns.GetAttack(pieceType, 1ul << piece, Empty);
-                if (pieceType == Piece.WhiteBishop) Bitboards.Debug(attacks);
+                var attacks = MovePatterns.GetAttack(pieceType, checker, Empty);
+                // if (pieceType == Piece.WhiteBishop) Bitboards.Debug(attacks);
+
 
                 var pieceCheckmask = attacks & squares;
-                checkmask |= pieceCheckmask;
-                if (pieceCheckmask != 0) countCheckers++;
+                if((pieceCheckmask & (1ul << king)) != 0)
+                {
+                    checkmask |= pieceCheckmask;
+                    countCheckers++;
+                }
             }
         }
         return countCheckers > 0 ? checkmask : ulong.MaxValue;
@@ -236,14 +241,14 @@ public readonly record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref rooks);
 
-            var quiets = MovePatterns.Kings[fromIndex] & ~Occupied;
+            var quiets = MovePatterns.Kings[fromIndex] & ~Occupied & ~Checkmask;
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.Kings[fromIndex] & targets;
+            var attacks = MovePatterns.Kings[fromIndex] & targets & ~Checkmask;
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);

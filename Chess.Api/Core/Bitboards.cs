@@ -92,9 +92,10 @@ public static class Bitboards
 
     public static BitArray ToArray(ulong bitboard) => new(BitConverter.GetBytes(bitboard));
 
-    public static void Debug(ulong bitboard)
+    public static void Debug(params ulong[] bitboards)
     {
-        Console.Write(ToDebugString(bitboard));
+        foreach(var bitboard in bitboards)
+            Console.WriteLine(ToDebugString(bitboard));
     }
 
     private static string ToDebugString(ulong bitboard)
