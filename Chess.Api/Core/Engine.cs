@@ -169,7 +169,6 @@ public class Engine
 
     public static Game Move(Game game, Square from, Square to)
     {
-
         var move = game.CurrentPosition
             .GenerateLegalMoves(game.CurrentPlayer)
             .FirstOrDefault(x => x.FromIndex == Squares.ToIndex(from) && x.ToIndex == Squares.ToIndex(to));

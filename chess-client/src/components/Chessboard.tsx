@@ -43,7 +43,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
 
     const ref = useRef(window);
     const [selectedSquare, setSelectedSquare] = useState("e2");
-    const [isLegal, setIsLegal] = useState(["e3", "e4"]);
+    const [legalMoves, setLegalMoves] = useState(["e3", "e4"]);
 
     const [moveNumber, setMoveNumber] = useState(0);
     const [position, setPosition] = useState<Position>(initialPosition);
@@ -95,16 +95,40 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
             const result = await fetch(`https://localhost:7097/game/${seq}/legal-moves/${selectedSquare}/${piece}`);
             if (result.status === 200) {
                 const moves = await result.json();
-                setIsLegal(moves);
+                setLegalMoves(moves);
             }
         };
         getLegalMoves();
     }, [selectedSquare])
 
+    const onClick = (id: string) => {
+        if (selectedSquare && legalMoves.includes(id)) {
+            executeMove(selectedSquare, id);
+        }  
+        else {
+            choosePiece(id);
+        }
+    };
+
     const choosePiece = (id: string) => {
         const newSelection = m.has(id) ? id : '';
         setSelectedSquare(newSelection);
     }
+
+    const executeMove = (from: string, to: string) => {
+        const m = [from, to] as Move;
+        setMoves(prev => [...prev, m]);
+        setPosition(prev => move(prev, m));
+        setMoveNumber(prev => prev + 1);
+
+        fetch(`https://localhost:7097/game/${seq}`, { 
+            method: 'POST', 
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(m) 
+        });
+    };
 
     const m = new Map<string, string>(Object.entries(position));
 
@@ -118,19 +142,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     const onDrop = (e: DragEvent<HTMLDivElement>, id: string) => {
         const from = e.dataTransfer.getData("text/plain") as string;
         const to = id;
-
-        const m = [from, to] as Move;
-        setMoves(prev => [...prev, m]);
-        setPosition(prev => move(prev, m));
-        setMoveNumber(prev => prev + 1);
-
-        fetch(`https://localhost:7097/game/${seq}`, { 
-            method: 'POST', 
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(m) 
-        });
+        executeMove(from, to);
 
         e.preventDefault();
     };
@@ -146,8 +158,8 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
                     return (<Square key={id}
                         dark={(f % 2) !== (r % 2)}
                         selected={id === selectedSquare}
-                        isLegal={isLegal.includes(id)}
-                        onClick={() => choosePiece(id)}
+                        isLegal={legalMoves.includes(id)}
+                        onClick={() => onClick(id)}
                         onDragStart={(e) => onDragStart(e, id)}
                         onDragEnter={onDragEnter}
                         onDragOver={onDragEnter}

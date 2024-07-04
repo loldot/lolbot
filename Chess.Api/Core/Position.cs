@@ -241,14 +241,14 @@ public readonly record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref rooks);
 
-            var quiets = MovePatterns.Kings[fromIndex] & ~Occupied & ~Checkmask;
+            var quiets = MovePatterns.Kings[fromIndex] & ~Occupied;
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.Kings[fromIndex] & targets & ~Checkmask;
+            var attacks = MovePatterns.Kings[fromIndex] & targets;
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
