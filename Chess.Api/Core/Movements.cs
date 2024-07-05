@@ -30,7 +30,7 @@ public static class MovePatterns
         {
             var square = Squares.FromIndex(i);
             WhitePawnPushes[i] = GetPawnPushes(square);
-            WhitePawnAttacks[i] = GetPawnAttacks(square);
+            WhitePawnAttacks[i] = CalculateAllPawnAttacks(square);
             Knights[i] = GenerateKnightMoves(i);
             Bishops[i] = GenerateBishopMoves(i);
             Rooks[i] = GenerateRookMoves(i);
@@ -134,7 +134,7 @@ public static class MovePatterns
         return Knights[Squares.ToIndex(pieces)]
         | BishopAttacks(pieces, empty)
         | RookAttacks(pieces, empty)
-        | GetPawnAttacks(pieces);
+        | CalculateAllPawnAttacks(pieces);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -163,7 +163,7 @@ public static class MovePatterns
         return Math.Max(Math.Abs(r2 - r1), Math.Abs(f2 - f1));
     }
 
-    private static ulong GetPawnAttacks(ulong pawns)
+    public static ulong CalculateAllPawnAttacks(ulong pawns)
     {
         const ulong notAFileMask = 0xfefefefefefefefe;
         const ulong notHFileMask = 0x7f7f7f7f7f7f7f7f;

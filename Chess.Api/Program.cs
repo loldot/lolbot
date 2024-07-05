@@ -37,10 +37,13 @@ app.MapGet("/game/{seq}/legal-moves/", (int seq) =>
     var game = GameDatabase.Instance.Get(seq);
     if (game is null) return Results.NotFound();
 
-    var moves = game.CurrentPosition
-        .GenerateLegalMoves(game.CurrentPlayer)
-        .Select(x => (string[])[Squares.CoordinateFromIndex(x.FromIndex)!, Squares.CoordinateFromIndex(x.ToIndex)!])
-        .ToArray();
+    var legalMoves = game.CurrentPosition.GenerateLegalMoves(game.CurrentPlayer);
+    var moves = new string[legalMoves.Length][];
+    for (int i = 0; i < legalMoves.Length; i++)
+    {
+        var x = legalMoves[i];
+        moves[i] = [Squares.CoordinateFromIndex(x.FromIndex)!, Squares.CoordinateFromIndex(x.ToIndex)!];
+    }
 
     return Results.Ok(moves);
 });
@@ -50,11 +53,17 @@ app.MapGet("/game/{seq}/legal-moves/{square}/{piece}", (int seq, string square, 
     var game = GameDatabase.Instance.Get(seq);
     if (game is null) return Results.NotFound();
 
-    var moves = game.CurrentPosition
-        .GenerateLegalMoves(game.CurrentPlayer, Utils.FromName(piece[0]))
-        .Where(x => Squares.IndexFromCoordinate(square) == x.FromIndex)
-        .Select(x => Squares.CoordinateFromIndex(x.ToIndex))
-        .ToArray();
+    var fromIndex = Squares.IndexFromCoordinate(square);
+    var legalMoves = game.CurrentPosition.GenerateLegalMoves(game.CurrentPlayer);
+    var moves = new List<string>();
+    for (int i = 0; i < legalMoves.Length; i++)
+    {
+        var x = legalMoves[i];
+
+        if (fromIndex != x.FromIndex) continue;
+
+        moves.Add(Squares.CoordinateFromIndex(x.ToIndex)!);
+    }
 
     return Results.Ok(moves);
 });

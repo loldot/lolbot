@@ -130,7 +130,7 @@ public readonly record struct Position
     private static ulong Castle(ulong mask, Move m)
         => mask & Squares.FromIndex(m.CastleIndex);
 
-    public Move[] GenerateLegalMoves(Color color, Piece? pieceType = null)
+    public Span<Move> GenerateLegalMoves(Color color, Piece? pieceType = null)
     {
         const int max_moves = 218;
         Memory<Move> moves = new Move[max_moves];
@@ -151,7 +151,7 @@ public readonly record struct Position
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 6)
             count += AddKingMoves(color, moves[count..].Span);
 
-        return moves[..count].ToArray();
+        return moves[..count].Span;
     }
 
     private ulong FindCheckMask(Color color, out int countCheckers)
@@ -173,10 +173,7 @@ public readonly record struct Position
                 var checker = Squares.FromIndex(piece);
 
                 var squares = MovePatterns.SquaresBetween[piece][king];
-                // Bitboards.Debug(squares);
                 var attacks = MovePatterns.GetAttack(pieceType, checker, Empty);
-                // if (pieceType == Piece.WhiteBishop) Bitboards.Debug(attacks);
-
 
                 var pieceCheckmask = attacks & squares;
                 if ((pieceCheckmask & (1ul << king)) != 0)
@@ -188,13 +185,6 @@ public readonly record struct Position
         }
         return countCheckers > 0 ? checkmask : ulong.MaxValue;
     }
-
-    private ulong GetSuperKing(Color color) => color switch
-    {
-        Color.White => MovePatterns.GenerateSuper(Squares.ToIndex(WhiteKing), Empty) & Black,
-        Color.Black => MovePatterns.GenerateSuper(Squares.ToIndex(BlackKing), Empty) & White,
-        _ => 0,
-    };
 
     private int AddQueenMoves(Color color, Span<Move> moves)
     {
@@ -233,15 +223,36 @@ public readonly record struct Position
     private int AddKingMoves(Color color, Span<Move> moves)
     {
         var count = 0;
-        var (rooks, targets) = (color == Color.White)
-            ? (WhiteKing, Black)
-            : (BlackKing, White);
+        var (king, targets, enemyRooks, enemyQueen, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
+            ? (WhiteKing, Black, BlackRooks, BlackQueens, BlackBishops, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
+            : (BlackKing, White, WhiteRooks, WhiteQueens, WhiteBishops, WhiteKnights, WhitePawns);
 
-        while (rooks != 0)
+        var enemyAttacks = MovePatterns.RookAttacks(enemyRooks | enemyQueen, Empty)
+            | MovePatterns.BishopAttacks(enemyBishops | enemyQueen, Empty);
+
+        while (enemyKnights != 0)
         {
-            var fromIndex = Bitboards.PopLsb(ref rooks);
+            var fromIndex = Bitboards.PopLsb(ref enemyKnights);
+            enemyAttacks |= MovePatterns.Knights[fromIndex];
+        }
 
-            var quiets = MovePatterns.Kings[fromIndex] & ~Occupied;
+        var enemyPawnAttacks = MovePatterns.CalculateAllPawnAttacks(enemyPawns);
+        if (color == Color.White)
+        {
+            enemyAttacks |= Bitboards.FlipAlongVertical(enemyPawnAttacks);
+            enemyAttacks |= MovePatterns.Kings[Squares.ToIndex(BlackKing)];
+        }
+        else
+        {
+            enemyAttacks |= enemyPawnAttacks;
+            enemyAttacks |= MovePatterns.Kings[Squares.ToIndex(WhiteKing)];
+        }
+
+        while (king != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref king);
+
+            var quiets = MovePatterns.Kings[fromIndex] & ~(Occupied | enemyAttacks);
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);

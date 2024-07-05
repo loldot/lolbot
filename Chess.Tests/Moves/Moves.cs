@@ -9,7 +9,7 @@ public class Moves
     public void LegalPawnMovesAtStart()
     {
         var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhitePawn);
-        startMoves.Should().BeEquivalentTo([
+        startMoves.ToArray().Should().BeEquivalentTo([
             new Move("a2", "a3"), new Move("a2", "a4"),
             new Move("b2", "b3"), new Move("b2", "b4"),
             new Move("c2", "c3"), new Move("c2", "c4"),
@@ -34,15 +34,15 @@ public class Moves
 
         sw.Stop();
         Console.WriteLine(sw.ElapsedTicks);
-        whiteMoves.Should().HaveCount(20);
-        blackMoves.Should().HaveCount(20);
+        whiteMoves.ToArray().Should().HaveCount(20);
+        blackMoves.ToArray().Should().HaveCount(20);
     }
 
     [Test]
     public void LegalBlackPawnMovesAtStart()
     {
         var startMoves = new Position().GenerateLegalMoves(Color.Black, Piece.BlackPawn);
-        startMoves.Should().BeEquivalentTo([
+        startMoves.ToArray().Should().BeEquivalentTo([
             new Move("a7", "a6"), new Move("a7", "a5"),
             new Move("b7", "b6"), new Move("b7", "b5"),
             new Move("c7", "c6"), new Move("c7", "c5"),
@@ -58,7 +58,7 @@ public class Moves
     public void LegalKnightMovesAtStart()
     {
         var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhiteKnight);
-        startMoves.Should().BeEquivalentTo([
+        startMoves.ToArray().Should().BeEquivalentTo([
             new Move("b1", "a3"),
             new Move("b1", "c3"),
 

@@ -80,6 +80,7 @@ public sealed partial class PgnSerializer
         }
 
         return legalMoves
+            .ToArray()
             .Where(move => Squares.FromIndex(move.ToIndex) == to)
             .Where(move => fileAmbiguity == null || fileAmbiguity == Squares.GetFile(1ul << move.FromIndex))
             .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(1ul << move.FromIndex))

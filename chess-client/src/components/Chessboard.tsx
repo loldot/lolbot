@@ -42,8 +42,8 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     const rank = (x: number) => 8 - Math.trunc(x / 8);
 
     const ref = useRef(window);
-    const [selectedSquare, setSelectedSquare] = useState("e2");
-    const [legalMoves, setLegalMoves] = useState(["e3", "e4"]);
+    const [selectedSquare, setSelectedSquare] = useState<string>();
+    const [legalMoves, setLegalMoves] = useState<string[]>([]);
 
     const [moveNumber, setMoveNumber] = useState(0);
     const [position, setPosition] = useState<Position>(initialPosition);
@@ -172,6 +172,8 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
             <button onClick={() => undoMove()} disabled={!canMoveBackwards} >Back</button>
             <button onClick={() => doMove()} disabled={!canMoveForward} >Next</button>
             <button onClick={() => sendDebug()}  >Debug</button>
+            <button onClick={() => alert(legalMoves.join(", "))}  >PrintLegal</button>
+
         </div>
     )
 }

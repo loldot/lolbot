@@ -12,7 +12,7 @@ public class Checks
 1. e4 d5 2. Bb5+";
 
         var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
-        var moves = game.CurrentPosition.GenerateLegalMoves(Color.Black);
+        var moves = game.CurrentPosition.GenerateLegalMoves(Color.Black).ToArray();
         
         Bitboards.Debug(
             MovePatterns.BishopAttacks(1ul << 33, game.CurrentPosition.Empty),
@@ -32,7 +32,7 @@ public class Checks
 1. e4 d5 2. Bb5+ c6 3. Nf3";
 
         var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
-        var moves = game.CurrentPosition.GenerateLegalMoves(Color.Black);
+        var moves = game.CurrentPosition.GenerateLegalMoves(Color.Black).ToArray();
 
         Bitboards.Debug(
             MovePatterns.BishopAttacks(1ul << 33, game.CurrentPosition.Empty),

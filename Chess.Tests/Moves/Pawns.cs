@@ -15,8 +15,8 @@ public class Pawns
         var blackMoves = position.GenerateLegalMoves(Color.Black, Piece.BlackPawn);
         var whiteMoves = position.GenerateLegalMoves(Color.White, Piece.WhitePawn);
 
-        whiteMoves.Should().BeEquivalentTo([new Move("f3", "f4")]);
-        blackMoves.Should().BeEmpty();
+        whiteMoves.ToArray().Should().BeEquivalentTo([new Move("f3", "f4")]);
+        blackMoves.ToArray().Should().BeEmpty();
     }
 
     [Test]
