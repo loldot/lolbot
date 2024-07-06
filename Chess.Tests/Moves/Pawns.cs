@@ -32,4 +32,12 @@ public class Pawns
 
         Bitboards.Debug(game.CurrentPosition.WhitePawns);
     }
+
+    [Test]
+    public void Should_Not_Jump()
+    {
+        var position = Position.FromFen("r2k1nr1/5p2/2ppp3/8/8/3q4/PP1PNPPP/R1RQK3 w - - 0 1");
+        var moves = position.GenerateLegalMoves('P').ToArray();
+        moves.Should().NotContain(x => x == new Move("d2","d4"));
+    }
 }

@@ -133,7 +133,7 @@ public readonly record struct Position
             _ => CastlingRights.None
         };
 
-        removedCastling |= m.CaptureIndex switch 
+        removedCastling |= m.CaptureIndex switch
         {
             0 => CastlingRights.WhiteQueen,
             7 => CastlingRights.WhiteKing,
@@ -478,7 +478,8 @@ public readonly record struct Position
             while (pushes != 0)
             {
                 var push = Bitboards.PopLsb(ref pushes);
-                moves[count++] = new Move(sq, push);
+                if ((MovePatterns.SquaresBetween[sq][push] & Occupied) == 0)
+                    moves[count++] = new Move(sq, push);
             }
 
             var attacks = attackPattern[sq] & (targets | (1ul << EnPassant)) & Checkmask;
