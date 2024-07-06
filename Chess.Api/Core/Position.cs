@@ -296,8 +296,9 @@ public readonly record struct Position
         ulong enemyAttacks = CreateAttackMask(color);
 
         var fromIndex = Squares.ToIndex(king);
-
+        Bitboards.Debug($"Enemy Attacks: {color}", enemyAttacks);
         var quiets = MovePatterns.Kings[fromIndex] & ~(Occupied | enemyAttacks);
+        Bitboards.Debug($"Quiets: {color}", quiets);
         while (quiets != 0)
         {
             var toIndex = Bitboards.PopLsb(ref quiets);
@@ -346,12 +347,12 @@ public readonly record struct Position
 
     private ulong CreateAttackMask(Color color)
     {
-        var (enemyRooks, enemyQueen, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
-            ? (BlackRooks, BlackQueens, BlackBishops, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
-            : (WhiteRooks, WhiteQueens, WhiteBishops, WhiteKnights, WhitePawns);
+        var (king, enemyRooks, enemyQueen, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
+            ? (WhiteKing, BlackRooks, BlackQueens, BlackBishops, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
+            : (BlackKing, WhiteRooks, WhiteQueens, WhiteBishops, WhiteKnights, WhitePawns);
 
-        var enemyAttacks = MovePatterns.RookAttacks(enemyRooks | enemyQueen, Empty)
-            | MovePatterns.BishopAttacks(enemyBishops | enemyQueen, Empty);
+        var enemyAttacks = MovePatterns.RookAttacks(enemyRooks | enemyQueen, Empty ^ king)
+            | MovePatterns.BishopAttacks(enemyBishops | enemyQueen, Empty ^ king);
 
         while (enemyKnights != 0)
         {

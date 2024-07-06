@@ -100,6 +100,12 @@ public static class Bitboards
         foreach(var bitboard in bitboards)
             Console.WriteLine(ToDebugString(bitboard));
     }
+    public static void Debug(string header, params ulong[] bitboards)
+    {
+        Console.WriteLine(header);
+        foreach(var bitboard in bitboards)
+            Console.WriteLine(ToDebugString(bitboard));
+    }
 
     private static string ToDebugString(ulong bitboard)
     {

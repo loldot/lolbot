@@ -80,6 +80,16 @@ public class Checks
     }
 
     [Test]
+    public void Should_Update_Mask_After_Move()
+    {
+        var position = Position.FromFen("4k1nr/6p1/8/2bNNp2/5Q2/1P6/5P2/R5K1 w - - 0 1");
+        var game = new Game(position, []);
+        game = Engine.Move(game, "a1", "a8");
+        var legalMoves = game.CurrentPosition.GenerateLegalMoves().ToArray();
+        legalMoves.Should().BeEmpty();
+    }
+
+    [Test]
     public void Only_King_Can_Move_While_Double_Check()
     {
         var fen = "3k4/1q6/4N3/3Q4/8/8/8/8 b - - 0 1";

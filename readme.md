@@ -2,10 +2,11 @@
 
 - [ ] End game on check mate
 - [ ] Pawn promotions
-- [ ] Pawns jumping over piece on first move
+- [x] Pawns jumping over piece on first move
 - [x] Pawns can check
 - [x] En passant should capture
 - [x] Checks
+- [x] King cannot move away from check in check direction
 - [x] Double Checks
 - [ ] Pins
 - [x] Make king moves legal again
