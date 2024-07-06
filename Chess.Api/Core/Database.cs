@@ -7,7 +7,6 @@ public class GameDatabase
 
     public async Task Seed()
     {
-        return;
         var pgn = @"""
 [Event ""F/S Return Match""]
 [Site ""Belgrade, Serbia JUG""]

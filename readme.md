@@ -4,16 +4,17 @@
 - [x] En passant should capture
 - [x] Checks
 - [ ] Pins
-- [ ] Make king moves legal again
-- [ ] Display castling as legal move
+- [x] Make king moves legal again
+- [x] Display castling as legal move
 - [ ] SignalR
 
 
 Split Pawn Bitboard into attacks and pushes
 Make attacksbitboard
 
-Square map:
+# Square mapping:
 
+```
 +---------------------------------------+
 | 56 | 57 | 58 | 59 | 60 | 61 | 62 | 63 |
 +----+----+----+----+----+----+----+----+
@@ -31,3 +32,4 @@ Square map:
 +----+----+----+----+----+----+----+----+
 |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
 +----+----+----+----+----+----+----+----+
+```

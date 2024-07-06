@@ -30,7 +30,6 @@ public sealed partial class PgnSerializer
         {
             foreach (var token in PgnScanners.NonToken().Split(line))
             {
-                Console.WriteLine(token);
                 if (string.IsNullOrEmpty(token)) continue;
                 if (PgnScanners.MoveNumber().IsMatch(token)) continue;
                 if (PgnScanners.Comment().IsMatch(token)) continue;
