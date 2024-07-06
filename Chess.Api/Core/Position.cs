@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -28,7 +29,8 @@ public readonly record struct Position
 
     }
 
-    public static Position EmptyBoard => new Position() with {
+    public static Position EmptyBoard => new Position() with
+    {
         WhitePawns = 0,
         WhiteKnights = 0,
         WhiteBishops = 0,
@@ -152,6 +154,14 @@ public readonly record struct Position
     private static ulong Castle(ulong mask, Move m)
         => mask & Squares.FromIndex(m.CastleIndex);
 
+    public Span<Move> GenerateLegalMoves(char pieceType)
+    {
+        Color color = char.IsLower(pieceType) ? Color.Black : Color.White;
+        Piece piece = Utils.FromName(pieceType);
+
+        return GenerateLegalMoves(color, piece);
+    }
+
     public Span<Move> GenerateLegalMoves(Color color, Piece? pieceType = null)
     {
         const int max_moves = 218;
@@ -245,9 +255,66 @@ public readonly record struct Position
     private int AddKingMoves(Color color, Span<Move> moves)
     {
         var count = 0;
-        var (king, targets, enemyRooks, enemyQueen, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
-            ? (WhiteKing, Black, BlackRooks, BlackQueens, BlackBishops, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
-            : (BlackKing, White, WhiteRooks, WhiteQueens, WhiteBishops, WhiteKnights, WhitePawns);
+        var (king, targets) = (color == Color.White)
+            ? (WhiteKing, Black)
+            : (BlackKing, White);
+
+        ulong enemyAttacks = CreateAttackMask(color);
+
+        var fromIndex = Squares.ToIndex(king);
+
+        var quiets = MovePatterns.Kings[fromIndex] & ~(Occupied | enemyAttacks);
+        while (quiets != 0)
+        {
+            var toIndex = Bitboards.PopLsb(ref quiets);
+            moves[count++] = new Move(fromIndex, toIndex);
+        }
+
+        var attacks = MovePatterns.Kings[fromIndex] & targets & ~enemyAttacks;
+        while (attacks != 0)
+        {
+            var attack = Bitboards.PopLsb(ref attacks);
+            moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
+        }
+
+        if (IsCastleLegal(CastlingRights.WhiteKing, king, MovePatterns.SquaresBetween[4][6], enemyAttacks))
+        {
+            moves[count++] = Core.Move.Castle(color);
+        }
+
+        if (IsCastleLegal(CastlingRights.WhiteQueen, king, MovePatterns.SquaresBetween[4][2], enemyAttacks))
+        {
+            moves[count++] = Core.Move.QueenSideCastle(color);
+        }
+
+        if (IsCastleLegal(CastlingRights.BlackKing, king, MovePatterns.SquaresBetween[60][62], enemyAttacks))
+        {
+            moves[count++] = Core.Move.Castle(color);
+        }
+
+        if (IsCastleLegal(CastlingRights.BlackQueen, king, MovePatterns.SquaresBetween[60][58], enemyAttacks))
+        {
+            moves[count++] = Core.Move.QueenSideCastle(color);
+        }
+
+
+        return count;
+    }
+
+    private bool IsCastleLegal(CastlingRights requiredCastle, ulong king, ulong between, ulong enemyAttacks)
+    {
+        var occupiedBetween = between & Occupied;
+        var attacked = (king | between) & enemyAttacks;
+
+        return CastlingRights.HasFlag(requiredCastle)
+            && occupiedBetween == 0 && attacked == 0;
+    }
+
+    private ulong CreateAttackMask(Color color)
+    {
+        var (enemyRooks, enemyQueen, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
+            ? (BlackRooks, BlackQueens, BlackBishops, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
+            : (WhiteRooks, WhiteQueens, WhiteBishops, WhiteKnights, WhitePawns);
 
         var enemyAttacks = MovePatterns.RookAttacks(enemyRooks | enemyQueen, Empty)
             | MovePatterns.BishopAttacks(enemyBishops | enemyQueen, Empty);
@@ -270,25 +337,7 @@ public readonly record struct Position
             enemyAttacks |= MovePatterns.Kings[Squares.ToIndex(WhiteKing)];
         }
 
-        while (king != 0)
-        {
-            var fromIndex = Bitboards.PopLsb(ref king);
-
-            var quiets = MovePatterns.Kings[fromIndex] & ~(Occupied | enemyAttacks);
-            while (quiets != 0)
-            {
-                var toIndex = Bitboards.PopLsb(ref quiets);
-                moves[count++] = new Move(fromIndex, toIndex);
-            }
-
-            var attacks = MovePatterns.Kings[fromIndex] & targets & ~enemyAttacks;
-            while (attacks != 0)
-            {
-                var attack = Bitboards.PopLsb(ref attacks);
-                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
-            }
-        }
-        return count;
+        return enemyAttacks;
     }
 
     private int AddRookMoves(Color color, Span<Move> moves)

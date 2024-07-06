@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Lolbot.Core;
 
 [Flags]
-public enum CastlingRights : byte 
+public enum CastlingRights : byte
 {
     None = 0,
     WhiteQueen = 1,
@@ -102,6 +102,11 @@ public readonly struct Move : IEquatable<Move>
 
     public override string ToString()
     {
+        if (this == WhiteCastle) return "O-O";
+        if (this == WhiteQueenCastle) return "O-O-O";
+        if (this == BlackCastle) return "o-o";
+        if (this == BlackQueenCastle) return "o-o-o";
+
         return $"{Squares.CoordinateFromIndex(FromIndex)}"
             + ((CapturePiece != Piece.None) ? "x" : "")
             + $"{Squares.CoordinateFromIndex(ToIndex)}";
