@@ -10,6 +10,7 @@
 - [ ] Pins
 - [x] Make king moves legal again
 - [x] Display castling as legal move
+- [x] Remove castling rights
 - [ ] Frontend: Update board correctly when castling
 - [x] SignalR
 

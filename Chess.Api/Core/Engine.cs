@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -218,13 +219,35 @@ public class Engine
             + Bitboards.CountOccupied(position.BlackQueens) * -900;
     }
 
-    internal static Move Reply(Game game)
+    internal static Move? Reply(Game game)
     {
+        const int DEPTH = 2;
+
         var rnd = new Random();
         return game.CurrentPosition
             .GenerateLegalMoves()
             .ToArray()
-            .OrderBy(_ => rnd.Next())
-            .First();
+            .OrderBy(x => EvaluateMove(game.CurrentPosition, x, DEPTH, -1))
+            .FirstOrDefault();
+    }
+
+    public static int EvaluateMove(Position position, Move move, int remainingDepth, int sign)
+    {
+        if (remainingDepth < 0) return Evaluate(position);
+
+        var nextPosition = position.Move(move);
+        var legalMoves = nextPosition
+            .GenerateLegalMoves()
+            .ToImmutableArray();
+
+        var currentBest = -999_999_999;
+
+        foreach (var next in legalMoves)
+        {
+            var evaluation = EvaluateMove(nextPosition, next, remainingDepth - 1, -sign);
+            currentBest = Math.Max(currentBest, sign * evaluation);
+        }
+
+        return currentBest;
     }
 }

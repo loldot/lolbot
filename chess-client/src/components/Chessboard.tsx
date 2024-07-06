@@ -71,6 +71,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
                 }
             });
             connection.on('legalMovesReceived', setLegalMoves);
+            connection.on('finished', () => alert('checkmate'));
 
             connection.start().catch(console.error);
             mounted.current = true;

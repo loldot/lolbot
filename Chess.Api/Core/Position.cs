@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -100,6 +101,7 @@ public readonly record struct Position
         Color next = CurrentPlayer == Color.White ? Color.Black : Color.White;
         return this with
         {
+            CastlingRights = ApplyCastlingRights(m),
             EnPassant = SetEnPassant(m),
             WhitePawns = ApplyMove(WhitePawns, m),
             WhiteBishops = ApplyMove(WhiteBishops, m),
@@ -116,6 +118,31 @@ public readonly record struct Position
             BlackKing = ApplyMove(BlackKing, m),
             CurrentPlayer = next,
         };
+    }
+
+    private CastlingRights ApplyCastlingRights(Move m)
+    {
+        var removedCastling = m.FromIndex switch
+        {
+            0 => CastlingRights.WhiteQueen,
+            4 => CastlingRights.WhiteKing | CastlingRights.WhiteQueen,
+            7 => CastlingRights.WhiteKing,
+            56 => CastlingRights.BlackQueen,
+            60 => CastlingRights.BlackKing | CastlingRights.BlackQueen,
+            63 => CastlingRights.BlackKing,
+            _ => CastlingRights.None
+        };
+
+        removedCastling |= m.CaptureIndex switch 
+        {
+            0 => CastlingRights.WhiteQueen,
+            7 => CastlingRights.WhiteKing,
+            56 => CastlingRights.BlackQueen,
+            63 => CastlingRights.BlackKing,
+            _ => CastlingRights.None
+        };
+
+        return CastlingRights & ~removedCastling;
     }
 
     public readonly byte SetEnPassant(Move m)

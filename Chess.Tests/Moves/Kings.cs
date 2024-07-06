@@ -12,8 +12,6 @@ class Kings
 
         moves.Should().Contain(Move.QueenSideCastle(Color.White));
         moves.Should().Contain(Move.Castle(Color.White));
-
-        Console.WriteLine(string.Join(',', moves));
     }
 
     [Test]
@@ -44,5 +42,16 @@ class Kings
 
         moves.Should().NotContain(Move.QueenSideCastle(Color.White));
         moves.Should().NotContain(Move.Castle(Color.White));
+    }
+
+    [Test]
+    public void Move_King_Should_Remove_Castling_Rights()
+    {
+        var pos = Position.FromFen("r3k2r/p6p/8/8/8/8/P6P/R3K2R w KQkq - 0 1");
+        var game = new Game(pos, []);
+        game = Engine.Move(game, "e1", "e2");
+
+        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteQueen);
+        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteKing);
     }
 }

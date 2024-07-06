@@ -1,10 +1,13 @@
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
-const Home = () => (
-    <p>
-        <Link to={"/game/new"}>New Game</Link>
-        <Link to={"/game/0"}>Master Game</Link>
-    </p>
-);
+const Home = () => {
+    const navigate = useNavigate();
+    return (
+        <div>
+            <button onClick={() => navigate("/game/new")}>New Game</button>
+            <button onClick={() => navigate("/game/0")}>Watch a master Game</button>
+        </div>
+    );
+}
 
 export default Home;

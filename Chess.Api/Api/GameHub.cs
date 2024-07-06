@@ -27,18 +27,20 @@ public class GameHub : Hub
         GameDatabase.Instance.Update(message.GameId, updated);
 
         var nextMove = Engine.Reply(updated);
+        if (nextMove is null)
+        {
+            await Clients.All.SendAsync("finished", new { Winner = "w" });
+            return;
+        }
 
-        updated = Engine.Move(updated, nextMove);
+        updated = Engine.Move(updated, nextMove.Value);
         GameDatabase.Instance.Update(message.GameId, updated);
 
         await Clients.All.SendAsync("movePlayed", new MoveMessage
         {
             GameId = message.GameId,
             PlyCount = updated.PlyCount,
-            Move = [
-                Squares.CoordinateFromIndex(nextMove.FromIndex)!,
-                Squares.CoordinateFromIndex(nextMove.ToIndex)!,
-            ]
+            Move = ApiMove.Create(nextMove.Value)!
         });
     }
 
