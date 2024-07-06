@@ -3,6 +3,16 @@ using System.Runtime.InteropServices;
 
 namespace Lolbot.Core;
 
+[Flags]
+public enum CastlingRights : byte 
+{
+    None = 0,
+    WhiteQueen = 1,
+    WhiteKing = 2,
+    BlackQueen = 4,
+    BlackKing = 8,
+    All = 15
+}
 public enum Color : byte { None = 0, White = 1, Black = 2 }
 public enum Piece : byte
 {

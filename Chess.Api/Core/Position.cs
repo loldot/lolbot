@@ -19,6 +19,7 @@ public readonly record struct Position
     public ulong BlackQueens { get; init; } = Bitboards.Create("D8");
     public ulong BlackKing { get; init; } = Bitboards.Create("E8");
     public byte EnPassant { get; init; } = 0;
+    public CastlingRights CastlingRights { get; init; } = CastlingRights.All;
 
     public ulong Checkmask => FindCheckMask(CurrentPlayer, out var _);
 
@@ -26,6 +27,21 @@ public readonly record struct Position
     {
 
     }
+
+    public static Position EmptyBoard => new Position() with {
+        WhitePawns = 0,
+        WhiteKnights = 0,
+        WhiteBishops = 0,
+        WhiteRooks = 0,
+        WhiteQueens = 0,
+        WhiteKing = 0,
+        BlackPawns = 0,
+        BlackKnights = 0,
+        BlackBishops = 0,
+        BlackRooks = 0,
+        BlackQueens = 0,
+        BlackKing = 0
+    };
 
     public ulong this[Piece piece]
     {
@@ -347,7 +363,7 @@ public readonly record struct Position
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.Knights[fromIndex] & targets;
+            var attacks = MovePatterns.Knights[fromIndex] & targets & Checkmask;
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
@@ -406,4 +422,21 @@ public readonly record struct Position
         }
         return Piece.None;
     }
+
+    public Position Update(Piece piece, ulong bitboard) => piece switch
+    {
+        Piece.WhitePawn => this with { WhitePawns = bitboard },
+        Piece.WhiteKnight => this with { WhiteKnights = bitboard },
+        Piece.WhiteBishop => this with { WhiteBishops = bitboard },
+        Piece.WhiteRook => this with { WhiteRooks = bitboard },
+        Piece.WhiteQueen => this with { WhiteQueens = bitboard },
+        Piece.WhiteKing => this with { WhiteQueens = bitboard },
+        Piece.BlackPawn => this with { BlackPawns = bitboard },
+        Piece.BlackKnight => this with { BlackKnights = bitboard },
+        Piece.BlackBishop => this with { BlackBishops = bitboard },
+        Piece.BlackRook => this with { BlackRooks = bitboard },
+        Piece.BlackQueen => this with { BlackQueens = bitboard },
+        Piece.BlackKing => this with { BlackKing = bitboard },
+        _ => throw new NotImplementedException(),
+    };
 }

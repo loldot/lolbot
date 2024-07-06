@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Components.RenderTree;
 namespace Lolbot.Core;
 
 public class FenSerializer
@@ -30,5 +31,68 @@ public class FenSerializer
             sb.Append('/');
         }
         return sb.ToString();
+    }
+
+    public Position Parse(string fenString)
+    {
+        var position = Position.EmptyBoard;
+
+        if (string.IsNullOrEmpty(fenString)) return position;
+
+        int i = 0, rank = 8;
+        char file = 'a';
+        var token = fenString[i];
+
+        do
+        {
+            if (char.IsDigit(token)) file = (char)(file + (token - '0'));
+            if (token == '/') { rank--; file = 'a'; }
+
+            if ("pnbrqk".Contains(token, StringComparison.OrdinalIgnoreCase))
+            {
+                var piece = Utils.FromName(token);
+                var bitboard = position[piece] | Squares.FromCoordinates($"{file}{rank}");
+
+                file++;
+                position = position.Update(piece, bitboard);
+            }
+
+            token = fenString[++i];
+        } while (token != ' ');
+
+        var metaTokens = fenString[(i + 1)..].Split(' ');
+
+        return position with
+        {
+            CurrentPlayer = metaTokens[0] == "w" ? Color.White : Color.Black,
+            CastlingRights = ParseCastlingRights(metaTokens[1]),
+            EnPassant = ParseEnPassantSquare(metaTokens[2]),
+        };
+    }
+
+    private static byte ParseEnPassantSquare(string epSquare)
+    {
+        return epSquare == "-"
+            ? (byte)0
+            : Squares.IndexFromCoordinate(epSquare);
+    }
+
+    private static CastlingRights ParseCastlingRights(string fenCastlingRights)
+    {
+        Dictionary<char, CastlingRights> map = new()
+        {
+            ['-'] = CastlingRights.None,
+            ['K'] = CastlingRights.WhiteKing,
+            ['Q'] = CastlingRights.WhiteQueen,
+            ['k'] = CastlingRights.BlackKing,
+            ['q'] = CastlingRights.BlackQueen,
+        };
+
+        var castlingRights = CastlingRights.None;
+        foreach (var c in fenCastlingRights)
+        {
+            castlingRights |= map[c];
+        }
+        return castlingRights;
     }
 }
