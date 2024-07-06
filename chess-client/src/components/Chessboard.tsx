@@ -2,6 +2,7 @@ import styled, { css } from "styled-components"
 import Piece from "./Piece";
 import { useEffect, useRef, useState } from "react";
 import { Game, Move, Position, move } from "../game";
+import * as signalR from "@microsoft/signalr";
 
 const square_size = css`64px`;
 
@@ -42,11 +43,39 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     const rank = (x: number) => 8 - Math.trunc(x / 8);
 
     const ref = useRef(window);
+    const mounted = useRef(false);
+
+    const [us, setUs] = useState<'w' | 'b'>('w');
+
     const [selectedSquare, setSelectedSquare] = useState<string>();
     const [legalMoves, setLegalMoves] = useState<string[]>([]);
 
     const [moveNumber, setMoveNumber] = useState(0);
     const [position, setPosition] = useState<Position>(initialPosition);
+
+    const [connection, setConnection] = useState((prev: any) => {
+        return prev || new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7097/game/realtime")
+            .build();
+    });
+
+    useEffect(() => {
+        if (!mounted.current) {
+
+            connection.on('movePlayed', (message) => {
+                if (message.plyCount > moveNumber) {
+                    console.log(message);
+
+                    const [from, to] = message.move;
+                    executeMove(from, to);
+                }
+            });
+            connection.on('legalMovesReceived', setLegalMoves);
+
+            connection.start().catch(console.error);
+            mounted.current = true;
+        }
+    }, [mounted]);
 
     const canMoveForward = moveNumber < moves.length;
     const canMoveBackwards = moveNumber > 0;
@@ -88,23 +117,14 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     }, [moveNumber, position])
 
     useEffect(() => {
-        const getLegalMoves = async () => {
-            if (!selectedSquare) return;
-
-            const piece = m.get(selectedSquare);
-            const result = await fetch(`https://localhost:7097/game/${seq}/legal-moves/${selectedSquare}/${piece}`);
-            if (result.status === 200) {
-                const moves = await result.json();
-                setLegalMoves(moves);
-            }
-        };
-        getLegalMoves();
+        connection.send('checkMove', { 'gameId': seq, 'square': selectedSquare });
     }, [selectedSquare])
 
     const onClick = (id: string) => {
         if (selectedSquare && legalMoves.includes(id)) {
             executeMove(selectedSquare, id);
-        }  
+            connection.send('move', { "gameId": seq, "move": [selectedSquare, id], "plyCount": moveNumber });
+        }
         else {
             choosePiece(id);
         }
@@ -121,13 +141,8 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
         setPosition(prev => move(prev, m));
         setMoveNumber(prev => prev + 1);
 
-        fetch(`https://localhost:7097/game/${seq}`, { 
-            method: 'POST', 
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(m) 
-        });
+        setSelectedSquare(undefined);
+        setLegalMoves([]);
     };
 
     const m = new Map<string, string>(Object.entries(position));

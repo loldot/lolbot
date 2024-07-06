@@ -1,12 +1,14 @@
 # TODO:
 
+- [ ] End game on check mate
+- [ ] Pawn promotions
 - [ ] Pawns jumping over piece on first move
 - [x] En passant should capture
 - [x] Checks
 - [ ] Pins
 - [x] Make king moves legal again
 - [x] Display castling as legal move
-- [ ] SignalR
+- [x] SignalR
 
 
 Split Pawn Bitboard into attacks and pushes

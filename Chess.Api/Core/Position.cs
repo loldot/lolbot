@@ -154,6 +154,11 @@ public readonly record struct Position
     private static ulong Castle(ulong mask, Move m)
         => mask & Squares.FromIndex(m.CastleIndex);
 
+    public Span<Move> GenerateLegalMoves()
+    {
+        return GenerateLegalMoves(CurrentPlayer);
+    }
+
     public Span<Move> GenerateLegalMoves(char pieceType)
     {
         Color color = char.IsLower(pieceType) ? Color.Black : Color.White;

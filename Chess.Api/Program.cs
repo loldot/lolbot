@@ -3,6 +3,7 @@ using Lolbot.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddSignalR();
 builder.Services.AddCors();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -16,7 +17,8 @@ if (app.Environment.IsDevelopment())
     {
         opts.WithOrigins("http://localhost:5173")
         .AllowAnyHeader()
-        .AllowAnyMethod();
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -25,6 +27,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 await GameDatabase.Instance.Seed();
+
+app.MapHub<GameHub>("/game/realtime");
 
 app.MapPost("/game/new", () =>
 {

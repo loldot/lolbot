@@ -217,4 +217,14 @@ public class Engine
             + Bitboards.CountOccupied(position.BlackRooks) * -500
             + Bitboards.CountOccupied(position.BlackQueens) * -900;
     }
+
+    internal static Move Reply(Game game)
+    {
+        var rnd = new Random();
+        return game.CurrentPosition
+            .GenerateLegalMoves()
+            .ToArray()
+            .OrderBy(_ => rnd.Next())
+            .First();
+    }
 }
