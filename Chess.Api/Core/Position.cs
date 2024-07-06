@@ -43,6 +43,12 @@ public readonly record struct Position
         BlackKing = 0
     };
 
+    public static Position FromFen(string fen)
+    {
+        var fenSerializer = new FenSerializer();
+        return fenSerializer.Parse(fen);
+    }
+
     public ulong this[Piece piece]
     {
         get => piece switch
@@ -430,7 +436,7 @@ public readonly record struct Position
         Piece.WhiteBishop => this with { WhiteBishops = bitboard },
         Piece.WhiteRook => this with { WhiteRooks = bitboard },
         Piece.WhiteQueen => this with { WhiteQueens = bitboard },
-        Piece.WhiteKing => this with { WhiteQueens = bitboard },
+        Piece.WhiteKing => this with { WhiteKing = bitboard },
         Piece.BlackPawn => this with { BlackPawns = bitboard },
         Piece.BlackKnight => this with { BlackKnights = bitboard },
         Piece.BlackBishop => this with { BlackBishops = bitboard },

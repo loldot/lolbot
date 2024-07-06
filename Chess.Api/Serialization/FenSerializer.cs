@@ -53,8 +53,8 @@ public class FenSerializer
                 var piece = Utils.FromName(token);
                 var bitboard = position[piece] | Squares.FromCoordinates($"{file}{rank}");
 
-                file++;
                 position = position.Update(piece, bitboard);
+                file++;
             }
 
             token = fenString[++i];
