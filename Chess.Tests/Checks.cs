@@ -53,4 +53,15 @@ public class Checks
         moves.Should().BeEquivalentTo([new Move("e4", "c5"), new Move("e4", "d6")]);
 
     }
+
+    [Test]
+    public void King_Cannot_Capture_Protected_Checker()
+    {
+        var position = Position.FromFen("3rkr2/4pB2/8/4N3/8/8/8/8 b - - 0 1");
+        var moves = position
+            .GenerateLegalMoves(Color.Black, Piece.BlackKing)
+            .ToArray();
+        
+        moves.Should().BeEmpty();
+    }
 }

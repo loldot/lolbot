@@ -281,7 +281,7 @@ public readonly record struct Position
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.Kings[fromIndex] & targets;
+            var attacks = MovePatterns.Kings[fromIndex] & targets & ~enemyAttacks;
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
