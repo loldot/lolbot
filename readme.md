@@ -3,11 +3,13 @@
 - [ ] End game on check mate
 - [ ] Pawn promotions
 - [ ] Pawns jumping over piece on first move
+- [x] Pawns can check
 - [x] En passant should capture
 - [x] Checks
 - [ ] Pins
 - [x] Make king moves legal again
 - [x] Display castling as legal move
+- [ ] Frontend: Update board correctly when castling
 - [x] SignalR
 
 

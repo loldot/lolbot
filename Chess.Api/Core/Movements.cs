@@ -217,6 +217,8 @@ public static class MovePatterns
     {
         return piece switch
         {
+            Piece.WhitePawn => CalculateAllPawnAttacks(bitboard) & ~empty,
+            Piece.BlackPawn => Bitboards.FlipAlongVertical(CalculateAllPawnAttacks(Bitboards.FlipAlongVertical(bitboard))) & ~empty,
             Piece.WhiteKnight => Knights[Squares.ToIndex(bitboard)],
             Piece.BlackKnight => Knights[Squares.ToIndex(bitboard)],
             Piece.WhiteBishop => BishopAttacks(bitboard, empty),

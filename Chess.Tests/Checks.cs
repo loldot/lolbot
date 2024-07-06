@@ -61,7 +61,7 @@ public class Checks
         var moves = position
             .GenerateLegalMoves(Color.Black, Piece.BlackKing)
             .ToArray();
-        
+
         moves.Should().BeEmpty();
     }
 
@@ -74,5 +74,27 @@ public class Checks
             .ToArray();
 
         moves.Should().Contain(new Move("f8", "f7", "f7", 'B'));
+    }
+
+    [Test]
+    public void White_Pawns_Should_Check()
+    {
+        var position = Position.FromFen("q3k3/2P2PP1/3K4/8/8/8/8/8 b - - 0 1");
+        var moves = position
+            .GenerateLegalMoves()
+            .ToArray();
+
+        moves.Should().OnlyContain(x => x == new Move("e8", "f7", "f7", 'P'));
+    }
+
+    [Test]
+    public void Black_Pawns_Should_Check()
+    {
+        var position = Position.FromFen("8/8/8/8/8/3k4/pp2p3/2K4Q w - - 0 1");
+        var moves = position
+            .GenerateLegalMoves()
+            .ToArray();
+
+        moves.Should().OnlyContain(x => x == new Move("c1", "b2", "b2", 'p'));
     }
 }
