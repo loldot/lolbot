@@ -22,11 +22,11 @@ public readonly record struct Position
     public byte EnPassant { get; init; } = 0;
     public CastlingRights CastlingRights { get; init; } = CastlingRights.All;
 
-    public ulong Checkmask => CreateCheckMask(CurrentPlayer, out var _);
+    public ulong Checkmask => CreateCheckMask(CurrentPlayer).Item1;
+    public int CheckerCount => CreateCheckMask(CurrentPlayer).Item2;
 
     public Position()
     {
-
     }
 
     public static Position EmptyBoard => new Position() with
@@ -175,6 +175,8 @@ public readonly record struct Position
 
         var pinmask = ulong.MaxValue;
 
+        if (CheckerCount > 1) pieceType = Piece.WhiteKing;
+
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 1)
             count += AddPawnMoves(color, moves.Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 2)
@@ -191,10 +193,10 @@ public readonly record struct Position
         return moves[..count].Span;
     }
 
-    private ulong CreateCheckMask(Color color, out int countCheckers)
+    private (ulong, int) CreateCheckMask(Color color)
     {
         ulong checkmask = 0;
-        countCheckers = 0;
+        int countCheckers = 0;
 
         int opponentColor = color == Color.White ? 0x20 : 0x10;
         byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
@@ -220,7 +222,7 @@ public readonly record struct Position
                 }
             }
         }
-        return countCheckers > 0 ? checkmask : ulong.MaxValue;
+        return (countCheckers > 0 ? checkmask : ulong.MaxValue, countCheckers);
     }
 
     private int AddQueenMoves(Color color, Span<Move> moves)

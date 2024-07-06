@@ -6,6 +6,7 @@
 - [x] Pawns can check
 - [x] En passant should capture
 - [x] Checks
+- [x] Double Checks
 - [ ] Pins
 - [x] Make king moves legal again
 - [x] Display castling as legal move
