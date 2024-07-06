@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Lolbot.Core;
@@ -75,16 +76,19 @@ public sealed partial class PgnSerializer
 
         for (int i = 0; i < disambiguation.Length; i++)
         {
-            if(char.IsDigit(disambiguation[i])) rankAmbiguity = (byte)(disambiguation[i] - '0');
-            if(char.IsBetween(disambiguation[i], 'a', 'h')) fileAmbiguity = disambiguation[i];
+            if (char.IsDigit(disambiguation[i])) rankAmbiguity = (byte)(disambiguation[i] - '0');
+            if (char.IsBetween(disambiguation[i], 'a', 'h')) fileAmbiguity = disambiguation[i];
         }
 
-        return legalMoves
+        var disambiguated = legalMoves
             .ToArray()
             .Where(move => Squares.FromIndex(move.ToIndex) == to)
             .Where(move => fileAmbiguity == null || fileAmbiguity == Squares.GetFile(1ul << move.FromIndex))
-            .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(1ul << move.FromIndex))
-            .Single();
+            .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(1ul << move.FromIndex));
+
+        if (disambiguated.Count() != 1) Debugger.Break();
+
+        return disambiguated.Single();
     }
 
     private static async Task<GameMetadata> ReadTagPairs(TextReader reader)

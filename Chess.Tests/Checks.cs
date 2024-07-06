@@ -64,4 +64,15 @@ public class Checks
         
         moves.Should().BeEmpty();
     }
+
+    [Test]
+    public void Rook_Can_Capture_Checker()
+    {
+        var position = Position.FromFen("4rrk1/1b3Bp1/1n3q1p/2p1N3/1p6/7P/PP3PP1/R2QR1K1 b - - 0 1");
+        var moves = position
+            .GenerateLegalMoves(Color.Black, Piece.WhiteRook)
+            .ToArray();
+
+        moves.Should().Contain(new Move("f8", "f7", "f7", 'B'));
+    }
 }

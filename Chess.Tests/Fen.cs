@@ -65,6 +65,6 @@ public class Fen
         var pos = Position.FromFen("8/4k3/8/8/1Q2n3/6Q1/2KQ1Q2/8 b - - 0 1");
         var b4 = Squares.IndexFromCoordinate("b4");
         var e7 = Squares.IndexFromCoordinate("e7");
-        pos.Checkmask.Should().Be(MovePatterns.SquaresBetween[b4][e7]);
+        pos.Checkmask.Should().Be(MovePatterns.SquaresBetween[b4][e7] | Squares.FromCoordinates("b4"));
     }
 }

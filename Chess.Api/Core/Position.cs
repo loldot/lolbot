@@ -22,7 +22,7 @@ public readonly record struct Position
     public byte EnPassant { get; init; } = 0;
     public CastlingRights CastlingRights { get; init; } = CastlingRights.All;
 
-    public ulong Checkmask => FindCheckMask(CurrentPlayer, out var _);
+    public ulong Checkmask => CreateCheckMask(CurrentPlayer, out var _);
 
     public Position()
     {
@@ -186,7 +186,7 @@ public readonly record struct Position
         return moves[..count].Span;
     }
 
-    private ulong FindCheckMask(Color color, out int countCheckers)
+    private ulong CreateCheckMask(Color color, out int countCheckers)
     {
         ulong checkmask = 0;
         countCheckers = 0;
@@ -210,7 +210,7 @@ public readonly record struct Position
                 var pieceCheckmask = attacks & squares;
                 if ((pieceCheckmask & (1ul << king)) != 0)
                 {
-                    checkmask |= pieceCheckmask;
+                    checkmask |= pieceCheckmask | checker;
                     countCheckers++;
                 }
             }
