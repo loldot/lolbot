@@ -8,7 +8,7 @@ public static class MovePatterns
     public const int NW = 7, N = 8, NE = 9;
     public const int W = -1, O = 0, E = 1;
     public const int SW = -9, S = -8, SE = -7;
-    public static readonly int[] Directions =  [NW, N, NE, W, E, SW, S, SE];
+    public static readonly int[] Directions = [NW, N, NE, W, E, SW, S, SE];
 
     public static ulong[] WhitePawnPushes = new ulong[64];
     public static ulong[] WhitePawnAttacks = new ulong[64];
@@ -24,6 +24,8 @@ public static class MovePatterns
 
     public static ulong[][] SquaresBetween = new ulong[64][];
 
+    public static Piece[][] PromotionPieces = new Piece[64][];
+
     static MovePatterns()
     {
         for (byte i = 0; i < 64; i++)
@@ -35,6 +37,10 @@ public static class MovePatterns
             Bishops[i] = GenerateBishopMoves(i);
             Rooks[i] = GenerateRookMoves(i);
             Kings[i] = GenerateKingMoves(i);
+            
+            if (i >= 56) PromotionPieces[i] = [Piece.WhiteQueen, Piece.WhiteRook, Piece.WhiteBishop, Piece.WhiteKnight];
+            else if (i <= 8) PromotionPieces[i] = [Piece.BlackQueen, Piece.BlackRook, Piece.BlackBishop, Piece.BlackKnight];
+            else PromotionPieces[i] = [Piece.None];
         }
 
         // need to run after generating all squares for white 
@@ -48,15 +54,15 @@ public static class MovePatterns
             for (byte j = 0; j < 64; j++)
             {
                 var target = Squares.FromIndex(j);
-                foreach(var dir in Directions)
+                foreach (var dir in Directions)
                 {
                     var ray = SlidingAttacks(origin, ~target, dir);
-                    if((ray & target) != 0)
+                    if ((ray & target) != 0)
                     {
                         SquaresBetween[i][j] |= ray;
                     }
                 }
-                
+
                 SquaresBetween[i][j] |= target;
             }
         }
@@ -200,7 +206,8 @@ public static class MovePatterns
 
     private static ulong AvoidWrap(int direction)
     {
-        return direction switch {
+        return direction switch
+        {
             NE => 0xfefefefefefefe00,
             E => 0xfefefefefefefefe,
             SE => 0x00fefefefefefefe,

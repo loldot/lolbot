@@ -44,7 +44,7 @@ public readonly struct Move : IEquatable<Move>
     public readonly byte CaptureIndex = 0;
     public readonly byte CastleIndex = 0;
     public readonly Piece CapturePiece = Piece.None;
-    public readonly Piece PromotionPiece = Piece.None;
+    public Piece PromotionPiece { get; init; } = Piece.None;
 
     public Move(string from, string to) : this(
         Squares.FromCoordinates(from),
@@ -239,7 +239,7 @@ public class Engine
 
         for (int i = 0; i < legalMoves.Length; i++)
         {
-            if(evals[i] < bestEval)
+            if (evals[i] < bestEval)
             {
                 bestEval = evals[i];
                 bestMove = legalMoves[i];

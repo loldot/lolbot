@@ -40,4 +40,16 @@ public class Pawns
         var moves = position.GenerateLegalMoves('P').ToArray();
         moves.Should().NotContain(x => x == new Move("d2","d4"));
     }
+
+    [Test]
+    public void Should_Promote()
+    {
+        var position = Position.FromFen("3n3k/P7/8/8/8/8/8/K7 w - - 0 1");
+        var moves = position.GenerateLegalMoves().ToArray();
+        
+        moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteBishop);
+        moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteKnight);
+        moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteRook);
+        moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteQueen);
+    }
 }

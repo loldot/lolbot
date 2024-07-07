@@ -478,7 +478,12 @@ public readonly record struct Position
             {
                 var push = Bitboards.PopLsb(ref pushes);
                 if ((MovePatterns.SquaresBetween[sq][push] & Occupied) == 0)
-                    moves[count++] = new Move(sq, push);
+                {
+                    foreach (var promotionPiece in MovePatterns.PromotionPieces[push])
+                    {
+                        moves[count++] = new Move(sq, push) with { PromotionPiece = promotionPiece };
+                    }
+                }
             }
 
             var attacks = attackPattern[sq] & (targets | (1ul << EnPassant)) & Checkmask;
@@ -526,6 +531,6 @@ public readonly record struct Position
         Piece.BlackRook => this with { BlackRooks = bitboard },
         Piece.BlackQueen => this with { BlackQueens = bitboard },
         Piece.BlackKing => this with { BlackKing = bitboard },
-        _ => throw new NotImplementedException(),
+        _ => this,
     };
 }
