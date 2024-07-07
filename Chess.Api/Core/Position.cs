@@ -296,9 +296,7 @@ public readonly record struct Position
         ulong enemyAttacks = CreateAttackMask(color);
 
         var fromIndex = Squares.ToIndex(king);
-        Bitboards.Debug($"Enemy Attacks: {color}", enemyAttacks);
         var quiets = MovePatterns.Kings[fromIndex] & ~(Occupied | enemyAttacks);
-        Bitboards.Debug($"Quiets: {color}", quiets);
         while (quiets != 0)
         {
             var toIndex = Bitboards.PopLsb(ref quiets);

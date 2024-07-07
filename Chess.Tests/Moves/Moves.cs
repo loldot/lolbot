@@ -127,7 +127,6 @@ public class Moves
         byte from = Squares.IndexFromCoordinate(f);
         byte to = Squares.IndexFromCoordinate(t);
         var squaresBetween = MovePatterns.SquaresBetween[from][to];
-        Bitboards.Debug(squaresBetween);
 
         squaresBetween.Should().Be(Bitboards.Create(squares));
     }

@@ -25,6 +25,7 @@ public class GameHub : Hub
 
         var updated = Engine.Move(game, message.Move[0], message.Move[1]);
         GameDatabase.Instance.Update(message.GameId, updated);
+        await Clients.AllExcept([Context.ConnectionId]).SendAsync("movePlayed", message);
 
         var nextMove = Engine.Reply(updated);
         if (nextMove is null)

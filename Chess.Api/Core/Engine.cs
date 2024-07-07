@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using static System.Math;
 
 namespace Lolbot.Core;
 
@@ -210,7 +211,7 @@ public class Engine
             + Bitboards.CountOccupied(position.WhiteKnights) * 300
             + Bitboards.CountOccupied(position.WhiteBishops) * 325
             + Bitboards.CountOccupied(position.WhiteRooks) * 500
-            + Bitboards.CountOccupied(position.BlackQueens) * 900
+            + Bitboards.CountOccupied(position.WhiteQueens) * 900
 
             + Bitboards.CountOccupied(position.BlackPawns) * -100
             + Bitboards.CountOccupied(position.BlackKnights) * -300
@@ -219,35 +220,61 @@ public class Engine
             + Bitboards.CountOccupied(position.BlackQueens) * -900;
     }
 
-    internal static Move? Reply(Game game)
+    public static Move? Reply(Game game)
     {
         const int DEPTH = 2;
 
-        var rnd = new Random();
-        return game.CurrentPosition
-            .GenerateLegalMoves()
-            .ToArray()
-            .OrderBy(x => EvaluateMove(game.CurrentPosition, x, DEPTH, -1))
-            .FirstOrDefault();
+        var legalMoves = game.CurrentPosition.GenerateLegalMoves().ToArray();
+        var evals = new int[legalMoves.Length];
+
+        if (legalMoves.Length == 0) return null;
+
+        Parallel.For(0, legalMoves.Length, i =>
+        {
+            evals[i] = EvaluateMove(game.CurrentPosition.Move(legalMoves[i]), DEPTH, true);
+        });
+
+        var bestEval = 999_999;
+        var bestMove = legalMoves[0];
+
+        for (int i = 0; i < legalMoves.Length; i++)
+        {
+            if(evals[i] < bestEval)
+            {
+                bestEval = evals[i];
+                bestMove = legalMoves[i];
+            }
+        }
+
+        Console.WriteLine($"Eval: {bestEval} [{string.Join(", ", bestMove)}]");
+
+        return bestMove;
     }
 
-    public static int EvaluateMove(Position position, Move move, int remainingDepth, int sign)
+    public static int EvaluateMove(Position position, int remainingDepth, bool isWhite)
     {
         if (remainingDepth < 0) return Evaluate(position);
 
-        var nextPosition = position.Move(move);
-        var legalMoves = nextPosition
-            .GenerateLegalMoves()
-            .ToImmutableArray();
+        var legalMoves = position.GenerateLegalMoves();
 
-        var currentBest = -999_999_999;
-
-        foreach (var next in legalMoves)
+        if (isWhite)
         {
-            var evaluation = EvaluateMove(nextPosition, next, remainingDepth - 1, -sign);
-            currentBest = Math.Max(currentBest, sign * evaluation);
-        }
+            var value = -999_999;
+            foreach (var candidate in legalMoves)
+            {
+                value = Max(value, EvaluateMove(position.Move(candidate), remainingDepth - 1, false));
+            }
 
-        return currentBest;
+            return value;
+        }
+        else
+        {
+            var value = 999_999;
+            foreach (var candidate in legalMoves)
+            {
+                value = Min(value, EvaluateMove(position.Move(candidate), remainingDepth - 1, false));
+            }
+            return value;
+        }
     }
 }
