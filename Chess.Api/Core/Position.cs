@@ -273,11 +273,10 @@ public readonly record struct Position
         while (rooks != 0)
         {
             var fromIndex = Bitboards.PopLsb(ref rooks);
-            var from = Squares.FromIndex(fromIndex);
 
             var valid = (
-                MovePatterns.GenerateRookAttacks(from, Empty)
-              | MovePatterns.GenerateBishopAttacks(from, Empty)
+                MovePatterns.RookAttacks(fromIndex, Occupied)
+              | MovePatterns.BishopAttacks(fromIndex, Occupied)
             ) & ~friendlies & Checkmask;
 
             var quiets = valid & ~targets;
@@ -394,9 +393,8 @@ public readonly record struct Position
         while (rooks != 0)
         {
             var fromIndex = Bitboards.PopLsb(ref rooks);
-            var from = Squares.FromIndex(fromIndex);
 
-            var valid = MovePatterns.GenerateRookAttacks(from, Empty) & ~friendlies & Checkmask;
+            var valid = MovePatterns.RookAttacks(fromIndex, Occupied) & ~friendlies & Checkmask;
             var quiets = valid & ~targets;
             while (quiets != 0)
             {
@@ -424,9 +422,8 @@ public readonly record struct Position
         while (bishops != 0)
         {
             var fromIndex = Bitboards.PopLsb(ref bishops);
-            var from = Squares.FromIndex(fromIndex);
 
-            var valid = MovePatterns.GenerateBishopAttacks(from, Empty) & ~friendlies & Checkmask;
+            var valid = MovePatterns.BishopAttacks(fromIndex, Occupied) & ~friendlies & Checkmask;
             var quiets = valid & ~Occupied;
             while (quiets != 0)
             {

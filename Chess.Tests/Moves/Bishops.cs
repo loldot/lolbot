@@ -37,4 +37,25 @@ public class Bishops
             0,0,0,0,0,0,0,0
         ]));
     }
+
+    [Test]
+    public void Pext_Table_Should_Equal_Generated()
+    {
+        var random = new Random();
+        for (byte i = 0; i < 64; i++)
+        {
+            for (int j = 0; j < 250; j++)
+            {
+                var blockers = (ulong)random.NextInt64();
+                var bishopMoves = MovePatterns.BishopAttacks(i, blockers);
+                var occFill = MovePatterns.GenerateBishopAttacks(Squares.FromIndex(i), ~blockers);
+
+                bishopMoves.Should().Be(occFill, "Failed:\n\n{0}\n\n{1}\n\n{2}", 
+                    Bitboards.ToDebugString(blockers), 
+                    Bitboards.ToDebugString(bishopMoves),
+                    Bitboards.ToDebugString(occFill)
+                );
+            }
+        }
+    }
 }

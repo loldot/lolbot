@@ -69,8 +69,6 @@ public class Rooks
         var rookMoves = MovePatterns.RookAttacks(rook, blockers);
         var occFill = MovePatterns.GenerateRookAttacks(Squares.FromIndex(rook), ~blockers);
 
-        Bitboards.Debug(rookMoves);
-        Bitboards.Debug(occFill);
         rookMoves.Should().Be(occFill);
     }
 
@@ -83,9 +81,25 @@ public class Rooks
         var rookMoves = MovePatterns.RookAttacks(rook, blockers);
         var occFill = MovePatterns.GenerateRookAttacks(Squares.FromIndex(rook), ~blockers);
 
-        Bitboards.Debug(rookMoves);
-        Bitboards.Debug(occFill);
         rookMoves.Should().Be(occFill);
+    }
+
+    [Test]
+    public void Pext_Table_Should_Equal_Generated()
+    {
+        var random = new Random();
+        for (byte i = 0; i < 64; i++)
+        {
+
+            for (int j = 0; j < 250; j++)
+            {
+                var blockers = (ulong)random.NextInt64();
+                var rookMoves = MovePatterns.RookAttacks(i, blockers);
+                var occFill = MovePatterns.GenerateRookAttacks(Squares.FromIndex(i), ~blockers);
+
+                rookMoves.Should().Be(occFill);
+            }
+        }
     }
 
     [Test]

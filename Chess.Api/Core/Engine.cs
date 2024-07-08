@@ -222,7 +222,7 @@ public class Engine
 
     public static Move? Reply(Game game)
     {
-        const int DEPTH = 2;
+        const int DEPTH = 3;
 
         var legalMoves = game.CurrentPosition.GenerateLegalMoves().ToArray();
         var evals = new int[legalMoves.Length];

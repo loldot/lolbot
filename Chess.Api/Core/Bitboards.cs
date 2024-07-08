@@ -161,7 +161,7 @@ public static class Bitboards
             Console.WriteLine(ToDebugString(bitboard));
     }
 
-    private static string ToDebugString(ulong bitboard)
+    public static string ToDebugString(ulong bitboard)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"val: 0x{bitboard:X}");

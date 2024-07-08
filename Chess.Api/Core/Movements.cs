@@ -32,7 +32,7 @@ public static class MovePatterns
     public static uint[] RookPextIndex = new uint[64];
     public static uint[] BishopPextIndex = new uint[64];
 
-    public static ulong[] PextTable = new ulong[2 * 64 * 4096];
+    public static ulong[] PextTable = new ulong[107_648];
 
     static MovePatterns()
     {
@@ -111,7 +111,7 @@ public static class MovePatterns
             for (ulong j = 0; j < max; j++)
             {
                 var blockers = Bitboards.Pepd(j, mask);
-                PextTable[currentIndex++] = GenerateRookAttacks(sq, ~blockers);
+                PextTable[currentIndex++] = GenerateBishopAttacks(sq, ~blockers);
             }
         }
 
@@ -139,7 +139,6 @@ public static class MovePatterns
     {
         var index = RookPextIndex[square]
             + Bitboards.Pext(occupied, RookPextMask[square]);
-        Bitboards.Debug(RookPextMask[square]);
         return PextTable[index];
     }
 
@@ -290,18 +289,19 @@ public static class MovePatterns
 
     internal static ulong GetAttack(Piece piece, ulong bitboard, ulong empty)
     {
+        var sq = Squares.ToIndex(bitboard);
         return piece switch
         {
             Piece.WhitePawn => CalculateAllPawnAttacks(bitboard) & ~empty,
             Piece.BlackPawn => Bitboards.FlipAlongVertical(CalculateAllPawnAttacks(Bitboards.FlipAlongVertical(bitboard))) & ~empty,
-            Piece.WhiteKnight => Knights[Squares.ToIndex(bitboard)],
-            Piece.BlackKnight => Knights[Squares.ToIndex(bitboard)],
-            Piece.WhiteBishop => GenerateBishopAttacks(bitboard, empty),
-            Piece.BlackBishop => GenerateBishopAttacks(bitboard, empty),
-            Piece.WhiteRook => GenerateRookAttacks(bitboard, empty),
-            Piece.WhiteQueen => GenerateRookAttacks(bitboard, empty) | GenerateBishopAttacks(bitboard, empty),
-            Piece.BlackRook => GenerateRookAttacks(bitboard, empty),
-            Piece.BlackQueen => GenerateRookAttacks(bitboard, empty) | GenerateBishopAttacks(bitboard, empty),
+            Piece.WhiteKnight => Knights[sq],
+            Piece.BlackKnight => Knights[sq],
+            Piece.WhiteBishop => BishopAttacks(sq, ~empty),
+            Piece.BlackBishop => BishopAttacks(sq, ~empty),
+            Piece.WhiteRook => RookAttacks(sq, ~empty),
+            Piece.WhiteQueen => RookAttacks(sq, ~empty) | BishopAttacks(sq, ~empty),
+            Piece.BlackRook => RookAttacks(sq, ~empty),
+            Piece.BlackQueen => RookAttacks(sq, ~empty) | BishopAttacks(sq, ~empty),
             _ => 0,
         };
     }
