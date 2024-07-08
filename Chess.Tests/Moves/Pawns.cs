@@ -52,4 +52,17 @@ public class Pawns
         moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteRook);
         moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteQueen);
     }
+    [Test]
+    public void Pushing_Pawn_To_Last_Rank_Without_Promoting_Should_Not_Be_Allowed()
+    {
+        var position = Position.FromFen("8/7P/8/8/8/1rkr4/8/2K5 w - - 0 1");
+        var moves = position.GenerateLegalMoves().ToArray();
+        
+        moves.Should().BeEquivalentTo([
+            new Move("h7", "h8") with { PromotionPiece = Piece.WhiteBishop },
+            new Move("h7", "h8") with { PromotionPiece = Piece.WhiteKnight },
+            new Move("h7", "h8") with { PromotionPiece = Piece.WhiteRook },
+            new Move("h7", "h8") with { PromotionPiece = Piece.WhiteQueen }
+        ]);
+    }
 }

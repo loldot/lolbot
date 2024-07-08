@@ -111,7 +111,8 @@ public readonly struct Move : IEquatable<Move>
 
         return $"{Squares.CoordinateFromIndex(FromIndex)}"
             + ((CapturePiece != Piece.None) ? "x" : "")
-            + $"{Squares.CoordinateFromIndex(ToIndex)}";
+            + $"{Squares.CoordinateFromIndex(ToIndex)}"
+            + (PromotionPiece != Piece.None ? $"={Utils.PieceName(PromotionPiece)}" : "");
     }
 
     public bool Equals(Move other)

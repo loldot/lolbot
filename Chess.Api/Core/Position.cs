@@ -230,7 +230,7 @@ public readonly record struct Position
         return moves[..count].Span;
     }
 
-  
+
     private (ulong, ulong, int) CreateCheckMask(Color color)
     {
         ulong pinmask = 0;
@@ -271,7 +271,7 @@ public readonly record struct Position
         }
 
         return (
-            countCheckers > 0 ? checkmask : ulong.MaxValue, 
+            countCheckers > 0 ? checkmask : ulong.MaxValue,
             pinmask == 0 ? ulong.MaxValue : pinmask,
             countCheckers);
     }
@@ -518,10 +518,12 @@ public readonly record struct Position
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
-
-                moves[count++] = (attack != EnPassant)
-                    ? new Move(sq, attack, attack, GetOccupant(attack))
+                foreach (var promotionPiece in MovePatterns.PromotionPieces[attack])
+                {
+                    moves[count++] = (attack != EnPassant)
+                    ? new Move(sq, attack, attack, GetOccupant(attack)) with { PromotionPiece = promotionPiece }
                     : DoEnPassant(sq, attack);
+                }
             }
         }
         return count;
