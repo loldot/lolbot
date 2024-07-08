@@ -27,7 +27,7 @@ public class Rooks
         var rooks = Bitboards.Create("A1", "H1");
         var blockers = Bitboards.Create("A3", "A4", "C1", "E1", "H6", "H7", "E5");
 
-        var rookMoves = MovePatterns.RookAttacks(rooks, ~blockers);
+        var rookMoves = MovePatterns.GenerateRookAttacks(rooks, ~blockers);
         rookMoves.Should().Be(Bitboards.Create((int[])[
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
@@ -38,6 +38,54 @@ public class Rooks
             1,0,0,0,0,0,0,1,
             0,1,1,0,1,1,1,0
         ]));
+    }
+
+    [Test]
+    public void PextRookBlockersUp()
+    {
+        var blockers = Bitboards.Create("A3", "A4", "C1", "E1", "H6", "H7", "E5");
+
+        var rookMoves = MovePatterns.RookAttacks(0, blockers);
+
+        Bitboards.Debug(rookMoves);
+        rookMoves.Should().Be(Bitboards.Create((int[])[
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            1,0,0,0,0,0,0,0,
+            1,0,0,0,0,0,0,0,
+            0,1,1,0,0,0,0,0
+        ]));
+    }
+
+    [Test]
+    public void PextBlockers_Middle()
+    {
+        var blockers = Bitboards.Create("d2", "d7", "f4");
+        var rook = Squares.IndexFromCoordinate("d4");
+
+        var rookMoves = MovePatterns.RookAttacks(rook, blockers);
+        var occFill = MovePatterns.GenerateRookAttacks(Squares.FromIndex(rook), ~blockers);
+
+        Bitboards.Debug(rookMoves);
+        Bitboards.Debug(occFill);
+        rookMoves.Should().Be(occFill);
+    }
+
+    [Test]
+    public void PextBlockers_Middle2()
+    {
+        var blockers = Bitboards.Create("b7", "g3");
+        var rook = Squares.IndexFromCoordinate("b3");
+
+        var rookMoves = MovePatterns.RookAttacks(rook, blockers);
+        var occFill = MovePatterns.GenerateRookAttacks(Squares.FromIndex(rook), ~blockers);
+
+        Bitboards.Debug(rookMoves);
+        Bitboards.Debug(occFill);
+        rookMoves.Should().Be(occFill);
     }
 
     [Test]
@@ -54,7 +102,7 @@ public class Rooks
             Move.Castle(Color.Black)
         ]);
         var rooks = g.CurrentPosition.BlackRooks;
-        
+
         rooks.Should().Be(Bitboards.Create("a8", "f8"));
 
     }

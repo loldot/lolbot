@@ -9,8 +9,8 @@ public class Queens
         var bishops = Bitboards.Create("C4", "D4");
         var blockers = Bitboards.Create("b3", "b4", "b5", "c7", "d3", "d6", "f2", "f7");
 
-        var quenMoves = MovePatterns.BishopAttacks(bishops, ~blockers)
-        | MovePatterns.RookAttacks(bishops, ~blockers);
+        var quenMoves = MovePatterns.GenerateBishopAttacks(bishops, ~blockers)
+        | MovePatterns.GenerateRookAttacks(bishops, ~blockers);
 
         var expected = Bitboards.Create((int[])[
             0,0,0,0,0,0,0,1,//8

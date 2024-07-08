@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -99,7 +97,8 @@ public readonly record struct Position
     public Position Move(Move m)
     {
         Color next = CurrentPlayer == Color.White ? Color.Black : Color.White;
-        return this with
+
+        var position = this with
         {
             CastlingRights = ApplyCastlingRights(m),
             EnPassant = SetEnPassant(m),
@@ -118,6 +117,18 @@ public readonly record struct Position
             BlackKing = ApplyMove(BlackKing, m),
             CurrentPlayer = next,
         };
+
+        if (m.PromotionPiece != Piece.None)
+        {
+            var sq = Squares.FromIndex(m.ToIndex);
+            return position.Update(m.PromotionPiece, this[m.PromotionPiece] | sq) with
+            {
+                WhitePawns = WhitePawns ^ sq,
+                BlackPawns = BlackPawns ^ sq,
+            };
+        }
+
+        return position;
     }
 
     private CastlingRights ApplyCastlingRights(Move m)
@@ -265,8 +276,8 @@ public readonly record struct Position
             var from = Squares.FromIndex(fromIndex);
 
             var valid = (
-                MovePatterns.RookAttacks(from, Empty)
-              | MovePatterns.BishopAttacks(from, Empty)
+                MovePatterns.GenerateRookAttacks(from, Empty)
+              | MovePatterns.GenerateBishopAttacks(from, Empty)
             ) & ~friendlies & Checkmask;
 
             var quiets = valid & ~targets;
@@ -349,8 +360,8 @@ public readonly record struct Position
             ? (WhiteKing, BlackRooks, BlackQueens, BlackBishops, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
             : (BlackKing, WhiteRooks, WhiteQueens, WhiteBishops, WhiteKnights, WhitePawns);
 
-        var enemyAttacks = MovePatterns.RookAttacks(enemyRooks | enemyQueen, Empty ^ king)
-            | MovePatterns.BishopAttacks(enemyBishops | enemyQueen, Empty ^ king);
+        var enemyAttacks = MovePatterns.GenerateRookAttacks(enemyRooks | enemyQueen, Empty ^ king)
+            | MovePatterns.GenerateBishopAttacks(enemyBishops | enemyQueen, Empty ^ king);
 
         while (enemyKnights != 0)
         {
@@ -385,7 +396,7 @@ public readonly record struct Position
             var fromIndex = Bitboards.PopLsb(ref rooks);
             var from = Squares.FromIndex(fromIndex);
 
-            var valid = MovePatterns.RookAttacks(from, Empty) & ~friendlies & Checkmask;
+            var valid = MovePatterns.GenerateRookAttacks(from, Empty) & ~friendlies & Checkmask;
             var quiets = valid & ~targets;
             while (quiets != 0)
             {
@@ -415,7 +426,7 @@ public readonly record struct Position
             var fromIndex = Bitboards.PopLsb(ref bishops);
             var from = Squares.FromIndex(fromIndex);
 
-            var valid = MovePatterns.BishopAttacks(from, Empty) & ~friendlies & Checkmask;
+            var valid = MovePatterns.GenerateBishopAttacks(from, Empty) & ~friendlies & Checkmask;
             var quiets = valid & ~Occupied;
             while (quiets != 0)
             {

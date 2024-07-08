@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
@@ -26,6 +27,13 @@ public static class MovePatterns
 
     public static Piece[][] PromotionPieces = new Piece[64][];
 
+    public static ulong[] RookPextMask = new ulong[64];
+    public static ulong[] BishopPextMask = new ulong[64];
+    public static uint[] RookPextIndex = new uint[64];
+    public static uint[] BishopPextIndex = new uint[64];
+
+    public static ulong[] PextTable = new ulong[2 * 64 * 4096];
+
     static MovePatterns()
     {
         for (byte i = 0; i < 64; i++)
@@ -33,11 +41,11 @@ public static class MovePatterns
             var square = Squares.FromIndex(i);
             WhitePawnPushes[i] = GetPawnPushes(square);
             WhitePawnAttacks[i] = CalculateAllPawnAttacks(square);
-            Knights[i] = GenerateKnightMoves(i);
-            Bishops[i] = GenerateBishopMoves(i);
-            Rooks[i] = GenerateRookMoves(i);
-            Kings[i] = GenerateKingMoves(i);
-            
+            Knights[i] = PseudoKnightMoves(i);
+            Bishops[i] = PseudoBishopMoves(i);
+            Rooks[i] = PseudoRookMoves(i);
+            Kings[i] = PseudoKingMoves(i);
+
             if (i >= 56) PromotionPieces[i] = [Piece.WhiteQueen, Piece.WhiteRook, Piece.WhiteBishop, Piece.WhiteKnight];
             else if (i <= 8) PromotionPieces[i] = [Piece.BlackQueen, Piece.BlackRook, Piece.BlackBishop, Piece.BlackKnight];
             else PromotionPieces[i] = [Piece.None];
@@ -66,9 +74,76 @@ public static class MovePatterns
                 SquaresBetween[i][j] |= target;
             }
         }
+
+        InitPextTable();
     }
 
-    private static ulong GenerateKingMoves(byte squareIndex)
+    public static void InitPextTable()
+    {
+        var sw = Stopwatch.StartNew();
+        uint currentIndex = 0;
+        for (byte i = 0; i < 64; i++)
+        {
+            var sq = Squares.FromIndex(i);
+
+            RookPextIndex[i] = currentIndex;
+            RookPextMask[i] = Rooks[i] & GetEdgeFilter(i);
+
+            var mask = RookPextMask[i];
+
+            ulong max = 1UL << Bitboards.CountOccupied(mask);
+            for (ulong j = 0; j < max; j++)
+            {
+                var blockers = Bitboards.Pepd(j, mask);
+                PextTable[currentIndex++] = GenerateRookAttacks(sq, ~blockers);
+            }
+        }
+
+        for (byte i = 0; i < 64; i++)
+        {
+            var sq = Squares.FromIndex(i);
+
+            BishopPextIndex[i] = currentIndex;
+            BishopPextMask[i] = Bishops[i] & GetEdgeFilter(i);
+
+            var mask = BishopPextMask[i];
+            ulong max = 1UL << Bitboards.CountOccupied(mask);
+            for (ulong j = 0; j < max; j++)
+            {
+                var blockers = Bitboards.Pepd(j, mask);
+                PextTable[currentIndex++] = GenerateRookAttacks(sq, ~blockers);
+            }
+        }
+
+        Console.WriteLine(currentIndex);
+        Console.WriteLine($"Pext init took {sw.ElapsedMilliseconds} ms");
+        sw.Stop();
+    }
+
+    private static ulong GetEdgeFilter(byte i)
+    {
+        var result = (Bitboards.Masks.Rank_1 | Bitboards.Masks.Rank_8) & ~Bitboards.Masks.GetRank(i);
+        result |= (Bitboards.Masks.A_File | Bitboards.Masks.H_File) & ~Bitboards.Masks.GetFile(i);
+
+        return ~result;
+    }
+
+    public static ulong BishopAttacks(byte square, ulong occupied)
+    {
+        var index = BishopPextIndex[square]
+            + Bitboards.Pext(occupied, BishopPextMask[square]);
+        return PextTable[index];
+    }
+
+    public static ulong RookAttacks(byte square, ulong occupied)
+    {
+        var index = RookPextIndex[square]
+            + Bitboards.Pext(occupied, RookPextMask[square]);
+        Bitboards.Debug(RookPextMask[square]);
+        return PextTable[index];
+    }
+
+    private static ulong PseudoKingMoves(byte squareIndex)
     {
         var attacks = 0ul;
 
@@ -90,9 +165,14 @@ public static class MovePatterns
         return attacks;
     }
 
-    private static ulong GenerateRookMoves(byte i)
+    private static ulong PseudoRookMoves(byte i)
     {
         return (Bitboards.Masks.GetRank(i) | Bitboards.Masks.GetFile(i)) ^ 1ul << i;
+    }
+
+    private static ulong PseudoBishopMoves(byte sq)
+    {
+        return (GetDiagonal(sq) | GetAntiadiagonal(sq)) ^ 1ul << sq;
     }
 
     private static ulong GetDiagonal(int sq)
@@ -112,12 +192,9 @@ public static class MovePatterns
         int sout = diag & (-diag >> 31);
         return (maindia >> sout) << nort;
     }
-    private static ulong GenerateBishopMoves(byte sq)
-    {
-        return (GetDiagonal(sq) | GetAntiadiagonal(sq)) ^ 1ul << sq;
-    }
 
-    private static ulong GenerateKnightMoves(byte squareIndex)
+
+    private static ulong PseudoKnightMoves(byte squareIndex)
     {
         var attacks = 0ul;
 
@@ -135,16 +212,7 @@ public static class MovePatterns
         return attacks;
     }
 
-    public static ulong GenerateSuper(ulong pieces, ulong empty)
-    {
-        return Knights[Squares.ToIndex(pieces)]
-        | BishopAttacks(pieces, empty)
-        | RookAttacks(pieces, empty)
-        | CalculateAllPawnAttacks(pieces);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong BishopAttacks(ulong bishops, ulong empty)
+    public static ulong GenerateBishopAttacks(ulong bishops, ulong empty)
     {
         return SlidingAttacks(bishops, empty, NE)
             | SlidingAttacks(bishops, empty, SE)
@@ -152,7 +220,7 @@ public static class MovePatterns
             | SlidingAttacks(bishops, empty, NW);
     }
 
-    public static ulong RookAttacks(ulong rooks, ulong empty)
+    public static ulong GenerateRookAttacks(ulong rooks, ulong empty)
     {
         return SlidingAttacks(rooks, empty, N)
             | SlidingAttacks(rooks, empty, E)
@@ -228,12 +296,12 @@ public static class MovePatterns
             Piece.BlackPawn => Bitboards.FlipAlongVertical(CalculateAllPawnAttacks(Bitboards.FlipAlongVertical(bitboard))) & ~empty,
             Piece.WhiteKnight => Knights[Squares.ToIndex(bitboard)],
             Piece.BlackKnight => Knights[Squares.ToIndex(bitboard)],
-            Piece.WhiteBishop => BishopAttacks(bitboard, empty),
-            Piece.BlackBishop => BishopAttacks(bitboard, empty),
-            Piece.WhiteRook => RookAttacks(bitboard, empty),
-            Piece.WhiteQueen => RookAttacks(bitboard, empty) | BishopAttacks(bitboard, empty),
-            Piece.BlackRook => RookAttacks(bitboard, empty),
-            Piece.BlackQueen => RookAttacks(bitboard, empty) | BishopAttacks(bitboard, empty),
+            Piece.WhiteBishop => GenerateBishopAttacks(bitboard, empty),
+            Piece.BlackBishop => GenerateBishopAttacks(bitboard, empty),
+            Piece.WhiteRook => GenerateRookAttacks(bitboard, empty),
+            Piece.WhiteQueen => GenerateRookAttacks(bitboard, empty) | GenerateBishopAttacks(bitboard, empty),
+            Piece.BlackRook => GenerateRookAttacks(bitboard, empty),
+            Piece.BlackQueen => GenerateRookAttacks(bitboard, empty) | GenerateBishopAttacks(bitboard, empty),
             _ => 0,
         };
     }

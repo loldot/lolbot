@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Collections;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -18,6 +19,8 @@ public static class Bitboards
         public const ulong Rank_1 = 0xff;
         public const ulong Rank_8 = 0xFF00000000000000;
 
+        public const ulong Edges = A_File | H_File | Rank_1 | Rank_8;
+
         public const ulong MainDiagonal = 0x8040201008040201;
         public const ulong MainAntidiagonal = 0x0102040810204080;
         public const ulong LightSquares = 0x55AA55AA55AA55AA;
@@ -25,6 +28,57 @@ public static class Bitboards
 
         public static ulong GetRank(int sq) { return 0xfful << (sq & 56); }
         public static ulong GetFile(int sq) { return 0x0101010101010101ul << (sq & 7); }
+    }
+
+    public static ulong Pext(ulong bitboard, ulong mask)
+    {
+        if (!Bmi2.IsSupported)
+        {
+            Console.WriteLine("PEXT not supported");
+            return extract_bits(bitboard, mask);
+        }
+
+        return Bmi2.X64.ParallelBitExtract(bitboard, mask);
+    }
+
+    public static ulong Pepd(ulong bitboard, ulong mask)
+    {
+        if (!Bmi2.IsSupported)
+        {
+            Console.WriteLine("PEXT not supported");
+            return extract_bits(bitboard, mask);
+        }
+
+        return Bmi2.X64.ParallelBitDeposit(bitboard, mask);
+    }
+
+    private static ulong extract_bits(ulong x, ulong m)
+    {
+        x &= m;
+        ulong mk = ~m << 1;
+
+        for (int i = 1; i < 32; i <<= 1)
+        {
+            ulong mk_parity = bitwise_inclusive_right_parity(mk); // see below
+
+            ulong move = mk_parity & m;
+            m = (m ^ move) | (move >> i);
+
+            ulong t = x & move;
+            x = (x ^ t) | (t >> i);
+
+            mk &= ~mk_parity;
+        }
+        return x;
+    }
+
+    private static ulong bitwise_inclusive_right_parity(ulong x)
+    {
+        for (int i = 1; i < 64; i <<= 1)
+        {
+            x ^= x << i;
+        }
+        return x;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -97,13 +151,13 @@ public static class Bitboards
 
     public static void Debug(params ulong[] bitboards)
     {
-        foreach(var bitboard in bitboards)
+        foreach (var bitboard in bitboards)
             Console.WriteLine(ToDebugString(bitboard));
     }
     public static void Debug(string header, params ulong[] bitboards)
     {
         Console.WriteLine(header);
-        foreach(var bitboard in bitboards)
+        foreach (var bitboard in bitboards)
             Console.WriteLine(ToDebugString(bitboard));
     }
 
@@ -131,4 +185,5 @@ public static class Bitboards
         sb.AppendLine("|a|b|c|d|e|f|g|h|");
         return sb.ToString();
     }
+
 }

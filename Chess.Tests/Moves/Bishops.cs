@@ -25,7 +25,7 @@ public class Bishops
         var bishops = Bitboards.Create("A1", "H1");
         var blockers = Bitboards.Create("D5", "F6");
 
-        var bishopMoves = MovePatterns.BishopAttacks(bishops, ~blockers);
+        var bishopMoves = MovePatterns.GenerateBishopAttacks(bishops, ~blockers);
         bishopMoves.Should().Be(Bitboards.Create((int[])[
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
