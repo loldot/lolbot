@@ -507,6 +507,7 @@ public readonly record struct Position
                 var push = Bitboards.PopLsb(ref pushes);
                 if ((MovePatterns.SquaresBetween[sq][push] & Occupied) == 0)
                 {
+                    // For all ranks except 2 and 7 promotion pieces = [Piece.None]
                     foreach (var promotionPiece in MovePatterns.PromotionPieces[push])
                     {
                         moves[count++] = new Move(sq, push) with { PromotionPiece = promotionPiece };
@@ -526,6 +527,7 @@ public readonly record struct Position
                 }
             }
 
+            // Double pushed pawn is capturing en passant.
             if (Checkmask < ulong.MaxValue && EnPassant != 0)
             {
                 moves[count++] = DoEnPassant(sq, EnPassant);
