@@ -22,7 +22,8 @@ public readonly record struct Position
     public CastlingRights CastlingRights { get; init; } = CastlingRights.All;
 
     public ulong Checkmask => CreateCheckMask(CurrentPlayer).Item1;
-    public int CheckerCount => CreateCheckMask(CurrentPlayer).Item2;
+    public ulong Pinmask => CreateCheckMask(CurrentPlayer).Item2;
+    public int CheckerCount => CreateCheckMask(CurrentPlayer).Item3;
 
     public Position()
     {
@@ -211,8 +212,6 @@ public readonly record struct Position
         Memory<Move> moves = new Move[max_moves];
         var count = 0;
 
-        var pinmask = ulong.MaxValue;
-
         if (CheckerCount > 1) pieceType = Piece.WhiteKing;
 
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 1)
@@ -231,13 +230,16 @@ public readonly record struct Position
         return moves[..count].Span;
     }
 
-    private (ulong, int) CreateCheckMask(Color color)
+  
+    private (ulong, ulong, int) CreateCheckMask(Color color)
     {
+        ulong pinmask = 0;
         ulong checkmask = 0;
         int countCheckers = 0;
 
         int opponentColor = color == Color.White ? 0x20 : 0x10;
         byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
+        var friendly = color == Color.White ? White : Black;
 
         // king can never check
         for (int i = 1; i < 6; i++)
@@ -253,6 +255,13 @@ public readonly record struct Position
                 var attacks = MovePatterns.GetAttack(pieceType, checker, Empty);
 
                 var pieceCheckmask = attacks & squares;
+
+                // if only two friendlies on checkmask (including king, piece is pinned)
+                if (pieceCheckmask != 0 && Bitboards.CountOccupied(squares & friendly) == 2)
+                {
+                    pinmask |= squares | checker;
+                }
+
                 if ((pieceCheckmask & (1ul << king)) != 0)
                 {
                     checkmask |= pieceCheckmask | checker;
@@ -260,7 +269,11 @@ public readonly record struct Position
                 }
             }
         }
-        return (countCheckers > 0 ? checkmask : ulong.MaxValue, countCheckers);
+
+        return (
+            countCheckers > 0 ? checkmask : ulong.MaxValue, 
+            pinmask == 0 ? ulong.MaxValue : pinmask,
+            countCheckers);
     }
 
     private int AddQueenMoves(Color color, Span<Move> moves)
@@ -277,7 +290,7 @@ public readonly record struct Position
             var valid = (
                 MovePatterns.RookAttacks(fromIndex, Occupied)
               | MovePatterns.BishopAttacks(fromIndex, Occupied)
-            ) & ~friendlies & Checkmask;
+            ) & ~friendlies & Checkmask & PinnedPiece(fromIndex);
 
             var quiets = valid & ~targets;
             while (quiets != 0)
@@ -294,6 +307,13 @@ public readonly record struct Position
             }
         }
         return count;
+    }
+
+    private ulong PinnedPiece(byte fromIndex)
+    {
+        return ((Pinmask & Squares.FromIndex(fromIndex)) > 0)
+            ? Pinmask
+            : ulong.MaxValue;
     }
 
     private int AddKingMoves(Color color, Span<Move> moves)
@@ -394,7 +414,7 @@ public readonly record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref rooks);
 
-            var valid = MovePatterns.RookAttacks(fromIndex, Occupied) & ~friendlies & Checkmask;
+            var valid = MovePatterns.RookAttacks(fromIndex, Occupied) & ~friendlies & Checkmask & PinnedPiece(fromIndex);
             var quiets = valid & ~targets;
             while (quiets != 0)
             {
@@ -423,7 +443,7 @@ public readonly record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref bishops);
 
-            var valid = MovePatterns.BishopAttacks(fromIndex, Occupied) & ~friendlies & Checkmask;
+            var valid = MovePatterns.BishopAttacks(fromIndex, Occupied) & ~friendlies & Checkmask & PinnedPiece(fromIndex);
             var quiets = valid & ~Occupied;
             while (quiets != 0)
             {
@@ -452,14 +472,14 @@ public readonly record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref knights);
 
-            var quiets = MovePatterns.Knights[fromIndex] & ~Occupied & Checkmask;
+            var quiets = MovePatterns.Knights[fromIndex] & ~Occupied & Checkmask & PinnedPiece(fromIndex);
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.Knights[fromIndex] & targets & Checkmask;
+            var attacks = MovePatterns.Knights[fromIndex] & targets & Checkmask & PinnedPiece(fromIndex);
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
@@ -481,7 +501,7 @@ public readonly record struct Position
         {
             var sq = Bitboards.PopLsb(ref pawns);
 
-            var pushes = pushPattern[sq] & Checkmask & Empty;
+            var pushes = pushPattern[sq] & Checkmask & PinnedPiece(sq) & Empty;
             while (pushes != 0)
             {
                 var push = Bitboards.PopLsb(ref pushes);
@@ -494,7 +514,7 @@ public readonly record struct Position
                 }
             }
 
-            var attacks = attackPattern[sq] & (targets | (1ul << EnPassant)) & Checkmask;
+            var attacks = attackPattern[sq] & (targets | (1ul << EnPassant)) & Checkmask & PinnedPiece(sq);
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);

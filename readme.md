@@ -1,14 +1,14 @@
 # TODO:
 
-- [ ] End game on check mate
-- [ ] Pawn promotions
+- [x] End game on check mate
+- [x] Pawn promotions
 - [x] Pawns jumping over piece on first move
 - [x] Pawns can check
 - [x] En passant should capture
 - [x] Checks
 - [x] King cannot move away from check in check direction
 - [x] Double Checks
-- [ ] Pins
+- [x] Pins
 - [x] Make king moves legal again
 - [x] Display castling as legal move
 - [x] Remove castling rights
