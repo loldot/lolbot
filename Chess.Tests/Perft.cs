@@ -10,11 +10,11 @@ public class Perft
     const string Position5 = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
 
 
-    [TestCase(Position1, 1,      20)]
-    [TestCase(Position1, 2,     400)]
-    [TestCase(Position1, 3,   8_902)]
-    [TestCase(Position1, 4, 197_281)]
-    // [TestCase(Position1, 5, 4_865_609)]
+    [TestCase(Position1, 1,        20)]
+    [TestCase(Position1, 2,       400)]
+    [TestCase(Position1, 3,     8_902)]
+    [TestCase(Position1, 4,   197_281)]
+    [TestCase(Position1, 5, 4_865_609)]
     
     [TestCase(Position2, 1,      48)]
     [TestCase(Position2, 2,   2_039)]
@@ -27,7 +27,6 @@ public class Perft
     [TestCase(Position5, 1,      44)]
     [TestCase(Position5, 2,   1_486)]
     [TestCase(Position5, 3,  62_379)]
-
     public void PerftCounts(string fen, int depth, int expectedCount)
     {
         var perft = GetPerftCounts(Position.FromFen(fen), depth);

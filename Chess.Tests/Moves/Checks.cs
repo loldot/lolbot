@@ -100,6 +100,13 @@ public class Checks
         allMoves.Should().BeEquivalentTo(kingMoves);
     }
 
+    [Test]
+    public void Can_Evade_Check_With_EnPassant()
+    {
+        var moves = GetLegalMoves("2k5/8/8/3pP3/2K5/8/8/8 w - d6 0 1", 'P');
+        moves.Should().Contain(x => x.CaptureIndex == Squares.D5 && x.ToIndex == Squares.D6);
+    }
+
     private Move[] GetLegalMoves(string fen)
     {
         var position = Position.FromFen(fen);

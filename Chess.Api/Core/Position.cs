@@ -257,7 +257,7 @@ public readonly record struct Position
                 var pieceCheckmask = attacks & squares;
 
                 // if only two friendlies on checkmask (including king, piece is pinned)
-                if (pieceCheckmask != 0 && Bitboards.CountOccupied(squares & friendly) == 2)
+                if (pieceCheckmask != 0 && Bitboards.CountOccupied(squares & Occupied) == 2)
                 {
                     pinmask |= squares | checker;
                 }
@@ -524,6 +524,11 @@ public readonly record struct Position
                     ? new Move(sq, attack, attack, GetOccupant(attack)) with { PromotionPiece = promotionPiece }
                     : DoEnPassant(sq, attack);
                 }
+            }
+
+            if (Checkmask < ulong.MaxValue && EnPassant != 0)
+            {
+                moves[count++] = DoEnPassant(sq, EnPassant);
             }
         }
         return count;
