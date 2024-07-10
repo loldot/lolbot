@@ -54,4 +54,16 @@ class Kings
         game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteQueen);
         game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteKing);
     }
+
+    [Test]
+    public void AlmostAttacked_Castling()
+    {
+        var pos = Position.FromFen("r3k2r/8/8/8/8/3b4/8/R3K2R w KQkq - 0 1");
+        pos.GenerateLegalMoves('K').ToArray().Should().BeEquivalentTo([
+            Move.QueenSideCastle(Color.White),
+            new Move("e1","d1"),
+            new Move("e1","d2"),
+            new Move("e1","f2")
+        ]);
+    }
 }

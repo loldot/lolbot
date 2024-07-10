@@ -9,6 +9,8 @@ public class Perft
     const string Position4 = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
     const string Position5 = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
 
+    const string Position6 = "2k5/P2bn2P/4B3/5bb1/5BB1/4b3/p2B1N1p/2K5 w - - 0 1";
+    
 
     [TestCase(Position1, 1,        20)]
     [TestCase(Position1, 2,       400)]
@@ -27,6 +29,11 @@ public class Perft
     [TestCase(Position5, 1,      44)]
     [TestCase(Position5, 2,   1_486)]
     [TestCase(Position5, 3,  62_379)]
+
+    [TestCase(Position6, 1,    38)]
+    [TestCase(Position6, 2, 1_118)]
+    [TestCase(Position6, 2, 37_389)]
+   
     public void PerftCounts(string fen, int depth, int expectedCount)
     {
         var perft = GetPerftCounts(Position.FromFen(fen), depth);
@@ -42,7 +49,9 @@ public class Perft
 
         foreach (var move in moves)
         {
-            count += GetPerftCounts(position.Move(move), remainingDepth - 1);
+            var posCount = GetPerftCounts(position.Move(move), remainingDepth - 1);
+            if(remainingDepth == 5) Console.WriteLine($"{move}: {posCount}");
+            count += posCount;
         }
 
         return count;

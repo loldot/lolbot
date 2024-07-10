@@ -52,6 +52,20 @@ public class Pawns
         moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteRook);
         moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteQueen);
     }
+
+    [Test]
+    public void Promoting_Should_Update_Both_Pieces()
+    {
+        var position = Position.FromFen("1k6/4P3/8/8/8/8/8/1K6 w - - 0 1");
+        var next = position.Move(new Move("e7", "e8") with { PromotionPiece = Piece.WhiteQueen });
+        
+        Bitboards.Debug(next.WhitePawns);
+        Bitboards.Debug(next.WhiteQueens);
+
+        (next.WhitePawns & Squares.FromCoordinates("e7")).Should().Be(0);
+        (next.WhiteQueens & Squares.FromCoordinates("e8")).Should().NotBe(0);
+    }
+
     [Test]
     public void Pushing_Pawn_To_Last_Rank_Without_Promoting_Should_Not_Be_Allowed()
     {

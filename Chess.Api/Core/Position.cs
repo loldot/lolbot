@@ -4,22 +4,22 @@ namespace Lolbot.Core;
 
 public readonly record struct Position
 {
-    public Color CurrentPlayer { get; init; } = Color.White;
-    public ulong WhitePawns { get; init; } = 0x000000000000ff00;
-    public ulong WhiteRooks { get; init; } = Bitboards.Create("A1", "H1");
-    public ulong WhiteBishops { get; init; } = Bitboards.Create("C1", "F1");
-    public ulong WhiteKnights { get; init; } = Bitboards.Create("B1", "G1");
-    public ulong WhiteQueens { get; init; } = Bitboards.Create("D1");
-    public ulong WhiteKing { get; init; } = Bitboards.Create("E1");
+    public readonly Color CurrentPlayer { get; init; } = Color.White;
+    public readonly ulong WhitePawns { get; init; } = 0x000000000000ff00;
+    public readonly ulong WhiteRooks { get; init; } = Bitboards.Create("A1", "H1");
+    public readonly ulong WhiteBishops { get; init; } = Bitboards.Create("C1", "F1");
+    public readonly ulong WhiteKnights { get; init; } = Bitboards.Create("B1", "G1");
+    public readonly ulong WhiteQueens { get; init; } = Bitboards.Create("D1");
+    public readonly ulong WhiteKing { get; init; } = Bitboards.Create("E1");
 
-    public ulong BlackPawns { get; init; } = 0x00ff000000000000;
-    public ulong BlackRooks { get; init; } = Bitboards.Create("A8", "H8");
-    public ulong BlackBishops { get; init; } = Bitboards.Create("C8", "F8");
-    public ulong BlackKnights { get; init; } = Bitboards.Create("B8", "G8");
-    public ulong BlackQueens { get; init; } = Bitboards.Create("D8");
-    public ulong BlackKing { get; init; } = Bitboards.Create("E8");
-    public byte EnPassant { get; init; } = 0;
-    public CastlingRights CastlingRights { get; init; } = CastlingRights.All;
+    public readonly ulong BlackPawns { get; init; } = 0x00ff000000000000;
+    public readonly ulong BlackRooks { get; init; } = Bitboards.Create("A8", "H8");
+    public readonly ulong BlackBishops { get; init; } = Bitboards.Create("C8", "F8");
+    public readonly ulong BlackKnights { get; init; } = Bitboards.Create("B8", "G8");
+    public readonly ulong BlackQueens { get; init; } = Bitboards.Create("D8");
+    public readonly ulong BlackKing { get; init; } = Bitboards.Create("E8");
+    public readonly byte EnPassant { get; init; } = 0;
+    public readonly CastlingRights CastlingRights { get; init; } = CastlingRights.All;
 
     public ulong Checkmask => CreateCheckMask(CurrentPlayer).Item1;
     public ulong Pinmask => CreateCheckMask(CurrentPlayer).Item2;
@@ -27,6 +27,10 @@ public readonly record struct Position
 
     public Position()
     {
+        White = Bitboards.Create(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
+        Black  = Bitboards.Create(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
+        Occupied = Bitboards.Create(White, Black);
+        Empty = ~Occupied;
     }
 
     public static Position EmptyBoard => new Position() with
@@ -71,11 +75,12 @@ public readonly record struct Position
         };
     }
 
-    public readonly ulong White => Bitboards.Create(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
-    public readonly ulong Black => Bitboards.Create(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
 
-    public readonly ulong Occupied => Bitboards.Create(White, Black);
-    public readonly ulong Empty => ~Occupied;
+    public readonly ulong White; 
+    public readonly ulong Black;
+
+    public readonly ulong Occupied;
+    public readonly ulong Empty;
 
     public override string ToString()
     {
@@ -124,8 +129,8 @@ public readonly record struct Position
             var sq = Squares.FromIndex(m.ToIndex);
             return position.Update(m.PromotionPiece, this[m.PromotionPiece] | sq) with
             {
-                WhitePawns = WhitePawns ^ sq,
-                BlackPawns = BlackPawns ^ sq,
+                WhitePawns = position.WhitePawns ^ sq,
+                BlackPawns = position.BlackPawns ^ sq,
             };
         }
 
@@ -230,7 +235,6 @@ public readonly record struct Position
         return moves[..count].Span;
     }
 
-
     private (ulong, ulong, int) CreateCheckMask(Color color)
     {
         ulong pinmask = 0;
@@ -239,7 +243,6 @@ public readonly record struct Position
 
         int opponentColor = color == Color.White ? 0x20 : 0x10;
         byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
-        var friendly = color == Color.White ? White : Black;
 
         // king can never check
         for (int i = 1; i < 6; i++)

@@ -50,4 +50,51 @@ public class Pins
         var moves = pos.GenerateLegalMoves('P').ToArray();
         moves.Should().OnlyContain(x => x.CaptureIndex == Squares.C5 && x.ToIndex == Squares.C6);
     }
+
+    [Test]
+    public void Pinned_En_Passant_Black()
+    {
+        var pos = Position.FromFen("8/Q7/8/3K4/3pP3/8/8/4q1k1 b - e3 0 1");
+        var moves = pos.GenerateLegalMoves('p').ToArray();
+        moves.Should().OnlyContain(x => x.CaptureIndex == Squares.E4 && x.ToIndex == Squares.E3);
+    }
+
+    [Test]
+    public void Cannot_Block_Check_While_Pinned()
+    {
+        var pos = Position.FromFen("3k4/4r3/8/4N2b/8/8/4K3/8 w - - 0 1");
+        var moves = pos.GenerateLegalMoves('N').ToArray();
+        moves.Should().BeEmpty();
+    }
+
+    [Test]
+    public void Pinned_Piece_Cannot_Escape_To_Another_Pin()
+    {
+        var pos = Position.FromFen("2q5/8/8/2P5/2K1Q1r1/8/8/8 w - - 0 1");
+        var moves = pos.GenerateLegalMoves('Q').ToArray();
+        moves.Should().OnlyContain(x => Bitboards.Masks.GetRank(x.ToIndex) == Bitboards.Masks.Rank_4);
+    }
+
+    [Test]
+    public void Should_Not_Pin_When_Blocked()
+    {
+        var rookBetweenPawnAndKing = Position.FromFen("4k3/8/8/8/4r3/4P3/4R3/4K3 b - - 0 1");
+        var noRook = Position.FromFen("4k3/8/8/8/4r3/4P3/8/4K3 b - - 0 1");
+
+        var moves = rookBetweenPawnAndKing.GenerateLegalMoves().ToArray();
+
+
+        moves.Should().BeEquivalentTo(noRook.GenerateLegalMoves().ToArray());
+    }
+
+    public void Shoul_Not_Pin_Behind_King()
+    {
+        var rookBetweenPawnAndKing = Position.FromFen("8/8/4n3/4k3/4p3/8/8/K3R3 b - - 0 1");
+        var noRook = Position.FromFen("8/8/4n3/4k3/4p3/8/8/K7 b - - 0 1");
+
+        var moves = rookBetweenPawnAndKing.GenerateLegalMoves().ToArray();
+
+
+        moves.Should().BeEquivalentTo(noRook.GenerateLegalMoves().ToArray());
+    }
 }

@@ -47,7 +47,7 @@ public static class MovePatterns
             Kings[i] = PseudoKingMoves(i);
 
             if (i >= 56) PromotionPieces[i] = [Piece.WhiteQueen, Piece.WhiteRook, Piece.WhiteBishop, Piece.WhiteKnight];
-            else if (i <= 8) PromotionPieces[i] = [Piece.BlackQueen, Piece.BlackRook, Piece.BlackBishop, Piece.BlackKnight];
+            else if (i <= 7) PromotionPieces[i] = [Piece.BlackQueen, Piece.BlackRook, Piece.BlackBishop, Piece.BlackKnight];
             else PromotionPieces[i] = [Piece.None];
         }
 

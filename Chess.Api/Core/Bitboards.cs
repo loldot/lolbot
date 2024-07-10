@@ -16,8 +16,14 @@ public static class Bitboards
     {
         public const ulong A_File = 0x0101010101010101;
         public const ulong H_File = 0x8080808080808080;
-        public const ulong Rank_1 = 0xff;
-        public const ulong Rank_8 = 0xFF00000000000000;
+        public const ulong Rank_1 = 0x00000000000000ff;
+        public const ulong Rank_2 = 0x000000000000ff00;
+        public const ulong Rank_3 = 0x0000000000ff0000;
+        public const ulong Rank_4 = 0x00000000ff000000;
+        public const ulong Rank_5 = 0x000000ff00000000;
+        public const ulong Rank_6 = 0x0000ff0000000000;
+        public const ulong Rank_7 = 0x00ff000000000000;
+        public const ulong Rank_8 = 0xff00000000000000;
 
         public const ulong Edges = A_File | H_File | Rank_1 | Rank_8;
 

@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+namespace Lolbot.Core;
 
 ///<summary>
 /// Provide utility methods for squares (ulong) using 
