@@ -26,7 +26,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-await GameDatabase.Instance.Seed();
+// await GameDatabase.Instance.Seed();
 
 app.MapHub<GameHub>("/game/realtime");
 

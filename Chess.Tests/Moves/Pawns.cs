@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -6,11 +7,8 @@ public class Pawns
     [Test]
     public void Should_Be_Blocked_By_Opponent()
     {
-        var position = new Position() with
-        {
-            BlackPawns = 0x404002000000,
-            WhitePawns = 0x40220000
-        };
+        var position = Position.FromFen("8/8/6p1/6p1/1p4P1/1P3P2/8/8 w - - 0 1");
+        Bitboards.Debug(position.BlackPawns, position.WhitePawns);
 
         var blackMoves = position.GenerateLegalMoves(Color.Black, Piece.BlackPawn);
         var whiteMoves = position.GenerateLegalMoves(Color.White, Piece.WhitePawn);

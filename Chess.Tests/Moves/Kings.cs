@@ -33,7 +33,7 @@ class Kings
         moves.Should().NotContain(Move.QueenSideCastle(Color.Black));
         moves.Should().NotContain(Move.Castle(Color.Black));
     }
-    
+
     [Test]
     public void White_Should_Not_Be_Allowed_Castling_When_Checked()
     {
@@ -49,6 +49,7 @@ class Kings
     {
         var pos = Position.FromFen("r3k2r/p6p/8/8/8/8/P6P/R3K2R w KQkq - 0 1");
         var game = new Game(pos, []);
+        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.All);
         game = Engine.Move(game, "e1", "e2");
 
         game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteQueen);

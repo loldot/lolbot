@@ -12,6 +12,7 @@
 - [x] Make king moves legal again
 - [x] Display castling as legal move
 - [x] Remove castling rights
+- [ ] Promotion -> Should Not Give Pawn To Oponent
 - [ ] Frontend: Update board correctly when castling
 - [x] SignalR
 
@@ -40,3 +41,10 @@ Make attacksbitboard
 |  0 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |
 +----+----+----+----+----+----+----+----+
 ```
+
+# Move
+
+|                     |1                      |2              |3  |
+|0|1|2|3|4|5|6|7|8|9|0|1|2|3|4|5|6|7|8|9|0|1|2|3|4|5|6|7|8|9|0|0|1|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  FromIndex  |  ToIndex  | Capt.Idx  |C| F.P | C.P | P.P |Q|q|K|k|

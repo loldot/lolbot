@@ -89,7 +89,7 @@ public readonly struct Move : IEquatable<Move>
         PromotionPiece = promotionPiece;
     }
 
-    private static readonly Move WhiteCastle = new(4, 6, 7, 5, Piece.WhiteRook, Piece.None);
+    private static readonly Move WhiteCastle = new(Squares.E1, Squares.G1, Squares.H1, Squares.F1, Piece.WhiteRook, Piece.None);
     private static readonly Move BlackCastle = new(60, 62, 63, 61, Piece.BlackRook, Piece.None);
 
     private static readonly Move WhiteQueenCastle = new(4, 2, 0, 3, Piece.WhiteRook, Piece.None);

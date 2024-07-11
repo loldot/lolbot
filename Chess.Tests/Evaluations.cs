@@ -52,7 +52,7 @@ public class Evaluations
     }
 
     [Test]
-    public void Shoul_Avoid_Getting_Mated()
+    public void Should_Avoid_Getting_Mated()
     {
         GetBestMove("7k/8/6Q1/3p4/8/8/8/2q3RK b - - 0 1")
             .Should().Be(new Move("c1","g1", "g1", 'R'));

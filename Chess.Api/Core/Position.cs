@@ -21,14 +21,14 @@ public readonly record struct Position
     public readonly byte EnPassant { get; init; } = 0;
     public readonly CastlingRights CastlingRights { get; init; } = CastlingRights.All;
 
-    public ulong Checkmask => CreateCheckMask(CurrentPlayer).Item1;
-    public ulong Pinmask => CreateCheckMask(CurrentPlayer).Item2;
-    public int CheckerCount => CreateCheckMask(CurrentPlayer).Item3;
+    public readonly ulong Checkmask { get; init; } = ulong.MaxValue;
+    public readonly ulong Pinmask { get; init; } = ulong.MaxValue;
+    public readonly byte CheckerCount { get; init; } = 0;
 
     public Position()
     {
         White = Bitboards.Create(WhitePawns, WhiteRooks, WhiteKnights, WhiteBishops, WhiteQueens, WhiteKing);
-        Black  = Bitboards.Create(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
+        Black = Bitboards.Create(BlackPawns, BlackRooks, BlackKnights, BlackBishops, BlackQueens, BlackKing);
         Occupied = Bitboards.Create(White, Black);
         Empty = ~Occupied;
     }
@@ -76,11 +76,11 @@ public readonly record struct Position
     }
 
 
-    public readonly ulong White; 
-    public readonly ulong Black;
+    public readonly ulong White { get; init; }
+    public readonly ulong Black { get; init; }
 
-    public readonly ulong Occupied;
-    public readonly ulong Empty;
+    public readonly ulong Occupied { get; init; }
+    public readonly ulong Empty { get; init; }
 
     public override string ToString()
     {
@@ -134,7 +134,27 @@ public readonly record struct Position
             };
         }
 
-        return position;
+        var white = Bitboards.Create(position.WhitePawns, position.WhiteRooks, position.WhiteKnights, position.WhiteBishops, position.WhiteQueens, position.WhiteKing);
+        var black = Bitboards.Create(position.BlackPawns, position.BlackRooks, position.BlackKnights, position.BlackBishops, position.BlackQueens, position.BlackKing);
+        var occupied = Bitboards.Create(white, black);
+
+        position = position with
+        {
+
+            White = white,
+            Black = black,
+            Occupied = occupied,
+            Empty = ~occupied
+        };
+
+        var (checkmask, pinmask, checkers) = position.CreateCheckMask(next);
+
+        return position with
+        {
+            Checkmask = checkmask,
+            Pinmask = pinmask,
+            CheckerCount = checkers,
+        };
     }
 
     private CastlingRights ApplyCastlingRights(Move m)
@@ -217,10 +237,13 @@ public readonly record struct Position
         Memory<Move> moves = new Move[max_moves];
         var count = 0;
 
-        if (CheckerCount > 1) pieceType = Piece.WhiteKing;
+        if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 6)
+            count += AddKingMoves(color, moves.Span);
+
+        if (CheckerCount > 1) return moves[..count].Span;
 
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 1)
-            count += AddPawnMoves(color, moves.Span);
+            count += AddPawnMoves(color, moves[count..].Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 2)
             count += AddKnightMoves(color, moves[count..].Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 3)
@@ -229,17 +252,16 @@ public readonly record struct Position
             count += AddRookMoves(color, moves[count..].Span);
         if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 5)
             count += AddQueenMoves(color, moves[count..].Span);
-        if (!pieceType.HasValue || ((int)pieceType.Value & 0xf) == 6)
-            count += AddKingMoves(color, moves[count..].Span);
+
 
         return moves[..count].Span;
     }
 
-    private (ulong, ulong, int) CreateCheckMask(Color color)
+    internal (ulong, ulong, byte) CreateCheckMask(Color color)
     {
         ulong pinmask = 0;
         ulong checkmask = 0;
-        int countCheckers = 0;
+        byte countCheckers = 0;
 
         int opponentColor = color == Color.White ? 0x20 : 0x10;
         byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
