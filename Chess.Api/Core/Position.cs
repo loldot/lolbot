@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -23,6 +24,7 @@ public readonly record struct Position
 
     public readonly ulong Checkmask { get; init; } = ulong.MaxValue;
     public readonly ulong Pinmask { get; init; } = ulong.MaxValue;
+
     public readonly byte CheckerCount { get; init; } = 0;
 
     public Position()
@@ -101,6 +103,58 @@ public readonly record struct Position
     }
 
     public Position Move(Move m)
+    {
+        var (colorOffset, next) = CurrentPlayer == Color.White ? (0x10, Color.Black) : (0x20, Color.White);
+
+        Piece piece = Piece.None;
+        ulong bitboard = 0;
+
+        for (var i = 0; i <= 6; i++)
+        {
+            piece = (Piece)(colorOffset + i);
+            bitboard = this[piece];
+            if ((bitboard & m.FromSquare) != 0) break;
+        }
+
+        var update = m.FromSquare | m.ToSquare;
+        var capture = m.CapturePiece != Piece.None ? m.CaptureSquare : 0;
+
+        var position = Update(piece, bitboard ^ update)
+            .Update(m.CapturePiece, this[m.CapturePiece] ^ capture) with
+        {
+            CastlingRights = ApplyCastlingRights(m),
+            EnPassant = SetEnPassant(m),
+
+            Occupied = Occupied ^ update ^ capture,
+            Empty = ~(Occupied ^ update ^ capture),
+            White = (CurrentPlayer == Color.White) ? White ^ update : White ^ capture,
+            Black = (CurrentPlayer == Color.Black) ? Black ^ update : Black ^ capture,
+
+            CurrentPlayer = next
+        };
+
+        if (m.PromotionPiece != Piece.None)
+        {
+            position = position.Update(m.PromotionPiece, this[m.PromotionPiece] | m.ToSquare);
+            position = position.Update(piece, position[piece] & ~m.ToSquare);
+        }
+        position = position with
+        {
+            WhiteRooks = position.WhiteRooks | Castle(0x7e, m),
+            BlackRooks = position.BlackRooks | Castle(0x7e00000000000000, m),
+        };
+
+        var (checkmask, pinmask, checkers) = position.CreateCheckMask(next);
+
+        return position with
+        {
+            Checkmask = checkmask,
+            Pinmask = pinmask,
+            CheckerCount = checkers,
+        };
+    }
+
+    public Position MoveOld(Move m)
     {
         Color next = CurrentPlayer == Color.White ? Color.Black : Color.White;
 

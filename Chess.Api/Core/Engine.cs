@@ -46,6 +46,10 @@ public readonly struct Move : IEquatable<Move>
     public readonly Piece CapturePiece = Piece.None;
     public Piece PromotionPiece { get; init; } = Piece.None;
 
+    public Square FromSquare => Squares.FromIndex(FromIndex);
+    public Square ToSquare => Squares.FromIndex(ToIndex);
+    public Square CaptureSquare => Squares.FromIndex(CaptureIndex);
+
     public Move(string from, string to) : this(
         Squares.FromCoordinates(from),
         Squares.FromCoordinates(to)

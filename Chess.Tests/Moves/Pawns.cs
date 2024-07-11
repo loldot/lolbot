@@ -36,7 +36,7 @@ public class Pawns
     {
         var position = Position.FromFen("r2k1nr1/5p2/2ppp3/8/8/3q4/PP1PNPPP/R1RQK3 w - - 0 1");
         var moves = position.GenerateLegalMoves('P').ToArray();
-        moves.Should().NotContain(x => x == new Move("d2","d4"));
+        moves.Should().NotContain(x => x == new Move("d2", "d4"));
     }
 
     [Test]
@@ -44,7 +44,7 @@ public class Pawns
     {
         var position = Position.FromFen("3n3k/P7/8/8/8/8/8/K7 w - - 0 1");
         var moves = position.GenerateLegalMoves().ToArray();
-        
+
         moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteBishop);
         moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteKnight);
         moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteRook);
@@ -56,12 +56,18 @@ public class Pawns
     {
         var position = Position.FromFen("1k6/4P3/8/8/8/8/8/1K6 w - - 0 1");
         var next = position.Move(new Move("e7", "e8") with { PromotionPiece = Piece.WhiteQueen });
-        
-        Bitboards.Debug(next.WhitePawns);
-        Bitboards.Debug(next.WhiteQueens);
 
         (next.WhitePawns & Squares.FromCoordinates("e7")).Should().Be(0);
         (next.WhiteQueens & Squares.FromCoordinates("e8")).Should().NotBe(0);
+    }
+
+    [Test]
+    public void Promoting_Should_Not_Change_Oponent_Bitboard()
+    {
+        var position = Position.FromFen("1k6/4P3/8/8/8/8/8/1K6 w - - 0 1");
+        var next = position.Move(new Move("e7", "e8") with { PromotionPiece = Piece.WhiteQueen });
+
+        next.BlackPawns.Should().Be(0);
     }
 
     [Test]
@@ -69,7 +75,7 @@ public class Pawns
     {
         var position = Position.FromFen("8/7P/8/8/8/1rkr4/8/2K5 w - - 0 1");
         var moves = position.GenerateLegalMoves().ToArray();
-        
+
         moves.Should().BeEquivalentTo([
             new Move("h7", "h8") with { PromotionPiece = Piece.WhiteBishop },
             new Move("h7", "h8") with { PromotionPiece = Piece.WhiteKnight },
