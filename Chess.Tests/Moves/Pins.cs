@@ -20,6 +20,7 @@ public class Pins
     {
         var pos = Position.FromFen(fen);
         var moves = pos.GenerateLegalMoves('B');
+        Bitboards.Debug(pos.Pinmasks);
         moves.Length.Should().Be(count);
     }
 

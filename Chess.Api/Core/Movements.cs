@@ -171,27 +171,8 @@ public static class MovePatterns
 
     private static ulong PseudoBishopMoves(byte sq)
     {
-        return (GetDiagonal(sq) | GetAntiadiagonal(sq)) ^ 1ul << sq;
+        return (Bitboards.Masks.GetDiagonal(sq) | Bitboards.Masks.GetAntiadiagonal(sq)) ^ 1ul << sq;
     }
-
-    private static ulong GetDiagonal(int sq)
-    {
-        const ulong maindia = 0x8040201008040201;
-        int diag = 8 * (sq & 7) - (sq & 56);
-        int nort = -diag & (diag >> 31);
-        int sout = diag & (-diag >> 31);
-        return (maindia >> sout) << nort;
-    }
-
-    private static ulong GetAntiadiagonal(int sq)
-    {
-        const ulong maindia = 0x0102040810204080;
-        int diag = 56 - 8 * (sq & 7) - (sq & 56);
-        int nort = -diag & (diag >> 31);
-        int sout = diag & (-diag >> 31);
-        return (maindia >> sout) << nort;
-    }
-
 
     private static ulong PseudoKnightMoves(byte squareIndex)
     {

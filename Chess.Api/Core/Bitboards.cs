@@ -34,6 +34,23 @@ public static class Bitboards
 
         public static ulong GetRank(int sq) { return 0xfful << (sq & 56); }
         public static ulong GetFile(int sq) { return 0x0101010101010101ul << (sq & 7); }
+        public static ulong GetDiagonal(int sq)
+        {
+            const ulong maindia = 0x8040201008040201;
+            int diag = 8 * (sq & 7) - (sq & 56);
+            int nort = -diag & (diag >> 31);
+            int sout = diag & (-diag >> 31);
+            return (maindia >> sout) << nort;
+        }
+
+        public static ulong GetAntiadiagonal(int sq)
+        {
+            const ulong maindia = 0x0102040810204080;
+            int diag = 56 - 8 * (sq & 7) - (sq & 56);
+            int nort = -diag & (diag >> 31);
+            int sout = diag & (-diag >> 31);
+            return (maindia >> sout) << nort;
+        }
     }
 
     public static ulong Pext(ulong bitboard, ulong mask)

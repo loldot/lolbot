@@ -205,11 +205,6 @@ public class Engine
         return new Game(game.InitialPosition, [.. game.Moves, move]);
     }
 
-    private static Piece GetCapture(Game game, Square to)
-    {
-        return game.CurrentPosition.GetOccupant(Squares.ToIndex(to));
-    }
-
     public static int Evaluate(Position position)
     {
         return Bitboards.CountOccupied(position.WhitePawns) * 100

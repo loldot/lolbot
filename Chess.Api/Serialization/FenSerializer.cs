@@ -63,22 +63,31 @@ public class FenSerializer
         var metaTokens = fenString[(i + 1)..].Split(' ');
         var currentPlayer = metaTokens[0] == "w" ? Color.White : Color.Black;
 
-        var (checkmask, pinmask, checkers) = position.CreateCheckMask(currentPlayer);
         var white = Bitboards.Create(position.WhitePawns, position.WhiteRooks, position.WhiteKnights, position.WhiteBishops, position.WhiteQueens, position.WhiteKing);
         var black = Bitboards.Create(position.BlackPawns, position.BlackRooks, position.BlackKnights, position.BlackBishops, position.BlackQueens, position.BlackKing);
         var occupied = Bitboards.Create(white, black);
-        return position with
+
+
+
+        position = position with
         {
             CurrentPlayer = currentPlayer,
-            CheckerCount = checkers,
-            Checkmask = checkmask,
-            Pinmask = pinmask,
+
             White = white,
             Black = black,
             Occupied = occupied,
             Empty = ~occupied,
             CastlingRights = ParseCastlingRights(metaTokens[1]),
             EnPassant = ParseEnPassantSquare(metaTokens[2]),
+        };
+        var (checkmask, checkers) = position.CreateCheckMask(currentPlayer);
+
+        var (isPinned, pinmasks) = position.CreatePinmasks(currentPlayer);
+        return position with
+        {
+            CheckerCount = checkers,
+            Checkmask = checkmask,
+            Pinmasks = isPinned ? pinmasks : [0, 0, 0, 0],
         };
     }
 
