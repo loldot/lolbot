@@ -83,4 +83,69 @@ public class Pawns
             new Move("h7", "h8") with { PromotionPiece = Piece.WhiteQueen }
         ]);
     }
+
+    [Test]
+    public void EnPassant_Should_Set_Biboards_Correctly()
+    {
+        var position = Position.FromFen("2k5/8/1pp2p2/3pPp2/3P1P2/1PP5/8/7K w - d6 0 1");
+        var game = new Game(position, []);
+
+        game = Engine.Move(game, "e5", "d6");
+
+        game.CurrentPosition.WhitePawns
+            .Should().Be(Bitboards.Create("b3","c3", "d4", "d6", "f4"));
+        
+        game.CurrentPosition.BlackPawns
+            .Should().Be(Bitboards.Create("b6", "c6", "f6", "f5"));
+
+        var w = game.CurrentPosition.White;
+            w.Should().Be(Bitboards.Create("b3","c3", "d4", "d6", "f4", "h1"));
+        var b = game.CurrentPosition.Black;
+            b.Should().Be(Bitboards.Create("b6", "c6", "f6", "f5", "c8"));
+
+        game.CurrentPosition.Occupied
+            .Should().Be(b | w);
+    }
+
+    [Test]
+    public void Promotion_Should_Set_Bitboards_Correctly()
+    {
+        var pos = Position.FromFen("1k6/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
+        pos = pos.Move(new Move("d7", "d8") with { PromotionPiece = Piece.WhiteQueen});
+
+        var w_pawns = Bitboards.Create("a2", "b2", "c2", "e2", "f2", "g2", "h2");
+        pos.WhitePawns.Should().Be(w_pawns);
+        pos.WhiteQueens.Should().Be(Bitboards.Create("d8"));
+        
+        var w = w_pawns | Bitboards.Create("b1", "d8");
+        pos.White.Should().Be(w);
+
+        var b_pawns = Bitboards.Create("a7","b7","c7","e7","f7","g7","h7");
+        pos.BlackPawns.Should().Be(b_pawns);
+        var b = b_pawns | Bitboards.Create("b8");
+        pos.Black.Should().Be(b);
+
+        pos.Occupied.Should().Be(w | b);
+    }
+
+    [Test]
+    public void Promotion_Capture_Should_Set_Bitboards_Correctly()
+    {
+        var pos = Position.FromFen("1k2b3/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
+        pos = pos.Move(new Move("d7", "e8", "e8", 'b') with { PromotionPiece = Piece.WhiteQueen});
+
+        var w_pawns = Bitboards.Create("a2", "b2", "c2", "e2", "f2", "g2", "h2");
+        pos.WhitePawns.Should().Be(w_pawns);
+        pos.WhiteQueens.Should().Be(Bitboards.Create("e8"));
+        
+        var w = w_pawns | Bitboards.Create("b1", "e8");
+        pos.White.Should().Be(w);
+
+        var b_pawns = Bitboards.Create("a7","b7","c7","e7","f7","g7","h7");
+        pos.BlackPawns.Should().Be(b_pawns);
+        var b = b_pawns | Bitboards.Create("b8");
+        pos.Black.Should().Be(b);
+
+        pos.Occupied.Should().Be(w | b);
+    }
 }

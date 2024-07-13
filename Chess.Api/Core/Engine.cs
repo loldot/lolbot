@@ -13,7 +13,7 @@ public enum Castle : byte
     WhiteKing = 2,
     BlackQueen = 4,
     BlackKing = 8,
-    All = 15
+    All = WhiteKing | WhiteQueen | BlackKing | BlackQueen
 }
 public enum Color : byte { None = 0, White = 1, Black = 2 }
 public enum Piece : byte
@@ -97,13 +97,23 @@ public readonly struct Move : IEquatable<Move>
         Squares.E1, 
         Squares.G1, 
         Squares.H1, 
-        Squares.F1, 
-        Piece.WhiteRook, 
-        Piece.None);
-    private static readonly Move BlackCastle = new(60, 62, 63, 61, Piece.BlackRook, Piece.None);
+        Squares.F1, Piece.WhiteRook, Piece.None);
+    private static readonly Move BlackCastle = new(
+        Squares.E8, 
+        Squares.G8, 
+        Squares.H8,
+        Squares.F8, Piece.BlackRook, Piece.None);
 
-    private static readonly Move WhiteQueenCastle = new(4, 2, 0, 3, Piece.WhiteRook, Piece.None);
-    private static readonly Move BlackQueenCastle = new(60, 62, 63, 61, Piece.BlackRook, Piece.None);
+    private static readonly Move WhiteQueenCastle = new(
+        Squares.E1, 
+        Squares.C1, 
+        Squares.A1, 
+        Squares.D1, Piece.WhiteRook, Piece.None);
+    private static readonly Move BlackQueenCastle = new(
+        Squares.E8, 
+        Squares.C8, 
+        Squares.A8, 
+        Squares.D8, Piece.BlackRook, Piece.None);
 
 
     // TODO: Fisher castling rules :cry:

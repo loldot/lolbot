@@ -140,15 +140,15 @@ public readonly record struct Position
         }
         if (m.CastleIndex != 0)
         {
-            var w_castle = Castle(0x7e, m);
-            var b_castle = Castle(0x7e00000000000000, m);
+            var w_castle = Castle(Bitboards.Masks.Rank_1 ^ Bitboards.Create("a1", "h1"), m);
+            var b_castle = Castle(Bitboards.Masks.Rank_8 ^ Bitboards.Create("a8", "h8"), m);
             position = position with
             {
                 WhiteRooks = position.WhiteRooks ^ w_castle,
                 BlackRooks = position.BlackRooks ^ b_castle,
                 White = position.White ^ (w_castle | capture),
                 Black = position.Black ^ (b_castle | capture),
-                Occupied = position.Occupied ^ (w_castle | b_castle) 
+                Occupied = position.Occupied ^ (w_castle | b_castle)
             };
         }
 
@@ -168,23 +168,23 @@ public readonly record struct Position
     {
         var removedCastling = m.FromIndex switch
         {
-            0 => Core.Castle.WhiteQueen,
-            4 => Core.Castle.WhiteKing | Core.Castle.WhiteQueen,
-            7 => Core.Castle.WhiteKing,
-            56 => Core.Castle.BlackQueen,
-            60 => Core.Castle.BlackKing | Core.Castle.BlackQueen,
-            63 => Core.Castle.BlackKing,
+            Squares.A1 => Core.Castle.WhiteQueen,
+            Squares.E1 => Core.Castle.WhiteKing | Core.Castle.WhiteQueen,
+            Squares.H1 => Core.Castle.WhiteKing,
+            Squares.A8 => Core.Castle.BlackQueen,
+            Squares.E8 => Core.Castle.BlackKing | Core.Castle.BlackQueen,
+            Squares.H8 => Core.Castle.BlackKing,
             _ => Core.Castle.None
         };
-
-        removedCastling |= m.CaptureIndex switch
-        {
-            0 => Core.Castle.WhiteQueen,
-            7 => Core.Castle.WhiteKing,
-            56 => Core.Castle.BlackQueen,
-            63 => Core.Castle.BlackKing,
-            _ => Core.Castle.None
-        };
+        if (m.CapturePiece != Piece.None)
+            removedCastling |= m.CaptureIndex switch
+            {
+                Squares.A1 => Core.Castle.WhiteQueen,
+                Squares.H1 => Core.Castle.WhiteKing,
+                Squares.A8 => Core.Castle.BlackQueen,
+                Squares.H8 => Core.Castle.BlackKing,
+                _ => Core.Castle.None
+            };
 
         return CastlingRights & ~removedCastling;
     }
@@ -403,22 +403,12 @@ public readonly record struct Position
             moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
         }
 
-        if (IsCastleLegal(Core.Castle.WhiteKing, king, MovePatterns.SquaresBetween[4][6], enemyAttacks))
+        if (IsCastleLegal(Core.Castle.WhiteKing | Core.Castle.BlackKing, Core.Move.Castle(color), enemyAttacks))
         {
             moves[count++] = Core.Move.Castle(color);
         }
 
-        if (IsCastleLegal(Core.Castle.WhiteQueen, king, MovePatterns.SquaresBetween[4][2], enemyAttacks))
-        {
-            moves[count++] = Core.Move.QueenSideCastle(color);
-        }
-
-        if (IsCastleLegal(Core.Castle.BlackKing, king, MovePatterns.SquaresBetween[60][62], enemyAttacks))
-        {
-            moves[count++] = Core.Move.Castle(color);
-        }
-
-        if (IsCastleLegal(Core.Castle.BlackQueen, king, MovePatterns.SquaresBetween[60][58], enemyAttacks))
+        if (IsCastleLegal(Core.Castle.WhiteQueen | Core.Castle.BlackQueen, Core.Move.QueenSideCastle(color), enemyAttacks))
         {
             moves[count++] = Core.Move.QueenSideCastle(color);
         }
@@ -427,12 +417,18 @@ public readonly record struct Position
         return count;
     }
 
-    private bool IsCastleLegal(Castle requiredCastle, ulong king, ulong between, ulong enemyAttacks)
+    private bool IsCastleLegal(Castle requiredCastle, Move castle, ulong enemyAttacks)
     {
-        var occupiedBetween = between & Occupied;
-        var attacked = (king | between) & enemyAttacks;
+        var clearingRequired = MovePatterns.SquaresBetween[castle.FromIndex][castle.CaptureIndex]
+            & ~castle.CaptureSquare;
 
-        return CastlingRights.HasFlag(requiredCastle)
+        var occupiedBetween = clearingRequired & Occupied;
+        var attacked = (
+            castle.FromSquare |
+            MovePatterns.SquaresBetween[castle.FromIndex][castle.ToIndex]
+        ) & enemyAttacks;
+
+        return ((CastlingRights & requiredCastle) != 0) 
             && occupiedBetween == 0 && attacked == 0;
     }
 

@@ -91,6 +91,28 @@ class Kings
     }
 
     [Test]
+    public void Black_King_Side_Castle_Should_Set_Bitboards()
+    {
+        var pos = Position.FromFen("r1bqk2r/1ppp1ppp/p1n2n2/4p3/Bb2P3/1P3N2/P1PP1PPP/RNBQK2R b KQkq - 0 6");
+        var game = new Game(pos, []);
+        game = Engine.Move(game, Move.Castle(Color.Black));
+
+        game.CurrentPosition.CastlingRights.Should().Be(Castle.WhiteKing | Castle.WhiteQueen);
+        game.CurrentPosition.BlackRooks.Should().Be(Bitboards.Create("A8", "F8"));
+        game.CurrentPosition.BlackKing.Should().Be(Bitboards.Create("G8"));
+        
+        var blackRank8 = game.CurrentPosition.Black & Bitboards.Masks.Rank_8;
+        var occupiedRank8 = game.CurrentPosition.Occupied & Bitboards.Masks.Rank_8;
+
+        var expected = Bitboards.Create("a8", "c8", "d8","f8", "g8");
+
+        Bitboards.Debug(occupiedRank8, expected);
+
+        blackRank8.Should().Be(expected);
+        occupiedRank8.Should().Be(expected);
+    }
+
+    [Test]
     public async Task Rook_Should_Have_Legal_After_Castling()
     {
         var pgn = """
