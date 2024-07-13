@@ -131,6 +131,20 @@ public class Moves
         squaresBetween.Should().Be(Bitboards.Create(squares));
     }
 
+    [Test]
+    public void Capture_Should_Update_Boards()
+    {
+        var pos = Position.FromFen("4r1k1/1b3rp1/1n3q1p/2p1N3/1p6/7P/PP3PP1/R2QR1K1 w - - 0 25");
+        var game = new Game(pos, []);
+        game = Engine.Move(game, "e5", "f7");
+        game = Engine.Move(game, "e8", "e1");
+        game.CurrentPosition.WhiteRooks.Should().Be(1ul << Squares.A1);
+        game.CurrentPosition.BlackRooks.Should().Be(1ul << Squares.E1);
+
+        (game.CurrentPosition.White & (1ul << Squares.E1)).Should().Be(0);
+        (game.CurrentPosition.Black & (1ul << Squares.E1)).Should().Be(1ul << Squares.E1);
+    }
+
     internal static void VerifyMovePattern(ulong[] pattern, string square, string[] expectedSquares)
     {
         var from = Squares.IndexFromCoordinate(square);

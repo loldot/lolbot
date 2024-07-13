@@ -8,7 +8,6 @@ public class Pawns
     public void Should_Be_Blocked_By_Opponent()
     {
         var position = Position.FromFen("8/8/6p1/6p1/1p4P1/1P3P2/8/8 w - - 0 1");
-        Bitboards.Debug(position.BlackPawns, position.WhitePawns);
 
         var blackMoves = position.GenerateLegalMoves(Color.Black, Piece.BlackPawn);
         var whiteMoves = position.GenerateLegalMoves(Color.White, Piece.WhitePawn);
@@ -28,7 +27,8 @@ public class Pawns
         game = Engine.Move(game, "f2", "f4");
         game = Engine.Move(game, "e4", "f3");
 
-        Bitboards.Debug(game.CurrentPosition.WhitePawns);
+        var e4Pawn = game.CurrentPosition.BlackPawns & Squares.FromCoordinates("f4");
+        e4Pawn.Should().Be(0);
     }
 
     [Test]

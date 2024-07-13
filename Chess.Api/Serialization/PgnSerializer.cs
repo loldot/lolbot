@@ -54,7 +54,7 @@ public sealed partial class PgnSerializer
                     move = Disambiguate(game, to, piece, disambiguation);
                 }
 
-                game = game with { Moves = [.. game.Moves, move] };
+                game = Engine.Move(game, move);
             }
         }
 
@@ -81,9 +81,9 @@ public sealed partial class PgnSerializer
 
         var disambiguated = legalMoves
             .ToArray()
-            .Where(move => Squares.FromIndex(move.ToIndex) == to)
-            .Where(move => fileAmbiguity == null || fileAmbiguity == Squares.GetFile(1ul << move.FromIndex))
-            .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(1ul << move.FromIndex));
+            .Where(move => move.ToSquare == to)
+            .Where(move => fileAmbiguity == null || fileAmbiguity == Squares.GetFile(move.FromSquare))
+            .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(move.FromSquare));
 
         if (disambiguated.Count() != 1) Debugger.Break();
 

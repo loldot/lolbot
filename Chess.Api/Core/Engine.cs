@@ -157,7 +157,7 @@ public record Game(Position InitialPosition, Move[] Moves)
     public Game() : this(new Position(), []) { }
 
     public int PlyCount => Moves.Length;
-    public Color CurrentPlayer => (Color)(PlyCount % 2 + 1);
+    public Color CurrentPlayer => CurrentPosition.CurrentPlayer;
     public Position CurrentPosition => GetPosition(InitialPosition, Moves);
 
     public Position GetPosition(Position position, Move[] moves)

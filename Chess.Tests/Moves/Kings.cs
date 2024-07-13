@@ -67,4 +67,52 @@ class Kings
             new Move("e1","f2")
         ]);
     }
+
+    [Test]
+    public void King_Side_Castle_Should_Set_Bitboards()
+    {
+        var pos = Position.FromFen("r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 5");
+        var game = new Game(pos, []);
+        game = Engine.Move(game, Move.Castle(Color.White));
+
+        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.BlackKing | CastlingRights.BlackQueen);
+        game.CurrentPosition.WhiteRooks.Should().Be(Bitboards.Create("A1", "F1"));
+        game.CurrentPosition.WhiteKing.Should().Be(Bitboards.Create("G1"));
+        
+        var whiteRank1 = game.CurrentPosition.White & Bitboards.Masks.Rank_1;
+
+        whiteRank1.Should().Be(Bitboards.Create("a1", "b1", "c1", "d1","f1", "g1"));
+    }
+    [Test]
+    public async Task Rook_Should_Have_Legal_After_Castling()
+    {
+        var pgn = """
+        
+        1. e4 d5 2. Nf3 d4 3. Bc4 e5
+        """;
+        var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
+
+        game.CurrentPosition.GenerateLegalMoves('K')
+            .ToArray().Should().Contain(x => x.CastleIndex != 0);
+        game = Engine.Move(game, Move.Castle(Color.White));
+
+        game.CurrentPosition.GenerateLegalMoves('R')
+            .ToArray().Should().HaveCount(1);
+
+    }
+
+    [Test]
+    public async Task Rook_Should_Have_Legal_Moves_From_e1_After_Castle()
+    {
+        var pgn = """
+        
+        1. e4 d5 2. Nf3 d4 3. Bc4 e5 4. O-O
+        """;
+        var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
+        game = Engine.Move(game, "c8", "e6");
+        game = Engine.Move(game, "f1", "e1");
+
+        game.CurrentPosition.GenerateLegalMoves('R')
+            .ToArray().Should().NotBeEmpty();
+    }
 }

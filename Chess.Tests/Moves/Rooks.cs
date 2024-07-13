@@ -47,7 +47,6 @@ public class Rooks
 
         var rookMoves = MovePatterns.RookAttacks(0, blockers);
 
-        Bitboards.Debug(rookMoves);
         rookMoves.Should().Be(Bitboards.Create((int[])[
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,

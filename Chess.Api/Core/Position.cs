@@ -138,11 +138,19 @@ public readonly record struct Position
             position = position.Update(m.PromotionPiece, this[m.PromotionPiece] | m.ToSquare);
             position = position.Update(piece, position[piece] & ~m.ToSquare);
         }
-        position = position with
+        if (m.CastleIndex != 0)
         {
-            WhiteRooks = position.WhiteRooks | Castle(0x7e, m),
-            BlackRooks = position.BlackRooks | Castle(0x7e00000000000000, m),
-        };
+            var w_castle = Castle(0x7e, m);
+            var b_castle = Castle(0x7e00000000000000, m);
+            position = position with
+            {
+                WhiteRooks = position.WhiteRooks ^ w_castle,
+                BlackRooks = position.BlackRooks ^ b_castle,
+                White = position.White ^ (w_castle | capture),
+                Black = position.Black ^ (b_castle | capture),
+            };
+        }
+
 
         var (checkmask, checkers) = position.CreateCheckMask(next);
         var (isPinned, pinmasks) = position.CreatePinmasks(next);
