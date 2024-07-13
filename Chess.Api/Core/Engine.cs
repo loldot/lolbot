@@ -6,7 +6,7 @@ using static System.Math;
 namespace Lolbot.Core;
 
 [Flags]
-public enum CastlingRights : byte
+public enum Castle : byte
 {
     None = 0,
     WhiteQueen = 1,
@@ -93,7 +93,13 @@ public readonly struct Move : IEquatable<Move>
         PromotionPiece = promotionPiece;
     }
 
-    private static readonly Move WhiteCastle = new(Squares.E1, Squares.G1, Squares.H1, Squares.F1, Piece.WhiteRook, Piece.None);
+    private static readonly Move WhiteCastle = new(
+        Squares.E1, 
+        Squares.G1, 
+        Squares.H1, 
+        Squares.F1, 
+        Piece.WhiteRook, 
+        Piece.None);
     private static readonly Move BlackCastle = new(60, 62, 63, 61, Piece.BlackRook, Piece.None);
 
     private static readonly Move WhiteQueenCastle = new(4, 2, 0, 3, Piece.WhiteRook, Piece.None);

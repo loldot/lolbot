@@ -49,11 +49,11 @@ class Kings
     {
         var pos = Position.FromFen("r3k2r/p6p/8/8/8/8/P6P/R3K2R w KQkq - 0 1");
         var game = new Game(pos, []);
-        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.All);
+        game.CurrentPosition.CastlingRights.Should().Be(Castle.All);
         game = Engine.Move(game, "e1", "e2");
 
-        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteQueen);
-        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteKing);
+        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(Castle.WhiteQueen);
+        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(Castle.WhiteKing);
     }
 
     [Test]
@@ -75,14 +75,21 @@ class Kings
         var game = new Game(pos, []);
         game = Engine.Move(game, Move.Castle(Color.White));
 
-        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.BlackKing | CastlingRights.BlackQueen);
+        game.CurrentPosition.CastlingRights.Should().Be(Castle.BlackKing | Castle.BlackQueen);
         game.CurrentPosition.WhiteRooks.Should().Be(Bitboards.Create("A1", "F1"));
         game.CurrentPosition.WhiteKing.Should().Be(Bitboards.Create("G1"));
         
         var whiteRank1 = game.CurrentPosition.White & Bitboards.Masks.Rank_1;
+        var occupiedRank1 = game.CurrentPosition.Occupied & Bitboards.Masks.Rank_1;
 
-        whiteRank1.Should().Be(Bitboards.Create("a1", "b1", "c1", "d1","f1", "g1"));
+        var expected = Bitboards.Create("a1", "b1", "c1", "d1","f1", "g1");
+
+        Bitboards.Debug(occupiedRank1, expected);
+
+        whiteRank1.Should().Be(expected);
+        occupiedRank1.Should().Be(expected);
     }
+
     [Test]
     public async Task Rook_Should_Have_Legal_After_Castling()
     {

@@ -46,7 +46,7 @@ public class Fen
         var serializer = new FenSerializer();
         var position = serializer.Parse(fenString);
 
-        position.CastlingRights.Should().Be(CastlingRights.WhiteKing | CastlingRights.WhiteQueen | CastlingRights.BlackKing);
+        position.CastlingRights.Should().Be(Castle.WhiteKing | Castle.WhiteQueen | Castle.BlackKing);
     }
 
     [Test]

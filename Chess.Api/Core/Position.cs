@@ -20,7 +20,7 @@ public readonly record struct Position
     public readonly ulong BlackQueens { get; init; } = Bitboards.Create("D8");
     public readonly ulong BlackKing { get; init; } = Bitboards.Create("E8");
     public readonly byte EnPassant { get; init; } = 0;
-    public readonly CastlingRights CastlingRights { get; init; } = CastlingRights.All;
+    public readonly Castle CastlingRights { get; init; } = Core.Castle.All;
 
     public readonly ulong Checkmask { get; init; } = ulong.MaxValue;
     public readonly ulong[] Pinmasks { get; init; } = [0, 0, 0, 0];
@@ -148,6 +148,7 @@ public readonly record struct Position
                 BlackRooks = position.BlackRooks ^ b_castle,
                 White = position.White ^ (w_castle | capture),
                 Black = position.Black ^ (b_castle | capture),
+                Occupied = position.Occupied ^ (w_castle | b_castle) 
             };
         }
 
@@ -163,26 +164,26 @@ public readonly record struct Position
         };
     }
 
-    private CastlingRights ApplyCastlingRights(Move m)
+    private Castle ApplyCastlingRights(Move m)
     {
         var removedCastling = m.FromIndex switch
         {
-            0 => CastlingRights.WhiteQueen,
-            4 => CastlingRights.WhiteKing | CastlingRights.WhiteQueen,
-            7 => CastlingRights.WhiteKing,
-            56 => CastlingRights.BlackQueen,
-            60 => CastlingRights.BlackKing | CastlingRights.BlackQueen,
-            63 => CastlingRights.BlackKing,
-            _ => CastlingRights.None
+            0 => Core.Castle.WhiteQueen,
+            4 => Core.Castle.WhiteKing | Core.Castle.WhiteQueen,
+            7 => Core.Castle.WhiteKing,
+            56 => Core.Castle.BlackQueen,
+            60 => Core.Castle.BlackKing | Core.Castle.BlackQueen,
+            63 => Core.Castle.BlackKing,
+            _ => Core.Castle.None
         };
 
         removedCastling |= m.CaptureIndex switch
         {
-            0 => CastlingRights.WhiteQueen,
-            7 => CastlingRights.WhiteKing,
-            56 => CastlingRights.BlackQueen,
-            63 => CastlingRights.BlackKing,
-            _ => CastlingRights.None
+            0 => Core.Castle.WhiteQueen,
+            7 => Core.Castle.WhiteKing,
+            56 => Core.Castle.BlackQueen,
+            63 => Core.Castle.BlackKing,
+            _ => Core.Castle.None
         };
 
         return CastlingRights & ~removedCastling;
@@ -402,22 +403,22 @@ public readonly record struct Position
             moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
         }
 
-        if (IsCastleLegal(CastlingRights.WhiteKing, king, MovePatterns.SquaresBetween[4][6], enemyAttacks))
+        if (IsCastleLegal(Core.Castle.WhiteKing, king, MovePatterns.SquaresBetween[4][6], enemyAttacks))
         {
             moves[count++] = Core.Move.Castle(color);
         }
 
-        if (IsCastleLegal(CastlingRights.WhiteQueen, king, MovePatterns.SquaresBetween[4][2], enemyAttacks))
+        if (IsCastleLegal(Core.Castle.WhiteQueen, king, MovePatterns.SquaresBetween[4][2], enemyAttacks))
         {
             moves[count++] = Core.Move.QueenSideCastle(color);
         }
 
-        if (IsCastleLegal(CastlingRights.BlackKing, king, MovePatterns.SquaresBetween[60][62], enemyAttacks))
+        if (IsCastleLegal(Core.Castle.BlackKing, king, MovePatterns.SquaresBetween[60][62], enemyAttacks))
         {
             moves[count++] = Core.Move.Castle(color);
         }
 
-        if (IsCastleLegal(CastlingRights.BlackQueen, king, MovePatterns.SquaresBetween[60][58], enemyAttacks))
+        if (IsCastleLegal(Core.Castle.BlackQueen, king, MovePatterns.SquaresBetween[60][58], enemyAttacks))
         {
             moves[count++] = Core.Move.QueenSideCastle(color);
         }
@@ -426,7 +427,7 @@ public readonly record struct Position
         return count;
     }
 
-    private bool IsCastleLegal(CastlingRights requiredCastle, ulong king, ulong between, ulong enemyAttacks)
+    private bool IsCastleLegal(Castle requiredCastle, ulong king, ulong between, ulong enemyAttacks)
     {
         var occupiedBetween = between & Occupied;
         var attacked = (king | between) & enemyAttacks;
