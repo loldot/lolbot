@@ -59,7 +59,6 @@ public class Perft
         {
             Console.WriteLine("Inconsistent position b+w != occ");
             Console.WriteLine(new FenSerializer().ToFenString(position));
-            
         }
 
         if ((position.WhitePawns | position.WhiteRooks | position.WhiteBishops 
