@@ -42,7 +42,7 @@ public class Perft
     [TestCase(pos8, 2, 1_908)]
     public void PerftCounts(string fen, int depth, int expectedCount)
     {
-        var perft = GetPerftCounts(Position.FromFen(fen), depth, fen == pos8);
+        var perft = GetPerftCounts(Position.FromFen(fen), depth, fen == Position4);
         perft.Should().Be(expectedCount);
     }
 
