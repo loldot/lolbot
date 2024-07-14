@@ -152,7 +152,6 @@ public readonly record struct Position
             };
         }
 
-
         var (checkmask, checkers) = position.CreateCheckMask(next);
         var (isPinned, pinmasks) = position.CreatePinmasks(next);
 
@@ -260,38 +259,28 @@ public readonly record struct Position
         ulong pinmaskH = rookAttack & Bitboards.Masks.GetRank(king);
         ulong pinmaskV = rookAttack & Bitboards.Masks.GetFile(king);
 
-        while (enemyHV != 0)
+        if (Bitboards.CountOccupied(pinmaskH & friendly) == Bitboards.CountOccupied(pinmaskH & enemyHV))
         {
-            var piece = Bitboards.PopLsb(ref enemyHV);
-            var pieceBB = Squares.FromIndex(piece);
-
-            if ((pinmaskH & pieceBB) != 0 && Bitboards.CountOccupied(pinmaskH & friendly) == 1)
-            {
-                isPinned = pins[0] = true;
-            }
-            else if ((pinmaskV & pieceBB) != 0 && Bitboards.CountOccupied(pinmaskV & friendly) == 1)
-            {
-                isPinned = pins[1] = true;
-            }
+            isPinned = pins[0] = true;
+        }
+        if (Bitboards.CountOccupied(pinmaskV & friendly) == Bitboards.CountOccupied(pinmaskV & enemyHV))
+        {
+            isPinned = pins[1] = true;
         }
 
         ulong bishopAttack = MovePatterns.BishopAttacks(king, enemy);
         ulong pinmaskA = bishopAttack & Bitboards.Masks.GetAntiadiagonal(king);
         ulong pinmaskD = bishopAttack & Bitboards.Masks.GetDiagonal(king);
-        while (enemyAD != 0)
-        {
-            var piece = Bitboards.PopLsb(ref enemyAD);
-            var pieceBB = Squares.FromIndex(piece);
 
-            if ((pinmaskA & pieceBB) != 0 && Bitboards.CountOccupied(pinmaskA & friendly) == 1)
-            {
-                isPinned = pins[2] = true;
-            }
-            else if ((pinmaskD & pieceBB) != 0 && Bitboards.CountOccupied(pinmaskD & friendly) == 1)
-            {
-                isPinned = pins[3] = true;
-            }
+        if (Bitboards.CountOccupied(pinmaskA & friendly) == Bitboards.CountOccupied(pinmaskA & enemyAD))
+        {
+            isPinned = pins[2] = true;
         }
+        if (Bitboards.CountOccupied(pinmaskD & friendly) == Bitboards.CountOccupied(pinmaskD & enemyAD))
+        {
+            isPinned = pins[3] = true;
+        }
+
         ulong[] pinmasks = [
             pins[0] ? pinmaskH : 0,
             pins[1] ? pinmaskV : 0,
@@ -428,7 +417,7 @@ public readonly record struct Position
             MovePatterns.SquaresBetween[castle.FromIndex][castle.ToIndex]
         ) & enemyAttacks;
 
-        return ((CastlingRights & requiredCastle) != 0) 
+        return ((CastlingRights & requiredCastle) != 0)
             && occupiedBetween == 0 && attacked == 0;
     }
 
@@ -574,33 +563,49 @@ public readonly record struct Position
                 }
             }
 
-            var attacks = attackPattern[sq] & (targets | (1ul << EnPassant)) & Checkmask & PinnedPiece(sq);
+            var attacks = attackPattern[sq] & targets & Checkmask & PinnedPiece(sq);
+
+            if (((1ul << EnPassant) & attackPattern[sq]) != 0)
+                count = DoEnPassant(moves, count, ref sq, EnPassant);
+
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
+
                 foreach (var promotionPiece in MovePatterns.PromotionPieces[attack])
                 {
-                    moves[count++] = (attack != EnPassant)
-                    ? new Move(sq, attack, attack, GetOccupant(attack)) with { PromotionPiece = promotionPiece }
-                    : DoEnPassant(sq, attack);
+                    moves[count++] = new Move(sq, attack, attack, GetOccupant(attack))
+                        with
+                    { PromotionPiece = promotionPiece };
                 }
-            }
-
-            // Double pushed pawn is capturing en passant.
-            if (Checkmask < ulong.MaxValue && EnPassant != 0)
-            {
-                moves[count++] = DoEnPassant(sq, EnPassant);
             }
         }
         return count;
     }
 
-    private Move DoEnPassant(byte sq, byte attack)
+    private int DoEnPassant(Span<Move> moves, int count, ref byte sq, byte attack)
     {
+        var (king, opponentRook, opponentQueen) = CurrentPlayer == Color.White
+            ? (WhiteKing, BlackRooks, BlackQueens)
+            : (BlackKing, WhiteRooks, WhiteQueens);
+
         var captureOffset = CurrentPlayer == Color.White ? MovePatterns.S : MovePatterns.N;
         var epCapture = (byte)(EnPassant + captureOffset);
+        var ep = new Move(sq, attack, epCapture, GetOccupant(epCapture));
 
-        return new Move(sq, attack, epCapture, GetOccupant(epCapture));
+        var occupiedAfter = Occupied ^ (Squares.FromIndex(epCapture) | Squares.FromIndex(sq));
+        var kingRook = MovePatterns.RookAttacks(Squares.ToIndex(king), occupiedAfter);
+
+        var epWouldCheck = 0 != (kingRook &
+            (opponentQueen | opponentRook));
+
+        var epSavesCheck = Checkmask < ulong.MaxValue;
+        // Double pushed pawn is checking, capture en passant.
+        if (!epWouldCheck || epSavesCheck)
+        {
+            moves[count++] = ep;
+        }
+        return count;
     }
 
     public Piece GetOccupant(byte attack)

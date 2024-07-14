@@ -23,5 +23,11 @@ public class TrickyPosition
             new Move("d7", "c8", "c8", 'b') with { PromotionPiece = Piece.WhiteQueen }
         ]);
     }
-
+    [Test]
+    public void Should_Have_KingsideCastle()
+    {
+        moves.Should().IntersectWith([
+            Move.Castle(Color.White)
+        ]);
+    }
 }

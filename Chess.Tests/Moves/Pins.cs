@@ -87,7 +87,24 @@ public class Pins
         moves.Should().BeEquivalentTo(noRook.GenerateLegalMoves().ToArray());
     }
 
-    public void Shoul_Not_Pin_Behind_King()
+    [Test]
+    public void ManyPins()
+    {
+        var allPins = Position.FromFen("Q2R2Q1/8/2ppp3/R1pkp2R/2ppp3/8/B7/1K1R3Q b - - 0 1");
+        
+        Bitboards.Debug(allPins.Pinmasks);
+        allPins.Pinmasks.Should().BeEquivalentTo([
+            Bitboards.Create("a5","b5","c5","e5","f5","g5","h5"),
+            Bitboards.Create("d1","d2","d3","d4","d6","d7","d8"),
+            Bitboards.Create("a8","b7","c6","e4","f3","g2","h1"),
+            Bitboards.Create("a2","b3","c4","e6","f7","g8")
+        ]);
+
+        allPins.GenerateLegalMoves().Length.Should().Be(1);
+    }
+
+    [Test]
+    public void Should_Not_Pin_Behind_King()
     {
         var rookBetweenPawnAndKing = Position.FromFen("8/8/4n3/4k3/4p3/8/8/K3R3 b - - 0 1");
         var noRook = Position.FromFen("8/8/4n3/4k3/4p3/8/8/K7 b - - 0 1");

@@ -148,4 +148,12 @@ public class Pawns
 
         pos.Occupied.Should().Be(w | b);
     }
+
+    [Test]
+    public void EnPassant_Is_Not_Allowed_When_Checking()
+    {
+        var pos = Position.FromFen("4k3/8/8/KpP4q/8/8/8/8 w - b6 0 1");
+        pos.GenerateLegalMoves('P').ToArray()
+            .Should().Equal([new Move("c5","c6")]);
+    }
 }
