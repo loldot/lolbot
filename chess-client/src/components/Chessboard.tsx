@@ -6,13 +6,10 @@ import * as signalR from "@microsoft/signalr";
 
 const square_size = css`64px`;
 
-const Square = styled.div<{ dark: boolean; selected: boolean; isLegal: boolean }>`
+const Square = styled.div<{ dark: boolean; highlight? : string }>`
 background: ${props => props.dark ? "#b58863" : "#f0d9b5"};
-${({ selected }) => selected && `
-     box-shadow: 0px 0px 25px #baca44 inset;
-  `}
-${({ isLegal }) => isLegal && `
-     box-shadow: 0px 0px 25px #add8e6 inset;
+${({ highlight }) => highlight && `
+     box-shadow: 0px 0px 25px ${highlight} inset;
   `}
 display: flex;
 align-items: center;
@@ -49,6 +46,8 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
 
     const [selectedSquare, setSelectedSquare] = useState<string>();
     const [legalMoves, setLegalMoves] = useState<string[]>([]);
+    const [highlight, setHighlights] = useState<string[]>([]);
+
 
     const [moveNumber, setMoveNumber] = useState(0);
     const [position, setPosition] = useState<Position>(initialPosition);
@@ -163,6 +162,23 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
         e.preventDefault();
     };
 
+    const highlightColor = (id: string) => {
+        if (highlight.includes(id))
+            return 'red';
+        if (id === selectedSquare)
+            return '#baca44';
+        if (legalMoves.includes(id))
+            return '#add8e6'
+        return undefined;
+    }
+
+    const highlightBitboard = async (id: string) => {
+        const result = await fetch(`https://localhost:7097/game/${seq}/bitboard/${id}`);
+        if (result.status === 200) {
+            setHighlights(await result.json());
+        }
+    }
+
     return (
         <div>
             <BoardContainer>
@@ -173,8 +189,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
 
                     return (<Square key={id}
                         dark={(f % 2) !== (r % 2)}
-                        selected={id === selectedSquare}
-                        isLegal={legalMoves.includes(id)}
+                        highlight={highlightColor(id)}
                         onClick={() => onClick(id)}
                         onDragStart={(e) => onDragStart(e, id)}
                         onDragEnter={onDragEnter}
@@ -189,6 +204,29 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
             <button onClick={() => doMove()} disabled={!canMoveForward} >Next</button>
             <button onClick={() => sendDebug()}  >Debug</button>
             <button onClick={() => alert(legalMoves.join(", "))}  >PrintLegal</button>
+            <hr />
+
+            
+            <button onClick={() => highlightBitboard('x')}  >checks</button>
+            <button onClick={() => highlightBitboard('i')}  >pins</button>
+            <button onClick={() => highlightBitboard('o')}  >occ</button>
+            <button onClick={() => highlightBitboard('e')}  >empt</button>
+            <button onClick={() => highlightBitboard('w')}  >white</button>
+            <button onClick={() => highlightBitboard('l')}  >black</button>
+
+            <button onClick={() => highlightBitboard('n')}  >n</button>
+            <button onClick={() => highlightBitboard('N')}  >N</button>
+            <button onClick={() => highlightBitboard('b')}  >b</button>
+            <button onClick={() => highlightBitboard('B')}  >B</button>
+            <button onClick={() => highlightBitboard('r')}  >r</button>
+            <button onClick={() => highlightBitboard('R')}  >R</button>
+            <button onClick={() => highlightBitboard('q')}  >q</button>
+            <button onClick={() => highlightBitboard('Q')}  >Q</button>
+            <button onClick={() => highlightBitboard('k')}  >k</button>
+            <button onClick={() => highlightBitboard('K')}  >K</button>            
+            <button onClick={() => highlightBitboard('p')}  >p</button>
+            <button onClick={() => highlightBitboard('P')}  >P</button>
+
 
         </div>
     )

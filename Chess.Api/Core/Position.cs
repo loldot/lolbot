@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Text;
 
@@ -248,7 +249,6 @@ public readonly record struct Position
 
     internal (bool, ulong[]) CreatePinmasks(Color color)
     {
-        bool[] pins = [false, false, false, false];
         bool isPinned = false;
         byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
         var (enemyHV, enemyAD, friendly, enemy) = color == Color.White
@@ -259,34 +259,28 @@ public readonly record struct Position
         ulong pinmaskH = rookAttack & Bitboards.Masks.GetRank(king);
         ulong pinmaskV = rookAttack & Bitboards.Masks.GetFile(king);
 
-        if (Bitboards.CountOccupied(pinmaskH & friendly) == Bitboards.CountOccupied(pinmaskH & enemyHV))
-        {
-            isPinned = pins[0] = true;
-        }
-        if (Bitboards.CountOccupied(pinmaskV & friendly) == Bitboards.CountOccupied(pinmaskV & enemyHV))
-        {
-            isPinned = pins[1] = true;
-        }
-
         ulong bishopAttack = MovePatterns.BishopAttacks(king, enemy);
         ulong pinmaskA = bishopAttack & Bitboards.Masks.GetAntiadiagonal(king);
         ulong pinmaskD = bishopAttack & Bitboards.Masks.GetDiagonal(king);
 
-        if (Bitboards.CountOccupied(pinmaskA & friendly) == Bitboards.CountOccupied(pinmaskA & enemyAD))
-        {
-            isPinned = pins[2] = true;
-        }
-        if (Bitboards.CountOccupied(pinmaskD & friendly) == Bitboards.CountOccupied(pinmaskD & enemyAD))
-        {
-            isPinned = pins[3] = true;
-        }
+        ulong[] pinmasks = new ulong[4];
+        ulong[] tempPins = [pinmaskH, pinmaskV, pinmaskA, pinmaskD];
+        ulong[] enemies = [enemyHV, enemyHV, enemyAD, enemyAD];
 
-        ulong[] pinmasks = [
-            pins[0] ? pinmaskH : 0,
-            pins[1] ? pinmaskV : 0,
-            pins[2] ? pinmaskA : 0,
-            pins[3] ? pinmaskD : 0
-        ];
+        for (int i = 0; i < pinmasks.Length; i++)
+        {
+            var temp = tempPins[i] & enemies[i];
+            while (temp != 0)
+            {
+                int sq = Bitboards.PopLsb(ref temp);
+                var test = tempPins[i] & MovePatterns.SquaresBetween[king][sq];
+
+                var friendliesOnPin = Bitboards.CountOccupied(test & friendly);
+                
+                pinmasks[i] |= friendliesOnPin == 1 ? test : 0;
+                isPinned |= friendliesOnPin == 1;
+            }
+        }
 
         return (isPinned, pinmasks);
     }

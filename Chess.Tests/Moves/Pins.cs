@@ -91,8 +91,7 @@ public class Pins
     public void ManyPins()
     {
         var allPins = Position.FromFen("Q2R2Q1/8/2ppp3/R1pkp2R/2ppp3/8/B7/1K1R3Q b - - 0 1");
-        
-        Bitboards.Debug(allPins.Pinmasks);
+
         allPins.Pinmasks.Should().BeEquivalentTo([
             Bitboards.Create("a5","b5","c5","e5","f5","g5","h5"),
             Bitboards.Create("d1","d2","d3","d4","d6","d7","d8"),
@@ -113,5 +112,14 @@ public class Pins
 
 
         moves.Should().BeEquivalentTo(noRook.GenerateLegalMoves().ToArray());
+    }
+
+    [Test]
+    public void Should_Pin_When_Piece_On_Diagonal_After_King()
+    {
+        var pos = Position.FromFen("4r3/3k4/8/1n6/Q7/8/8/1K6 b - - 0 1");
+        var expectedPinmask = Bitboards.Create("a4", "b5", "c6");
+        
+        pos.Pinmasks.Should().Contain(expectedPinmask);
     }
 }

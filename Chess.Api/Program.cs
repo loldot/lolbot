@@ -91,6 +91,54 @@ app.MapPost("/game/{seq}", (int seq, string[] movedata) =>
     return Results.Ok(new ApiGame(updated));
 });
 
+app.MapGet("/game/{seq}/bitboard/{name}", (int seq, char name) =>
+{
+
+    var game = GameDatabase.Instance.Get(seq);
+    if (game is null) return Results.NotFound();
+
+    ulong bb;
+    if (name == 'x')
+    {
+        bb = game.CurrentPosition.Checkmask;
+        Bitboards.Debug(bb);
+    }
+    else if (name == 'i')
+    {
+        bb = Bitboards.Create(game.CurrentPosition.Pinmasks);
+        Bitboards.Debug(bb);
+
+    }
+    else if (name == 'o')
+    {
+        bb = game.CurrentPosition.Occupied;
+        Bitboards.Debug(bb);
+    }
+    else if (name == 'w')
+    {
+        bb = game.CurrentPosition.White;
+        Bitboards.Debug(bb);
+    }
+    else if (name == 'l')
+    {
+        bb = game.CurrentPosition.Black;
+        Bitboards.Debug(bb);
+    }
+    else if (name == 'e')
+    {
+        bb = game.CurrentPosition.Empty;
+        Bitboards.Debug(bb);
+    }
+    else
+    {
+        var piece = Utils.FromName(name);
+        bb = game.CurrentPosition[piece];
+    }
+
+
+    return Results.Ok(Bitboards.ToCoordinates(bb));
+});
+
 app.MapGet("/game/{seq}/debug", (int seq) =>
 {
 
