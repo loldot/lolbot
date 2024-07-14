@@ -511,12 +511,22 @@ public readonly record struct Position
 
     private ulong CreateAttackMask(Color color)
     {
-        var (king, enemyRooks, enemyQueen, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
-            ? (WhiteKing, BlackRooks, BlackQueens, BlackBishops, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
-            : (BlackKing, WhiteRooks, WhiteQueens, WhiteBishops, WhiteKnights, WhitePawns);
+        var (king, enemyRooks, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
+            ? (WhiteKing, BlackRooks | BlackQueens, BlackBishops | BlackQueens, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
+            : (BlackKing, WhiteRooks | WhiteQueens, WhiteBishops | WhiteQueens, WhiteKnights, WhitePawns);
 
-        var enemyAttacks = MovePatterns.GenerateRookAttacks(enemyRooks | enemyQueen, Empty ^ king)
-            | MovePatterns.GenerateBishopAttacks(enemyBishops | enemyQueen, Empty ^ king);
+        var enemyAttacks = 0ul;
+        while (enemyRooks != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref enemyRooks);
+            enemyAttacks |= MovePatterns.RookAttacks(fromIndex, Occupied ^ king);
+        }
+
+        while (enemyBishops != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref enemyBishops);
+            enemyAttacks |= MovePatterns.BishopAttacks(fromIndex, Occupied ^ king);
+        }
 
         while (enemyKnights != 0)
         {
