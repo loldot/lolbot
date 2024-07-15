@@ -12,7 +12,7 @@
 - [x] Make king moves legal again
 - [x] Display castling as legal move
 - [x] Remove castling rights
-- [ ] Promotion -> Should Not Give Pawn To Oponent
+- [x] Promotion -> Should Not Give Pawn To Oponent
 - [ ] Frontend: Update board correctly when castling
 - [x] SignalR
 
