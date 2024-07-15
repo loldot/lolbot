@@ -3,6 +3,8 @@ import Piece from "./Piece";
 import { useEffect, useRef, useState } from "react";
 import { Game, Move, Position, move } from "../game";
 import * as signalR from "@microsoft/signalr";
+import { createGame } from "../api";
+import { useNavigate } from "react-router";
 
 const square_size = css`64px`;
 
@@ -32,7 +34,9 @@ export interface ChessboardProps {
 }
 
 const Chessboard = ({ game, seq }: ChessboardProps) => {
-    if (!game) return (<>Loading..</>)
+    if (!game) return (<>Loading..</>);
+    const navigate = useNavigate();
+
     const { initialPosition } = game;
     const [moves, setMoves] = useState(game.moves);
 
@@ -43,6 +47,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     const mounted = useRef(false);
 
     const [us, setUs] = useState<'w' | 'b'>('w');
+    const [fen, setFen] = useState<string | undefined>();
 
     const [selectedSquare, setSelectedSquare] = useState<string>();
     const [legalMoves, setLegalMoves] = useState<string[]>([]);
@@ -158,6 +163,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
         const from = e.dataTransfer.getData("text/plain") as string;
         const to = id;
         executeMove(from, to);
+        connection.send('move', { "gameId": seq, "move": [selectedSquare, id], "plyCount": moveNumber });
 
         e.preventDefault();
     };
@@ -226,6 +232,14 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
             <button onClick={() => highlightBitboard('K')}  >K</button>            
             <button onClick={() => highlightBitboard('p')}  >p</button>
             <button onClick={() => highlightBitboard('P')}  >P</button>
+
+            <hr />
+
+            <input value={fen} type="text" onChange={e => setFen(e.target.value)}></input>
+            <button onClick={async () => {
+                const seq = await createGame(fen);
+                navigate(`/game/${seq}`);
+            }}>New</button>
 
 
         </div>

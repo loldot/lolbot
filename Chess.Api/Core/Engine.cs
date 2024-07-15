@@ -94,25 +94,25 @@ public readonly struct Move : IEquatable<Move>
     }
 
     private static readonly Move WhiteCastle = new(
-        Squares.E1, 
-        Squares.G1, 
-        Squares.H1, 
+        Squares.E1,
+        Squares.G1,
+        Squares.H1,
         Squares.F1, Piece.WhiteRook, Piece.None);
     private static readonly Move BlackCastle = new(
-        Squares.E8, 
-        Squares.G8, 
+        Squares.E8,
+        Squares.G8,
         Squares.H8,
         Squares.F8, Piece.BlackRook, Piece.None);
 
     private static readonly Move WhiteQueenCastle = new(
-        Squares.E1, 
-        Squares.C1, 
-        Squares.A1, 
+        Squares.E1,
+        Squares.C1,
+        Squares.A1,
         Squares.D1, Piece.WhiteRook, Piece.None);
     private static readonly Move BlackQueenCastle = new(
-        Squares.E8, 
-        Squares.C8, 
-        Squares.A8, 
+        Squares.E8,
+        Squares.C8,
+        Squares.A8,
         Squares.D8, Piece.BlackRook, Piece.None);
 
 
@@ -171,6 +171,11 @@ public readonly struct Move : IEquatable<Move>
 public record Game(Position InitialPosition, Move[] Moves)
 {
     public Game() : this(new Position(), []) { }
+
+    public Game(string fen) : this(Position.FromFen(fen), [])
+    {
+    }
+
 
     public int PlyCount => Moves.Length;
     public Color CurrentPlayer => CurrentPosition.CurrentPlayer;

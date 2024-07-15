@@ -40,6 +40,8 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2""";
     }
 
     public (int, Game) Create() => Add(new Game());
+    public (int, Game) Create(string fen) => Add(new Game(fen));
+
 
     public Game? Get(int seq)
     {

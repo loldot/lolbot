@@ -1,5 +1,6 @@
 using Lolbot.Api;
 using Lolbot.Core;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,9 +31,12 @@ app.UseHttpsRedirection();
 
 app.MapHub<GameHub>("/game/realtime");
 
-app.MapPost("/game/new", () =>
+app.MapPost("/game/new", ([FromBody] string? fen) =>
 {
-    var (seq, game) = GameDatabase.Instance.Create();
+    var (seq, game) = string.IsNullOrEmpty(fen)
+        ? GameDatabase.Instance.Create()
+        : GameDatabase.Instance.Create(fen);
+
     return Results.Ok(new { seq, game = new ApiGame(game) });
 });
 
