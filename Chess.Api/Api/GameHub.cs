@@ -59,7 +59,7 @@ public class GameHub : Hub
 
             if (fromIndex != x.FromIndex) continue;
 
-            moves.Add(Squares.CoordinateFromIndex(x.ToIndex)!);
+            moves.Add(Squares.ToCoordinate(x.ToSquare)!);
         }
 
         await Clients.Caller.SendAsync("legalMovesReceived", moves);

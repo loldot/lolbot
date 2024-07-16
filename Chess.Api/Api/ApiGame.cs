@@ -7,17 +7,17 @@ public static class ApiMove
     public static string?[] Create(Move move)
     {
         string?[] basic = [
-                Squares.CoordinateFromIndex(move.FromIndex),
-                Squares.CoordinateFromIndex(move.ToIndex),
+                Squares.ToCoordinate(move.FromSquare),
+                Squares.ToCoordinate(move.ToSquare),
         ];
 
         if (move.CastleIndex != 0)
         {
             return [
                 ..basic,
-                Squares.CoordinateFromIndex(move.CaptureIndex),
+                Squares.ToCoordinate(move.CaptureSquare),
                 Utils.PieceName(move.CapturePiece).ToString(),
-                Squares.CoordinateFromIndex(move.CastleIndex),
+                Squares.ToCoordinate(move.CastleSquare),
             ];
         }
         
@@ -25,7 +25,7 @@ public static class ApiMove
         {
             return [
                 ..basic,
-                Squares.CoordinateFromIndex(move.CaptureIndex),
+                Squares.ToCoordinate(move.CaptureSquare),
                 Utils.PieceName(move.CapturePiece).ToString()
             ];
         }

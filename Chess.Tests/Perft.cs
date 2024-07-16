@@ -19,6 +19,7 @@ public class Perft
     [TestCase(Position1, 3, 8_902)]
     [TestCase(Position1, 4, 197_281)]
     [TestCase(Position1, 5, 4_865_609)]
+    [TestCase(Position1, 6, 119_060_324)]
 
     [TestCase(Position2, 1, 48)]
     [TestCase(Position2, 2, 2_039)]

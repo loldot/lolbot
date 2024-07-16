@@ -51,7 +51,7 @@ app.MapGet("/game/{seq}/legal-moves/", (int seq) =>
     for (int i = 0; i < legalMoves.Length; i++)
     {
         var x = legalMoves[i];
-        moves[i] = [Squares.CoordinateFromIndex(x.FromIndex)!, Squares.CoordinateFromIndex(x.ToIndex)!];
+        moves[i] = [Squares.ToCoordinate(x.FromSquare)!, Squares.ToCoordinate(x.ToSquare)!];
     }
 
     return Results.Ok(moves);
@@ -71,7 +71,7 @@ app.MapGet("/game/{seq}/legal-moves/{square}/{piece}", (int seq, string square, 
 
         if (fromIndex != x.FromIndex) continue;
 
-        moves.Add(Squares.CoordinateFromIndex(x.ToIndex)!);
+        moves.Add(Squares.ToCoordinate(x.FromSquare)!);
     }
 
     return Results.Ok(moves);

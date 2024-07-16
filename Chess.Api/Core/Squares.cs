@@ -55,5 +55,5 @@ public static class Squares
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string? CoordinateFromIndex(byte index) => ToCoordinate(FromIndex(index));
+    public static string? CoordinateFromIndex(ref byte index) => ToCoordinate(FromIndex(in index));
 }

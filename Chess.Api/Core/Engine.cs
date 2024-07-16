@@ -46,9 +46,11 @@ public readonly struct Move : IEquatable<Move>
     public readonly Piece CapturePiece = Piece.None;
     public Piece PromotionPiece { get; init; } = Piece.None;
 
-    public Square FromSquare => Squares.FromIndex(FromIndex);
-    public Square ToSquare => Squares.FromIndex(ToIndex);
-    public Square CaptureSquare => Squares.FromIndex(CaptureIndex);
+    public Square FromSquare => Squares.FromIndex(in FromIndex);
+    public Square ToSquare => Squares.FromIndex(in ToIndex);
+    public Square CaptureSquare => Squares.FromIndex(in CaptureIndex);
+    public Square CastleSquare => Squares.FromIndex(in CastleIndex);
+
 
     public Move(string from, string to) : this(
         Squares.FromCoordinates(from),
@@ -129,9 +131,9 @@ public readonly struct Move : IEquatable<Move>
         if (this == BlackCastle) return "o-o";
         if (this == BlackQueenCastle) return "o-o-o";
 
-        return $"{Squares.CoordinateFromIndex(FromIndex)}"
+        return $"{Squares.ToCoordinate(FromSquare)}"
             + ((CapturePiece != Piece.None) ? "x" : "")
-            + $"{Squares.CoordinateFromIndex(ToIndex)}"
+            + $"{Squares.ToCoordinate(ToSquare)}"
             + (PromotionPiece != Piece.None ? $"={Utils.PieceName(PromotionPiece)}" : "");
     }
 

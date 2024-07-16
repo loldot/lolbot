@@ -45,7 +45,7 @@ public class MoveGenerator
         while (attacks != 0)
         {
             var attack = Bitboards.PopLsb(ref attacks);
-            moves[count++] = new Move(fromIndex, attack, attack, position.GetOccupant(attack));
+            moves[count++] = new Move(fromIndex, attack, attack, position.GetOccupant(ref attack));
         }
 
         if (IsCastleLegal(in position, Castle.WhiteKing | Castle.BlackKing, Move.Castle(position.CurrentPlayer), enemyAttacks))
@@ -100,7 +100,7 @@ public class MoveGenerator
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
-                moves[count++] = new Move(fromIndex, attack, attack, position.GetOccupant(attack));
+                moves[count++] = new Move(fromIndex, attack, attack, position.GetOccupant(ref attack));
             }
         }
     }
@@ -126,7 +126,7 @@ public class MoveGenerator
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
-                moves[count++] = new Move(fromIndex, attack, attack, position.GetOccupant(attack));
+                moves[count++] = new Move(fromIndex, attack, attack, position.GetOccupant(ref attack));
             }
         }
     }
@@ -166,7 +166,7 @@ public class MoveGenerator
 
                 foreach (var promotionPiece in MovePatterns.PromotionPieces[attack])
                 {
-                    moves[count++] = new Move(sq, attack, attack, position.GetOccupant(attack))
+                    moves[count++] = new Move(sq, attack, attack, position.GetOccupant(ref attack))
                         with { PromotionPiece = promotionPiece };
                 }
             }
@@ -196,9 +196,9 @@ public class MoveGenerator
 
         var captureOffset = position.CurrentPlayer == Color.White ? MovePatterns.S : MovePatterns.N;
         var epCapture = (byte)(position.EnPassant + captureOffset);
-        var ep = new Move(sq, attack, epCapture, position.GetOccupant(epCapture));
+        var ep = new Move(sq, attack, epCapture, position.GetOccupant(ref epCapture));
 
-        var occupiedAfter = position.Occupied ^ (Squares.FromIndex(epCapture) | Squares.FromIndex(sq));
+        var occupiedAfter = position.Occupied ^ (Squares.FromIndex(in epCapture) | Squares.FromIndex(in sq));
         var kingRook = MovePatterns.RookAttacks(Squares.ToIndex(king), occupiedAfter);
 
         var epWouldCheck = 0 != (kingRook &

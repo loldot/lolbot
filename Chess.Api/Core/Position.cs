@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -27,6 +28,7 @@ public readonly record struct Position
 
     public readonly ulong Checkmask { get; init; } = ulong.MaxValue;
     public readonly Vector256<ulong> Pinmasks { get; init; } = Vector256<ulong>.Zero;
+    public readonly bool IsPinned { get; init; } = false;
 
     public readonly byte CheckerCount { get; init; } = 0;
 
@@ -162,6 +164,7 @@ public readonly record struct Position
         {
             Checkmask = checkmask,
             Pinmasks = pinmasks,
+            IsPinned = isPinned,
             CheckerCount = checkers,
         };
     }
@@ -270,7 +273,7 @@ public readonly record struct Position
         while (attacks != 0)
         {
             var attack = Bitboards.PopLsb(ref attacks);
-            moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
+            moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(ref attack));
         }
 
         if (IsCastleLegal(Core.Castle.WhiteKing | Core.Castle.BlackKing, Core.Move.Castle(color), enemyAttacks))
@@ -331,7 +334,7 @@ public readonly record struct Position
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
-                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
+                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(ref attack));
             }
         }
         return count;
@@ -359,7 +362,7 @@ public readonly record struct Position
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
-                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(attack));
+                moves[count++] = new Move(fromIndex, attack, attack, GetOccupant(ref attack));
             }
         }
         return count;
@@ -402,7 +405,7 @@ public readonly record struct Position
 
                 foreach (var promotionPiece in MovePatterns.PromotionPieces[attack])
                 {
-                    moves[count++] = new Move(sq, attack, attack, GetOccupant(attack))
+                    moves[count++] = new Move(sq, attack, attack, GetOccupant(ref attack))
                         with
                     { PromotionPiece = promotionPiece };
                 }
@@ -494,6 +497,15 @@ public readonly record struct Position
 
     public readonly ulong PinnedPiece(ref readonly byte fromIndex)
     {
+        if (!IsPinned) return ulong.MaxValue;
+        // var sq = Squares.FromIndex(in fromIndex);
+        // var mask = Pinmasks & 
+
+        // var v = Vector128.ConditionalSelect(mask, Pinmasks.GetLower(), Pinmasks.GetUpper());
+        // var pin = Vector64.ConditionalSelect(Vector64.CreateScalar(sq), v.GetLower(), v.GetUpper()).ToScalar();
+
+        // return pin == 0 ? ulong.MaxValue : pin;
+
         var sq = Squares.FromIndex(in fromIndex);
         for (var i = 0; i < 4; i++)
         {
@@ -567,7 +579,7 @@ public readonly record struct Position
 
         var captureOffset = CurrentPlayer == Color.White ? MovePatterns.S : MovePatterns.N;
         var epCapture = (byte)(EnPassant + captureOffset);
-        var ep = new Move(sq, attack, epCapture, GetOccupant(epCapture));
+        var ep = new Move(sq, attack, epCapture, GetOccupant(ref epCapture));
 
         var occupiedAfter = Occupied ^ (Squares.FromIndex(in epCapture) | Squares.FromIndex(in sq));
         var kingRook = MovePatterns.RookAttacks(Squares.ToIndex(king), occupiedAfter);
@@ -584,14 +596,25 @@ public readonly record struct Position
         return count;
     }
 
-    public Piece GetOccupant(byte attack)
+
+    public Piece GetOccupant(ref byte attack)
     {
+        Piece piece = Piece.None;
+        byte colorOffset;
+
         var square = Squares.FromIndex(in attack);
-        foreach (var type in Enum.GetValues<Piece>().Except([Piece.None]))
+
+        if ((White & square) != 0) colorOffset = 0x10;
+        else if ((Black & square) != 0) colorOffset = 0x20;
+        else return piece;
+
+        for (var i = 0; i <= 6; i++)
         {
-            if ((this[type] & square) != 0) return type;
+            piece = (Piece)(colorOffset + i);
+            if ((this[piece] & square) != 0) break;
         }
-        return Piece.None;
+
+        return piece;
     }
 
     public Position Update(Piece piece, ulong bitboard) => piece switch
