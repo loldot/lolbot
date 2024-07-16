@@ -1,3 +1,4 @@
+using System.Runtime.Intrinsics;
 using System.Text;
 using Microsoft.AspNetCore.Components.RenderTree;
 namespace Lolbot.Core;
@@ -87,7 +88,7 @@ public class FenSerializer
         {
             CheckerCount = checkers,
             Checkmask = checkmask,
-            Pinmasks = isPinned ? pinmasks : [0, 0, 0, 0],
+            Pinmasks = isPinned ? pinmasks : Vector256<ulong>.Zero,
         };
     }
 

@@ -2,8 +2,25 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 
-var summary = BenchmarkRunner.Run<Perft5Bench>();
+GetPerftCounts(new Position(), 5);
 
+//var summary = BenchmarkRunner.Run<Perft5Bench>();
+
+static int GetPerftCounts(Position position, int remainingDepth = 4)
+{
+    Span<Move> moves = new Move[218];
+    var currentCount = MoveGenerator.Legal(ref position, ref moves);
+    var count = 0;
+
+    if (remainingDepth == 1) return currentCount;
+
+    for (int i = 0; i < currentCount; i++)
+    {
+        var posCount = GetPerftCounts(position.Move(moves[i]), remainingDepth - 1);
+        count += posCount;
+    }
+    return count;
+}
 
 public class Perft5Bench()
 {
@@ -20,6 +37,8 @@ public class Perft5Bench()
     {
         GetPerftCounts(new PositionCand(), 5);
     }
+
+
 
 
     private static int GetPerftCounts(Position position, int remainingDepth = 5)
@@ -52,5 +71,3 @@ public class Perft5Bench()
         return count;
     }
 }
-
-

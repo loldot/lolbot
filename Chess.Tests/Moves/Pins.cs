@@ -1,3 +1,4 @@
+using System.Runtime.Intrinsics;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -92,7 +93,14 @@ public class Pins
     {
         var allPins = Position.FromFen("Q2R2Q1/8/2ppp3/R1pkp2R/2ppp3/8/B7/1K1R3Q b - - 0 1");
 
-        allPins.Pinmasks.Should().BeEquivalentTo([
+        ulong[] pins = [
+            allPins.Pinmasks[0],
+            allPins.Pinmasks[1],
+            allPins.Pinmasks[2],
+            allPins.Pinmasks[3]
+        ];
+
+        pins.Should().BeEquivalentTo([
             Bitboards.Create("a5","b5","c5","e5","f5","g5","h5"),
             Bitboards.Create("d1","d2","d3","d4","d6","d7","d8"),
             Bitboards.Create("a8","b7","c6","e4","f3","g2","h1"),
@@ -117,9 +125,11 @@ public class Pins
     [Test]
     public void Should_Pin_When_Piece_On_Diagonal_After_King()
     {
-        var pos = Position.FromFen("4r3/3k4/8/1n6/Q7/8/8/1K6 b - - 0 1");
+        var pins = new ulong[4];
+        Position.FromFen("4r3/3k4/8/1n6/Q7/8/8/1K6 b - - 0 1")
+                .Pinmasks.CopyTo(pins);
         var expectedPinmask = Bitboards.Create("a4", "b5", "c6");
         
-        pos.Pinmasks.Should().Contain(expectedPinmask);
+        pins.Should().Contain(expectedPinmask);
     }
 }

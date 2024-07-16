@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Collections;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
 
@@ -122,7 +123,7 @@ public static class Bitboards
     public static byte PopLsb(ref ulong board)
     {
         var lsb = (byte)BitOperations.TrailingZeroCount(board);
-        board ^= Squares.FromIndex(lsb);
+        board ^= Squares.FromIndex(in lsb);
         return lsb;
     }
 
@@ -134,6 +135,12 @@ public static class Bitboards
             board |= Squares.FromCoordinates(squares[i]);
         }
         return board;
+    }
+
+    public static ulong Create(Vector256<ulong> squares)
+    {
+        var v = Vector128.Xor(squares.GetLower(), squares.GetUpper());
+        return Vector64.Xor(v.GetLower(), v.GetUpper()).ToScalar();
     }
 
     public static ulong Create(params ulong[] squares)

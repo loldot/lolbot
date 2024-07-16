@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -24,7 +26,7 @@ public readonly record struct Position
     public readonly Castle CastlingRights { get; init; } = Core.Castle.All;
 
     public readonly ulong Checkmask { get; init; } = ulong.MaxValue;
-    public readonly ulong[] Pinmasks { get; init; } = [0, 0, 0, 0];
+    public readonly Vector256<ulong> Pinmasks { get; init; } = Vector256<ulong>.Zero;
 
     public readonly byte CheckerCount { get; init; } = 0;
 
@@ -206,7 +208,7 @@ public readonly record struct Position
     }
 
     private static ulong Castle(ulong mask, Move m)
-        => mask & Squares.FromIndex(m.CastleIndex);
+        => mask & Squares.FromIndex(in m.CastleIndex);
 
     public Span<Move> GenerateLegalMoves()
     {
@@ -317,7 +319,7 @@ public readonly record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref bitboard);
 
-            var valid = attackFunc(fromIndex, Occupied) & ~friendlies & Checkmask & PinnedPiece(fromIndex);
+            var valid = attackFunc(fromIndex, Occupied) & ~friendlies & Checkmask & PinnedPiece(in fromIndex);
             var quiets = valid & ~Occupied;
             while (quiets != 0)
             {
@@ -346,14 +348,14 @@ public readonly record struct Position
         {
             var fromIndex = Bitboards.PopLsb(ref knights);
 
-            var quiets = MovePatterns.Knights[fromIndex] & ~Occupied & Checkmask & PinnedPiece(fromIndex);
+            var quiets = MovePatterns.Knights[fromIndex] & ~Occupied & Checkmask & PinnedPiece(in fromIndex);
             while (quiets != 0)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(fromIndex, toIndex);
             }
 
-            var attacks = MovePatterns.Knights[fromIndex] & targets & Checkmask & PinnedPiece(fromIndex);
+            var attacks = MovePatterns.Knights[fromIndex] & targets & Checkmask & PinnedPiece(in fromIndex);
             while (attacks != 0)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
@@ -375,7 +377,7 @@ public readonly record struct Position
         {
             var sq = Bitboards.PopLsb(ref pawns);
 
-            var pushes = pushPattern[sq] & Checkmask & PinnedPiece(sq) & Empty;
+            var pushes = pushPattern[sq] & Checkmask & PinnedPiece(in sq) & Empty;
             while (pushes != 0)
             {
                 var push = Bitboards.PopLsb(ref pushes);
@@ -389,7 +391,7 @@ public readonly record struct Position
                 }
             }
 
-            var attacks = attackPattern[sq] & targets & Checkmask & PinnedPiece(sq);
+            var attacks = attackPattern[sq] & targets & Checkmask & PinnedPiece(in sq);
 
             if (((1ul << EnPassant) & attackPattern[sq]) != 0)
                 count = DoEnPassant(moves, count, ref sq, EnPassant);
@@ -409,7 +411,7 @@ public readonly record struct Position
         return count;
     }
 
-    internal (bool, ulong[]) CreatePinmasks(Color color)
+    internal (bool, Vector256<ulong>) CreatePinmasks(Color color)
     {
         bool isPinned = false;
         byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
@@ -420,16 +422,24 @@ public readonly record struct Position
         ulong rookAttack = MovePatterns.RookAttacks(king, enemy);
         ulong bishopAttack = MovePatterns.BishopAttacks(king, enemy);
 
-        ulong[] pinmasks = new ulong[4];
-        ulong[] tempPins = [
-            rookAttack & Bitboards.Masks.GetRank(king),
-            rookAttack & Bitboards.Masks.GetFile(king),
-            bishopAttack & Bitboards.Masks.GetAntiadiagonal(king),
-            bishopAttack & Bitboards.Masks.GetDiagonal(king)
-        ];
-        ulong[] enemies = [enemyHV, enemyHV, enemyAD, enemyAD];
+        Span<ulong> pinmasks = stackalloc ulong[4];
+        var attacks = Vector256.Create(
+            rookAttack,
+            rookAttack,
+            bishopAttack,
+            bishopAttack
+        );
+        var tempPins = Vector256.Create(
+            Bitboards.Masks.GetRank(king),
+            Bitboards.Masks.GetFile(king),
+            Bitboards.Masks.GetAntiadiagonal(king),
+            Bitboards.Masks.GetDiagonal(king)
+        );
+        tempPins &= attacks;
 
-        for (int i = 0; i < pinmasks.Length; i++)
+        var enemies = Vector256.Create(enemyHV, enemyHV, enemyAD, enemyAD);
+
+        for (int i = 0; i < 4; i++)
         {
             var temp = tempPins[i] & enemies[i];
             while (temp != 0)
@@ -444,7 +454,7 @@ public readonly record struct Position
             }
         }
 
-        return (isPinned, pinmasks);
+        return (isPinned, Vector256.Create(pinmasks[0], pinmasks[1], pinmasks[2], pinmasks[3]));
     }
 
     internal (ulong, byte) CreateCheckMask(Color color)
@@ -463,7 +473,7 @@ public readonly record struct Position
             while (pieceBitboard != 0)
             {
                 var piece = Bitboards.PopLsb(ref pieceBitboard);
-                var checker = Squares.FromIndex(piece);
+                var checker = Squares.FromIndex(in piece);
 
                 var squares = MovePatterns.SquaresBetween[piece][king];
                 var attacks = MovePatterns.GetAttack(pieceType, checker, Empty);
@@ -482,17 +492,16 @@ public readonly record struct Position
     }
 
 
-    private ulong PinnedPiece(byte fromIndex)
+    public readonly ulong PinnedPiece(ref readonly byte fromIndex)
     {
+        var sq = Squares.FromIndex(in fromIndex);
         for (var i = 0; i < 4; i++)
         {
-            if ((Pinmasks[i] & Squares.FromIndex(fromIndex)) != 0) return Pinmasks[i];
+            if ((Pinmasks[i] & sq) != 0) return Pinmasks[i];
         }
 
         return ulong.MaxValue;
     }
-
-
 
     private bool IsCastleLegal(Castle requiredCastle, Move castle, ulong enemyAttacks)
     {
@@ -509,7 +518,7 @@ public readonly record struct Position
             && occupiedBetween == 0 && attacked == 0;
     }
 
-    private ulong CreateAttackMask(Color color)
+    public ulong CreateAttackMask(Color color)
     {
         var (king, enemyRooks, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
             ? (WhiteKing, BlackRooks | BlackQueens, BlackBishops | BlackQueens, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
@@ -560,7 +569,7 @@ public readonly record struct Position
         var epCapture = (byte)(EnPassant + captureOffset);
         var ep = new Move(sq, attack, epCapture, GetOccupant(epCapture));
 
-        var occupiedAfter = Occupied ^ (Squares.FromIndex(epCapture) | Squares.FromIndex(sq));
+        var occupiedAfter = Occupied ^ (Squares.FromIndex(in epCapture) | Squares.FromIndex(in sq));
         var kingRook = MovePatterns.RookAttacks(Squares.ToIndex(king), occupiedAfter);
 
         var epWouldCheck = 0 != (kingRook &
@@ -577,7 +586,7 @@ public readonly record struct Position
 
     public Piece GetOccupant(byte attack)
     {
-        var square = Squares.FromIndex(attack);
+        var square = Squares.FromIndex(in attack);
         foreach (var type in Enum.GetValues<Piece>().Except([Piece.None]))
         {
             if ((this[type] & square) != 0) return type;

@@ -48,10 +48,11 @@ public class Perft
 
     private static int GetPerftCounts(Position position, int remainingDepth = 4, bool print = false)
     {
-        var moves = position.GenerateLegalMoves();
+        Span<Move> moves = new Move[218];
+        var currentCount = MoveGenerator.Legal(ref position, ref moves);
         var count = 0;
 
-        if (remainingDepth == 1) return moves.Length;
+        if (remainingDepth == 1) return currentCount;
 
         if (print) Console.WriteLine($"Depth: {remainingDepth}");
 
@@ -75,12 +76,12 @@ public class Perft
             Console.WriteLine(new FenSerializer().ToFenString(position));
         }
 
-        foreach (var move in moves)
+        for (int i = 0; i < currentCount; i++)
         {
-            var posCount = GetPerftCounts(position.Move(move), remainingDepth - 1);
+            var posCount = GetPerftCounts(position.Move(moves[i]), remainingDepth - 1);
             if (print)
             {
-                Console.WriteLine($"{move}: {posCount}");
+                Console.WriteLine($"{moves[i]}: {posCount}");
             }
             count += posCount;
         }
