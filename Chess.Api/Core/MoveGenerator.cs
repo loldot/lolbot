@@ -157,7 +157,7 @@ public class MoveGenerator
 
             var attacks = attackPattern[sq] & targets & position.Checkmask & position.PinnedPiece(ref sq);
 
-            if (((1ul << position.EnPassant) & attackPattern[sq]) != 0)
+            if (position.EnPassant != 0 && ((1ul << position.EnPassant) & attackPattern[sq]) != 0)
                 count = DoEnPassant(in position, ref moves, count, ref sq, position.EnPassant);
 
             while (attacks != 0)

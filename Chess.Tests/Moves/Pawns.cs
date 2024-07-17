@@ -110,6 +110,27 @@ public class Pawns
     }
 
     [Test]
+    public void EnPassant_Should_Not_Count_As_Regular_Attack()
+    {
+        var position = Position.FromFen("2k5/8/1pp2p2/3pPp2/3P1P2/1PP5/8/7K w - d6 0 1");
+        position.GenerateLegalMoves('P').ToArray()
+            .Where(m => m.CaptureIndex == Squares.D5)
+            .Should().HaveCount(1);
+    }
+
+    [Test]
+    public void Should_Not_EnPassant_On_Square_0()
+    {
+        var position = Position.FromFen("5k2/8/8/8/8/8/1p6/R5K1 b - - 0 1");
+        var movesTo0 = position.GenerateLegalMoves('P').ToArray()
+            .Where(m => m.ToIndex == Squares.A1).ToArray();
+
+        movesTo0
+           
+            .Should().HaveCount(4);
+    }
+
+    [Test]
     public void Promotion_Should_Set_Bitboards_Correctly()
     {
         var pos = Position.FromFen("1k6/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
