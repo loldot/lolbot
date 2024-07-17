@@ -41,7 +41,9 @@ public class Moves
     [Test]
     public void LegalBlackPawnMovesAtStart()
     {
-        var startMoves = new Position().GenerateLegalMoves(Color.Black, Piece.BlackPawn);
+        var position = new Position() with { CurrentPlayer = Color.Black };
+        var startMoves = position.GenerateLegalMoves(Color.Black, Piece.BlackPawn);
+
         startMoves.ToArray().Should().BeEquivalentTo([
             new Move("a7", "a6"), new Move("a7", "a5"),
             new Move("b7", "b6"), new Move("b7", "b5"),

@@ -124,6 +124,7 @@ class Kings
         game.CurrentPosition.GenerateLegalMoves('K')
             .ToArray().Should().Contain(x => x.CastleIndex != 0);
         game = Engine.Move(game, Move.Castle(Color.White));
+        game = Engine.Move(game, "h7", "h6");
 
         game.CurrentPosition.GenerateLegalMoves('R')
             .ToArray().Should().HaveCount(1);
@@ -140,6 +141,7 @@ class Kings
         var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
         game = Engine.Move(game, "c8", "e6");
         game = Engine.Move(game, "f1", "e1");
+        game = Engine.Move(game, "h7", "h6");
 
         game.CurrentPosition.GenerateLegalMoves('R')
             .ToArray().Should().NotBeEmpty();

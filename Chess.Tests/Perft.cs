@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -43,11 +44,21 @@ public class Perft
     [TestCase(pos8, 2, 1_908)]
     public void PerftCounts(string fen, int depth, int expectedCount)
     {
-        var perft = GetPerftCounts(Position.FromFen(fen), depth, fen == Position4);
+        var sw = Stopwatch.StartNew();
+        var perft = GetPerftCounts(Position.FromFen(fen), depth);
+        sw.Stop();
+
+        if (depth == 6)
+        {
+            var ms = sw.ElapsedMilliseconds;
+            Console.WriteLine($"{perft} {ms}ms ({perft / (ms / 1000.0):n0} mps)");
+            Console.WriteLine();
+        }
+
         perft.Should().Be(expectedCount);
     }
 
-    private static int GetPerftCounts(Position position, int remainingDepth = 4, bool print = false)
+    private static int GetPerftCounts(Position position, int remainingDepth = 4)
     {
         Span<Move> moves = new Move[218];
         var currentCount = MoveGenerator.Legal(ref position, ref moves);
@@ -55,35 +66,9 @@ public class Perft
 
         if (remainingDepth == 1) return currentCount;
 
-        if (print) Console.WriteLine($"Depth: {remainingDepth}");
-
-        if ((position.White | position.Black) != position.Occupied)
-        {
-            Console.WriteLine("Inconsistent position b+w != occ");
-            Console.WriteLine(new FenSerializer().ToFenString(position));
-        }
-
-        if ((position.WhitePawns | position.WhiteRooks | position.WhiteBishops 
-            | position.WhiteKnights | position.WhiteQueens | position.WhiteKing) != position.White)
-        {
-            Console.WriteLine("Inconsistent position pices != white");
-            Console.WriteLine(new FenSerializer().ToFenString(position));
-        }
-
-        if ((position.BlackPawns | position.BlackRooks | position.BlackBishops 
-            | position.BlackKnights | position.BlackQueens | position.BlackKing) != position.Black)
-        {
-            Console.WriteLine("Inconsistent position pices != black");
-            Console.WriteLine(new FenSerializer().ToFenString(position));
-        }
-
         for (int i = 0; i < currentCount; i++)
         {
             var posCount = GetPerftCounts(position.Move(moves[i]), remainingDepth - 1);
-            if (print)
-            {
-                Console.WriteLine($"{moves[i]}: {posCount}");
-            }
             count += posCount;
         }
         return count;

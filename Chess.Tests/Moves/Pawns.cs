@@ -9,10 +9,12 @@ public class Pawns
     {
         var position = Position.FromFen("8/8/6p1/6p1/1p4P1/1P3P2/8/8 w - - 0 1");
 
-        var blackMoves = position.GenerateLegalMoves(Color.Black, Piece.BlackPawn);
         var whiteMoves = position.GenerateLegalMoves(Color.White, Piece.WhitePawn);
 
         whiteMoves.ToArray().Should().BeEquivalentTo([new Move("f3", "f4")]);
+
+        position = position with { CurrentPlayer = Color.Black };
+        var blackMoves = position.GenerateLegalMoves('p');
         blackMoves.ToArray().Should().BeEmpty();
     }
 
@@ -93,15 +95,15 @@ public class Pawns
         game = Engine.Move(game, "e5", "d6");
 
         game.CurrentPosition.WhitePawns
-            .Should().Be(Bitboards.Create("b3","c3", "d4", "d6", "f4"));
-        
+            .Should().Be(Bitboards.Create("b3", "c3", "d4", "d6", "f4"));
+
         game.CurrentPosition.BlackPawns
             .Should().Be(Bitboards.Create("b6", "c6", "f6", "f5"));
 
         var w = game.CurrentPosition.White;
-            w.Should().Be(Bitboards.Create("b3","c3", "d4", "d6", "f4", "h1"));
+        w.Should().Be(Bitboards.Create("b3", "c3", "d4", "d6", "f4", "h1"));
         var b = game.CurrentPosition.Black;
-            b.Should().Be(Bitboards.Create("b6", "c6", "f6", "f5", "c8"));
+        b.Should().Be(Bitboards.Create("b6", "c6", "f6", "f5", "c8"));
 
         game.CurrentPosition.Occupied
             .Should().Be(b | w);
@@ -111,16 +113,16 @@ public class Pawns
     public void Promotion_Should_Set_Bitboards_Correctly()
     {
         var pos = Position.FromFen("1k6/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
-        pos = pos.Move(new Move("d7", "d8") with { PromotionPiece = Piece.WhiteQueen});
+        pos = pos.Move(new Move("d7", "d8") with { PromotionPiece = Piece.WhiteQueen });
 
         var w_pawns = Bitboards.Create("a2", "b2", "c2", "e2", "f2", "g2", "h2");
         pos.WhitePawns.Should().Be(w_pawns);
         pos.WhiteQueens.Should().Be(Bitboards.Create("d8"));
-        
+
         var w = w_pawns | Bitboards.Create("b1", "d8");
         pos.White.Should().Be(w);
 
-        var b_pawns = Bitboards.Create("a7","b7","c7","e7","f7","g7","h7");
+        var b_pawns = Bitboards.Create("a7", "b7", "c7", "e7", "f7", "g7", "h7");
         pos.BlackPawns.Should().Be(b_pawns);
         var b = b_pawns | Bitboards.Create("b8");
         pos.Black.Should().Be(b);
@@ -132,16 +134,16 @@ public class Pawns
     public void Promotion_Capture_Should_Set_Bitboards_Correctly()
     {
         var pos = Position.FromFen("1k2b3/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
-        pos = pos.Move(new Move("d7", "e8", "e8", 'b') with { PromotionPiece = Piece.WhiteQueen});
+        pos = pos.Move(new Move("d7", "e8", "e8", 'b') with { PromotionPiece = Piece.WhiteQueen });
 
         var w_pawns = Bitboards.Create("a2", "b2", "c2", "e2", "f2", "g2", "h2");
         pos.WhitePawns.Should().Be(w_pawns);
         pos.WhiteQueens.Should().Be(Bitboards.Create("e8"));
-        
+
         var w = w_pawns | Bitboards.Create("b1", "e8");
         pos.White.Should().Be(w);
 
-        var b_pawns = Bitboards.Create("a7","b7","c7","e7","f7","g7","h7");
+        var b_pawns = Bitboards.Create("a7", "b7", "c7", "e7", "f7", "g7", "h7");
         pos.BlackPawns.Should().Be(b_pawns);
         var b = b_pawns | Bitboards.Create("b8");
         pos.Black.Should().Be(b);
@@ -154,6 +156,6 @@ public class Pawns
     {
         var pos = Position.FromFen("4k3/8/8/KpP4q/8/8/8/8 w - b6 0 1");
         pos.GenerateLegalMoves('P').ToArray()
-            .Should().Equal([new Move("c5","c6")]);
+            .Should().Equal([new Move("c5", "c6")]);
     }
 }

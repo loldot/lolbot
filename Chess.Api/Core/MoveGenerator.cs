@@ -1,4 +1,4 @@
-using Lolbot.Core;
+namespace Lolbot.Core;
 
 public class MoveGenerator
 {
