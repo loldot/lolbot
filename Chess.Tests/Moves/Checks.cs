@@ -12,7 +12,7 @@ public class Checks
 1. e4 d5 2. Bb5+";
 
         var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
-        var moves = game.CurrentPosition.GenerateLegalMoves(Color.Black).ToArray();
+        var moves = game.CurrentPosition.GenerateLegalMoves().ToArray();
 
         moves.Should().HaveCount(5);
         moves.Should().Contain(new Move("c7", "c6"));
@@ -26,7 +26,7 @@ public class Checks
 1. e4 d5 2. Bb5+ c6 3. Nf3";
 
         var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
-        var moves = game.CurrentPosition.GenerateLegalMoves(Color.Black).ToArray();
+        var moves = game.CurrentPosition.GenerateLegalMoves().ToArray();
 
         moves.Should().Contain(new Move("c6", "b5", "b5", 'B'));
     }

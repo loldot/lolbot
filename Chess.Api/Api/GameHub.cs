@@ -51,7 +51,7 @@ public class GameHub : Hub
         if (game is null) return;
 
         var fromIndex = Squares.IndexFromCoordinate(message.Square);
-        var legalMoves = game.CurrentPosition.GenerateLegalMoves(game.CurrentPlayer).ToArray();
+        var legalMoves = game.CurrentPosition.GenerateLegalMoves().ToArray();
         var moves = new List<string>();
         for (int i = 0; i < legalMoves.Length; i++)
         {

@@ -46,7 +46,7 @@ app.MapGet("/game/{seq}/legal-moves/", (int seq) =>
     var game = GameDatabase.Instance.Get(seq);
     if (game is null) return Results.NotFound();
 
-    var legalMoves = game.CurrentPosition.GenerateLegalMoves(game.CurrentPlayer);
+    var legalMoves = game.CurrentPosition.GenerateLegalMoves();
     var moves = new string[legalMoves.Length][];
     for (int i = 0; i < legalMoves.Length; i++)
     {
@@ -63,7 +63,7 @@ app.MapGet("/game/{seq}/legal-moves/{square}/{piece}", (int seq, string square, 
     if (game is null) return Results.NotFound();
 
     var fromIndex = Squares.IndexFromCoordinate(square);
-    var legalMoves = game.CurrentPosition.GenerateLegalMoves(game.CurrentPlayer);
+    var legalMoves = game.CurrentPosition.GenerateLegalMoves();
     var moves = new List<string>();
     for (int i = 0; i < legalMoves.Length; i++)
     {

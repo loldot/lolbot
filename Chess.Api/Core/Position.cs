@@ -212,26 +212,20 @@ public readonly record struct Position
     private static ulong Castle(ulong mask, Move m)
         => mask & Squares.FromIndex(in m.CastleIndex);
 
-    public Span<Move> GenerateLegalMoves()
-    {
-        return GenerateLegalMoves(CurrentPlayer);
-    }
-
-    public Span<Move> GenerateLegalMoves(char pieceType)
-    {
-        Color color = char.IsLower(pieceType) ? Color.Black : Color.White;
-        Piece piece = Utils.FromName(pieceType);
-
-        return GenerateLegalMoves(color, piece);
-    }
-
-    public Span<Move> GenerateLegalMoves(Color color, Piece? pieceType = null)
+    public Span<Move> GenerateLegalMoves(Piece? pieceType = null)
     {
         const int max_moves = 218;
 
         Span<Move> moves = stackalloc Move[max_moves];
         var count = MoveGenerator.Legal(in this, ref moves, pieceType);
         return moves[..count].ToArray();
+    }
+
+    public Span<Move> GenerateLegalMoves(char pieceType)
+    {
+        Piece piece = Utils.FromName(pieceType);
+
+        return GenerateLegalMoves(piece);
     }
 
     internal (bool, Vector256<ulong>) CreatePinmasks(Color color)

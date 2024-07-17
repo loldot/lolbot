@@ -8,7 +8,7 @@ public class Moves
     [Test]
     public void LegalPawnMovesAtStart()
     {
-        var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhitePawn);
+        var startMoves = new Position().GenerateLegalMoves(Piece.WhitePawn);
         startMoves.ToArray().Should().BeEquivalentTo([
             new Move("a2", "a3"), new Move("a2", "a4"),
             new Move("b2", "b3"), new Move("b2", "b4"),
@@ -27,10 +27,11 @@ public class Moves
         var position = new Position();
         var sw = Stopwatch.StartNew();
         var whiteMoves = position
-            .GenerateLegalMoves(Color.White);
+            .GenerateLegalMoves();
 
+        position = position with { CurrentPlayer = Color.Black };
         var blackMoves = position
-            .GenerateLegalMoves(Color.Black);
+            .GenerateLegalMoves();
 
         sw.Stop();
         Console.WriteLine(sw.ElapsedTicks);
@@ -42,7 +43,7 @@ public class Moves
     public void LegalBlackPawnMovesAtStart()
     {
         var position = new Position() with { CurrentPlayer = Color.Black };
-        var startMoves = position.GenerateLegalMoves(Color.Black, Piece.BlackPawn);
+        var startMoves = position.GenerateLegalMoves(Piece.BlackPawn);
 
         startMoves.ToArray().Should().BeEquivalentTo([
             new Move("a7", "a6"), new Move("a7", "a5"),
@@ -59,7 +60,7 @@ public class Moves
     [Test]
     public void LegalKnightMovesAtStart()
     {
-        var startMoves = new Position().GenerateLegalMoves(Color.White, Piece.WhiteKnight);
+        var startMoves = new Position().GenerateLegalMoves(Piece.WhiteKnight);
         startMoves.ToArray().Should().BeEquivalentTo([
             new Move("b1", "a3"),
             new Move("b1", "c3"),

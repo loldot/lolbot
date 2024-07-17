@@ -193,7 +193,7 @@ public record Game(Position InitialPosition, Move[] Moves)
     public bool IsLegalMove(Move move)
     {
         return CurrentPosition
-            .GenerateLegalMoves(CurrentPlayer).ToArray()
+            .GenerateLegalMoves().ToArray()
             .Contains(move);
     }
 }
@@ -215,7 +215,7 @@ public class Engine
     public static Game Move(Game game, Square from, Square to)
     {
         var move = game.CurrentPosition
-            .GenerateLegalMoves(game.CurrentPlayer)
+            .GenerateLegalMoves()
             .ToArray()
             .FirstOrDefault(x => x.FromIndex == Squares.ToIndex(from) && x.ToIndex == Squares.ToIndex(to));
         return Move(game, move);

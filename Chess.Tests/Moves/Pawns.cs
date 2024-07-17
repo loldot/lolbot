@@ -9,7 +9,7 @@ public class Pawns
     {
         var position = Position.FromFen("8/8/6p1/6p1/1p4P1/1P3P2/8/8 w - - 0 1");
 
-        var whiteMoves = position.GenerateLegalMoves(Color.White, Piece.WhitePawn);
+        var whiteMoves = position.GenerateLegalMoves(Piece.WhitePawn);
 
         whiteMoves.ToArray().Should().BeEquivalentTo([new Move("f3", "f4")]);
 
