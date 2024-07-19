@@ -7,6 +7,12 @@ public class Perft
 {
     const string Position1 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     const string Position2 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ";
+    const string Position2_OOO = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/2KR3R b kq - 0 1";
+    const string Position2_OOO_b4b3 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/1pN2Q1p/PPPBBPPP/2KR3R w kq - 0 1";
+    const string Position2_OOO_b4b3_c1b1 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/1pN2Q1p/PPPBBPPP/1K1R3R b kq - 0 1";
+    const string Position2_OOO_b4b3_c1b1_b3xc2 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/2N2Q1p/PPpBBPPP/1K1R3R w kq - 0 1";
+
+
     const string Position4 = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
     const string Postion4_c4c5 = "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
     const string Position4_c4c5_g2g4 = "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P1P1/q4N2/Pp1P3P/R2Q1RK1 b kq - 0 1";
@@ -28,6 +34,7 @@ public class Perft
     [TestCase(Position2, 1, 48)]
     [TestCase(Position2, 2, 2_039)]
     [TestCase(Position2, 3, 97_862)]
+    [TestCase(Position2_OOO_b4b3_c1b1_b3xc2, 3, 6_377)]
 
     [TestCase(Position4, 1, 6)]
     [TestCase(Position4, 2, 264)]
@@ -51,7 +58,7 @@ public class Perft
         perft.Should().Be(expectedCount);
     }
 
-    private static int GetPerftCounts(Position position, int remainingDepth = 4)
+    private static int GetPerftCounts(Position position, int remainingDepth = 4, int split = 0)
     {
         Span<Move> moves = new Move[218];
         var currentCount = MoveGenerator.Legal(ref position, ref moves);
@@ -62,6 +69,7 @@ public class Perft
         for (int i = 0; i < currentCount; i++)
         {
             var posCount = GetPerftCounts(position.Move(moves[i]), remainingDepth - 1);
+            if (remainingDepth == split) Console.WriteLine($"{moves[i]}: {posCount}");
             count += posCount;
         }
         return count;

@@ -146,4 +146,14 @@ class Kings
         game.CurrentPosition.GenerateLegalMoves('R')
             .ToArray().Should().NotBeEmpty();
     }
+    [Test]
+    public void Castling_Should_Not_Be_Allowed_When_Checked_By_Pawn()
+    {
+        var pos = Position.FromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/2N2Q1p/PPpBBPPP/1K1R3R w kq - 0 1");
+        var moves = pos.GenerateLegalMoves('K').ToArray();
+
+        moves.Should().NotContain(Move.QueenSideCastle(Color.White));
+        moves.Should().NotContain(Move.Castle(Color.White));
+    }
+
 }

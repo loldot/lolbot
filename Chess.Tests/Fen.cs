@@ -39,14 +39,14 @@ public class Fen
         position.CurrentPlayer.Should().Be(Color.Black);
     }
 
-    [Test]
-    public void Should_Set_CastlingRights()
+    [TestCase("r3k2r/ppp3pp/8/8/8/8/P5PP/R3K2R b KQk - 0 1", Castle.WhiteKing | Castle.WhiteQueen | Castle.BlackKing)]
+    [TestCase("r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/2N2Q1p/PPpBBPPP/1K1R3R w kq - 0 1", Castle.BlackKing | Castle.BlackQueen)]
+    public void Should_Set_CastlingRights(string fen, Castle expectedCastlingRights)
     {
-        var fenString = "r3k2r/ppp3pp/8/8/8/8/P5PP/R3K2R b KQk - 0 1";
         var serializer = new FenSerializer();
-        var position = serializer.Parse(fenString);
+        var position = serializer.Parse(fen);
 
-        position.CastlingRights.Should().Be(Castle.WhiteKing | Castle.WhiteQueen | Castle.BlackKing);
+        position.CastlingRights.Should().Be(expectedCastlingRights);
     }
 
     [Test]

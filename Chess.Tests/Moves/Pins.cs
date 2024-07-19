@@ -132,4 +132,11 @@ public class Pins
         
         pins.Should().Contain(expectedPinmask);
     }
+
+    [Test]
+    public void PinnedPieceCannot_Capture_Checker()
+    {
+        var position = Position.FromFen("2k5/2q5/8/8/8/2N5/2Kp4/8 w - - 0 1");
+        position.GenerateLegalMoves(Piece.WhiteKnight).ToArray().Should().BeEmpty();
+    }
 }

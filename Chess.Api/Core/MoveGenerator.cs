@@ -176,6 +176,10 @@ public class MoveGenerator
 
     private static bool IsCastleLegal(ref readonly Position position, Castle requiredCastle, Move castle, ulong enemyAttacks)
     {
+        requiredCastle &= (position.CurrentPlayer == Color.White) 
+            ? Castle.WhiteQueen | Castle.WhiteKing
+            : Castle.BlackQueen | Castle.BlackKing;
+            
         var clearingRequired = MovePatterns.SquaresBetween[castle.FromIndex][castle.CaptureIndex]
             & ~castle.CaptureSquare;
 
