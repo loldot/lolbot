@@ -27,22 +27,22 @@ public class GameHub : Hub
         GameDatabase.Instance.Update(message.GameId, updated);
         await Clients.AllExcept([Context.ConnectionId]).SendAsync("movePlayed", message);
 
-        // var nextMove = Engine.Reply(updated);
-        // if (nextMove is null)
-        // {
-        //     await Clients.All.SendAsync("finished", new { Winner = "w" });
-        //     return;
-        // }
+        var nextMove = Engine.Reply(updated);
+        if (nextMove is null)
+        {
+            await Clients.All.SendAsync("finished", new { Winner = "w" });
+            return;
+        }
 
-        // updated = Engine.Move(updated, nextMove.Value);
-        // GameDatabase.Instance.Update(message.GameId, updated);
+        updated = Engine.Move(updated, nextMove.Value);
+        GameDatabase.Instance.Update(message.GameId, updated);
 
-        // await Clients.All.SendAsync("movePlayed", new MoveMessage
-        // {
-        //     GameId = message.GameId,
-        //     PlyCount = updated.PlyCount,
-        //     Move = ApiMove.Create(nextMove.Value)!
-        // });
+        await Clients.All.SendAsync("movePlayed", new MoveMessage
+        {
+            GameId = message.GameId,
+            PlyCount = updated.PlyCount,
+            Move = ApiMove.Create(nextMove.Value)!
+        });
     }
 
     public async Task CheckMove(CheckMovesMessage message)
