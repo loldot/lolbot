@@ -8,6 +8,9 @@ public class Perft
     const string Position1 = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     const string Position2 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ";
     const string Position4 = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
+    const string Postion4_c4c5 = "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
+    const string Position4_c4c5_g2g4 = "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P1P1/q4N2/Pp1P3P/R2Q1RK1 b kq - 0 1";
+    const string Position4_c4c5_g2g4_d7d5 = "r3k2r/Ppp2ppp/1b3nbN/nPPp4/BB2P2P/q4N2/Pp1P2P1/R2Q1RK1 w kq - 0 1";
     const string Position5 = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
 
     const string Position6 = "2k5/P2bn2P/4B3/5bb1/5BB1/4b3/p2B1N1p/2K5 w - - 0 1";
@@ -44,17 +47,7 @@ public class Perft
     [TestCase(pos8, 2, 1_908)]
     public void PerftCounts(string fen, int depth, int expectedCount)
     {
-        var sw = Stopwatch.StartNew();
         var perft = GetPerftCounts(Position.FromFen(fen), depth);
-        sw.Stop();
-
-        if (depth == 6)
-        {
-            var ms = sw.ElapsedMilliseconds;
-            Console.WriteLine($"{perft} {ms}ms ({perft / (ms / 1000.0):n0} mps)");
-            Console.WriteLine();
-        }
-
         perft.Should().Be(expectedCount);
     }
 

@@ -126,7 +126,7 @@ public class Pawns
             .Where(m => m.ToIndex == Squares.A1).ToArray();
 
         movesTo0
-           
+
             .Should().HaveCount(4);
     }
 
@@ -178,5 +178,14 @@ public class Pawns
         var pos = Position.FromFen("4k3/8/8/KpP4q/8/8/8/8 w - b6 0 1");
         pos.GenerateLegalMoves('P').ToArray()
             .Should().Equal([new Move("c5", "c6")]);
+    }
+
+
+    [Test]
+    public void EnPassant_Is_Not_Allowed_When_Pinned_By_Bishop()
+    {
+        var pos = Position.FromFen("2k5/8/b7/1Pp5/8/8/8/5K2 w - c6 0 1");
+        pos.GenerateLegalMoves('P').ToArray()
+            .Should().Equal([new Move("b5", "a6", "a6", 'b')]);
     }
 }

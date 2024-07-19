@@ -167,7 +167,8 @@ public class MoveGenerator
                 foreach (var promotionPiece in MovePatterns.PromotionPieces[attack])
                 {
                     moves[count++] = new Move(sq, attack, attack, position.GetOccupant(ref attack))
-                        with { PromotionPiece = promotionPiece };
+                        with
+                    { PromotionPiece = promotionPiece };
                 }
             }
         }
@@ -190,19 +191,22 @@ public class MoveGenerator
 
     private static int DoEnPassant(ref readonly Position position, ref Span<Move> moves, int count, ref byte sq, byte attack)
     {
-        var (king, opponentRook, opponentQueen) = position.CurrentPlayer == Color.White
-            ? (position.WhiteKing, position.BlackRooks, position.BlackQueens)
-            : (position.BlackKing, position.WhiteRooks, position.WhiteQueens);
+        var (king, opponentBishop, opponentRook, opponentQueen) = position.CurrentPlayer == Color.White
+            ? (position.WhiteKing, position.BlackBishops, position.BlackRooks, position.BlackQueens)
+            : (position.BlackKing, position.WhiteBishops, position.WhiteRooks, position.WhiteQueens);
 
         var captureOffset = position.CurrentPlayer == Color.White ? MovePatterns.S : MovePatterns.N;
         var epCapture = (byte)(position.EnPassant + captureOffset);
         var ep = new Move(sq, attack, epCapture, position.GetOccupant(ref epCapture));
 
-        var occupiedAfter = position.Occupied ^ (Squares.FromIndex(in epCapture) | Squares.FromIndex(in sq));
-        var kingRook = MovePatterns.RookAttacks(Squares.ToIndex(king), occupiedAfter);
+        var occupiedAfter = position.Occupied ^ (Squares.FromIndex(in epCapture) | Squares.FromIndex(in sq) | (1ul << attack));
 
-        var epWouldCheck = 0 != (kingRook &
-            (opponentQueen | opponentRook));
+        var kingindex = Squares.ToIndex(king);
+        var kingRook = MovePatterns.RookAttacks(kingindex, occupiedAfter);
+        var kingBishop = MovePatterns.BishopAttacks(kingindex, occupiedAfter);
+
+        var epWouldCheck = 0 != (kingRook & (opponentQueen | opponentRook));
+        epWouldCheck |= 0 != (kingBishop & (opponentQueen | opponentBishop));
 
         var epSavesCheck = position.Checkmask < ulong.MaxValue;
         // Double pushed pawn is checking, capture en passant.
