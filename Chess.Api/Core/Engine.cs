@@ -93,17 +93,16 @@ public class Engine
 
     public static int Evaluate(Position position)
     {
-        return Bitboards.CountOccupied(position.WhitePawns) * 100
-            + Bitboards.CountOccupied(position.WhiteKnights) * 300
-            + Bitboards.CountOccupied(position.WhiteBishops) * 325
-            + Bitboards.CountOccupied(position.WhiteRooks) * 500
-            + Bitboards.CountOccupied(position.WhiteQueens) * 900
-
-            + Bitboards.CountOccupied(position.BlackPawns) * -100
-            + Bitboards.CountOccupied(position.BlackKnights) * -300
-            + Bitboards.CountOccupied(position.BlackBishops) * -325
-            + Bitboards.CountOccupied(position.BlackRooks) * -500
-            + Bitboards.CountOccupied(position.BlackQueens) * -900;
+        var eval = 0;
+        for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
+        {
+            eval += Heuristics.GetPieceValue(i, position[i]);
+        }
+        for (Piece i = Piece.BlackPawn; i < Piece.BlackKing; i++)
+        {
+            eval -= Heuristics.GetPieceValue(i, position[i]);
+        }
+        return eval;
     }
 
     public static Move? Reply(Game game)
@@ -171,7 +170,10 @@ public class Engine
     {
         if (remainingDepth == 0) return Evaluate(position);
 
-        foreach (var candidate in position.GenerateLegalMoves())
+        var candidateMoves = position.GenerateLegalMoves();
+        candidateMoves.Sort(MoveComparer);
+
+        foreach (var candidate in candidateMoves)
         {
             var score = AlphaBetaMax(position.Move(candidate), alpha, beta, remainingDepth - 1);
             if (score <= alpha)
@@ -180,5 +182,17 @@ public class Engine
                 beta = score; // beta acts like min in MiniMax
         }
         return beta;
+    }
+
+    private static int MoveComparer(Move x, Move y)
+    {
+        int score = 0;
+        score += Heuristics.GetPieceValue(x.PromotionPiece);
+        score += Heuristics.GetPieceValue(x.CapturePiece);
+
+        score -= Heuristics.GetPieceValue(x.PromotionPiece);
+        score -= Heuristics.GetPieceValue(x.CapturePiece);
+
+        return score;
     }
 }

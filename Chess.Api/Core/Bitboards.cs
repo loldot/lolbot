@@ -28,6 +28,8 @@ public static class Bitboards
 
         public const ulong Edges = A_File | H_File | Rank_1 | Rank_8;
 
+        public const ulong Corners = 0x8100000000000081;
+
         public const ulong MainDiagonal = 0x8040201008040201;
         public const ulong MainAntidiagonal = 0x0102040810204080;
         public const ulong LightSquares = 0x55AA55AA55AA55AA;
@@ -62,35 +64,6 @@ public static class Bitboards
     public static ulong Pepd(ulong bitboard, ulong mask)
     {
         return Bmi2.X64.ParallelBitDeposit(bitboard, mask);
-    }
-
-    private static ulong extract_bits(ulong x, ulong m)
-    {
-        x &= m;
-        ulong mk = ~m << 1;
-
-        for (int i = 1; i < 32; i <<= 1)
-        {
-            ulong mk_parity = bitwise_inclusive_right_parity(mk); // see below
-
-            ulong move = mk_parity & m;
-            m = (m ^ move) | (move >> i);
-
-            ulong t = x & move;
-            x = (x ^ t) | (t >> i);
-
-            mk &= ~mk_parity;
-        }
-        return x;
-    }
-
-    private static ulong bitwise_inclusive_right_parity(ulong x)
-    {
-        for (int i = 1; i < 64; i <<= 1)
-        {
-            x ^= x << i;
-        }
-        return x;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
