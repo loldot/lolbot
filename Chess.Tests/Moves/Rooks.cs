@@ -45,7 +45,7 @@ public class Rooks
     {
         var blockers = Bitboards.Create("A3", "A4", "C1", "E1", "H6", "H7", "E5");
 
-        var rookMoves = MovePatterns.RookAttacks(0, blockers);
+        var rookMoves = MovePatterns.RookAttacks(0, ref blockers);
 
         rookMoves.Should().Be(Bitboards.Create((int[])[
             0,0,0,0,0,0,0,0,
@@ -65,7 +65,7 @@ public class Rooks
         var blockers = Bitboards.Create("d2", "d7", "f4");
         var rook = Squares.IndexFromCoordinate("d4");
 
-        var rookMoves = MovePatterns.RookAttacks(rook, blockers);
+        var rookMoves = MovePatterns.RookAttacks(rook,ref blockers);
         var occFill = MovePatterns.GenerateRookAttacks(Squares.FromIndex(rook), ~blockers);
 
         rookMoves.Should().Be(occFill);
@@ -77,7 +77,7 @@ public class Rooks
         var blockers = Bitboards.Create("b7", "g3");
         var rook = Squares.IndexFromCoordinate("b3");
 
-        var rookMoves = MovePatterns.RookAttacks(rook, blockers);
+        var rookMoves = MovePatterns.RookAttacks(rook, ref blockers);
         var occFill = MovePatterns.GenerateRookAttacks(Squares.FromIndex(rook), ~blockers);
 
         rookMoves.Should().Be(occFill);
@@ -93,7 +93,7 @@ public class Rooks
             for (int j = 0; j < 250; j++)
             {
                 var blockers = (ulong)random.NextInt64();
-                var rookMoves = MovePatterns.RookAttacks(i, blockers);
+                var rookMoves = MovePatterns.RookAttacks(i, ref blockers);
                 var occFill = MovePatterns.GenerateRookAttacks(Squares.FromIndex(i), ~blockers);
 
                 rookMoves.Should().Be(occFill);

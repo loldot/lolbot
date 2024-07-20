@@ -128,17 +128,17 @@ public static class MovePatterns
         return ~result;
     }
 
-    public static ulong BishopAttacks(byte square, ulong occupied)
+    public static ulong BishopAttacks(byte square, ref ulong occupied)
     {
         var index = BishopPextIndex[square]
-            + Bitboards.Pext(occupied, BishopPextMask[square]);
+            + Bitboards.Pext(ref occupied, ref BishopPextMask[square]);
         return PextTable[index];
     }
 
-    public static ulong RookAttacks(byte square, ulong occupied)
+    public static ulong RookAttacks(byte square, ref ulong occupied)
     {
         var index = RookPextIndex[square]
-            + Bitboards.Pext(occupied, RookPextMask[square]);
+            + Bitboards.Pext(ref occupied, ref RookPextMask[square]);
         return PextTable[index];
     }
 
@@ -271,18 +271,19 @@ public static class MovePatterns
     internal static ulong GetAttack(Piece piece, ulong bitboard, ulong empty)
     {
         var sq = Squares.ToIndex(bitboard);
+        var occupied = ~empty;
         return piece switch
         {
-            Piece.WhitePawn => CalculateAllPawnAttacks(bitboard) & ~empty,
-            Piece.BlackPawn => Bitboards.FlipAlongVertical(CalculateAllPawnAttacks(Bitboards.FlipAlongVertical(bitboard))) & ~empty,
+            Piece.WhitePawn => CalculateAllPawnAttacks(bitboard) & occupied,
+            Piece.BlackPawn => Bitboards.FlipAlongVertical(CalculateAllPawnAttacks(Bitboards.FlipAlongVertical(bitboard))) & occupied,
             Piece.WhiteKnight => Knights[sq],
             Piece.BlackKnight => Knights[sq],
-            Piece.WhiteBishop => BishopAttacks(sq, ~empty),
-            Piece.BlackBishop => BishopAttacks(sq, ~empty),
-            Piece.WhiteRook => RookAttacks(sq, ~empty),
-            Piece.WhiteQueen => RookAttacks(sq, ~empty) | BishopAttacks(sq, ~empty),
-            Piece.BlackRook => RookAttacks(sq, ~empty),
-            Piece.BlackQueen => RookAttacks(sq, ~empty) | BishopAttacks(sq, ~empty),
+            Piece.WhiteBishop => BishopAttacks(sq, ref occupied),
+            Piece.BlackBishop => BishopAttacks(sq, ref occupied),
+            Piece.WhiteRook => RookAttacks(sq , ref occupied),
+            Piece.WhiteQueen => RookAttacks(sq, ref occupied) | BishopAttacks(sq, ref occupied),
+            Piece.BlackRook => RookAttacks(sq, ref occupied),
+            Piece.BlackQueen => RookAttacks(sq, ref occupied) | BishopAttacks(sq, ref occupied),
             _ => 0,
         };
     }

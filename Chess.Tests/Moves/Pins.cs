@@ -29,8 +29,8 @@ public class Pins
     {
         var pos = Position.FromFen("8/K1R1n1rk/8/8/8/8/8/8 w - - 0 1");
         var moves = pos.GenerateLegalMoves('R');
-
-        var notPinned = MovePatterns.RookAttacks(Squares.C7, pos.Occupied) & ~pos.White;
+        var occ = pos.Occupied;
+        var notPinned = MovePatterns.RookAttacks(Squares.C7, ref occ) & ~pos.White;
         moves.Length.Should().Be(Bitboards.CountOccupied(notPinned));
     }
 
@@ -39,8 +39,8 @@ public class Pins
     {
         var pos = Position.FromFen("3q4/K1R2r1k/8/3nb3/8/8/8/8 w - - 0 1");
         var moves = pos.GenerateLegalMoves('R');
-
-        var pinnedMoves = MovePatterns.RookAttacks(Squares.C7, pos.Occupied) & ~pos.White & Bitboards.Masks.GetRank(Squares.C7);
+        var occ = pos.Occupied;
+        var pinnedMoves = MovePatterns.RookAttacks(Squares.C7, ref occ) & ~pos.White & Bitboards.Masks.GetRank(Squares.C7);
         moves.Length.Should().Be(Bitboards.CountOccupied(pinnedMoves));
     }
 
@@ -129,7 +129,7 @@ public class Pins
         Position.FromFen("4r3/3k4/8/1n6/Q7/8/8/1K6 b - - 0 1")
                 .Pinmasks.CopyTo(pins);
         var expectedPinmask = Bitboards.Create("a4", "b5", "c6");
-        
+
         pins.Should().Contain(expectedPinmask);
     }
 

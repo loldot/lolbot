@@ -54,25 +54,13 @@ public static class Bitboards
         }
     }
 
-    public static ulong Pext(ulong bitboard, ulong mask)
+    public static ulong Pext(ref ulong bitboard, ref ulong mask)
     {
-        if (!Bmi2.IsSupported)
-        {
-            Console.WriteLine("PEXT not supported");
-            return extract_bits(bitboard, mask);
-        }
-
         return Bmi2.X64.ParallelBitExtract(bitboard, mask);
     }
 
     public static ulong Pepd(ulong bitboard, ulong mask)
     {
-        if (!Bmi2.IsSupported)
-        {
-            Console.WriteLine("PEXT not supported");
-            return extract_bits(bitboard, mask);
-        }
-
         return Bmi2.X64.ParallelBitDeposit(bitboard, mask);
     }
 

@@ -236,8 +236,8 @@ public readonly record struct Position
             ? (BlackRooks | BlackQueens, BlackBishops | BlackQueens, White, Black)
             : (WhiteRooks | WhiteQueens, WhiteBishops | WhiteQueens, Black, White);
 
-        ulong rookAttack = MovePatterns.RookAttacks(king, enemy);
-        ulong bishopAttack = MovePatterns.BishopAttacks(king, enemy);
+        ulong rookAttack = MovePatterns.RookAttacks(king, ref enemy);
+        ulong bishopAttack = MovePatterns.BishopAttacks(king, ref enemy);
 
         Span<ulong> pinmasks = stackalloc ulong[4];
         var attacks = Vector256.Create(
@@ -336,16 +336,17 @@ public readonly record struct Position
             : (BlackKing, WhiteRooks | WhiteQueens, WhiteBishops | WhiteQueens, WhiteKnights, WhitePawns);
 
         var enemyAttacks = 0ul;
+        var occupiedExceptKing = Occupied ^ king;
         while (enemyRooks != 0)
         {
             var fromIndex = Bitboards.PopLsb(ref enemyRooks);
-            enemyAttacks |= MovePatterns.RookAttacks(fromIndex, Occupied ^ king);
+            enemyAttacks |= MovePatterns.RookAttacks(fromIndex, ref occupiedExceptKing);
         }
 
         while (enemyBishops != 0)
         {
             var fromIndex = Bitboards.PopLsb(ref enemyBishops);
-            enemyAttacks |= MovePatterns.BishopAttacks(fromIndex, Occupied ^ king);
+            enemyAttacks |= MovePatterns.BishopAttacks(fromIndex, ref occupiedExceptKing);
         }
 
         while (enemyKnights != 0)

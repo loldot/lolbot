@@ -78,17 +78,21 @@ public class MoveGenerator
         AddSlider(in position, ref moves, bishops, MovePatterns.BishopAttacks, ref count);
     }
 
-    private static void AddSlider(ref readonly Position position, ref Span<Move> moves, ulong bitboard, Func<byte, ulong, ulong> attackFunc, ref int count)
+    private delegate ulong SligerGen(byte sq, ref ulong bitboard);
+
+    private static void AddSlider(ref readonly Position position, ref Span<Move> moves, ulong bitboard, SligerGen attackFunc, ref int count)
     {
         var (targets, friendlies) = (position.CurrentPlayer == Color.White)
             ? (position.Black, position.White)
             : (position.White, position.Black);
 
+        var occ = position.Occupied;
+
         while (bitboard != 0)
         {
             var fromIndex = Bitboards.PopLsb(ref bitboard);
 
-            var valid = attackFunc(fromIndex, position.Occupied) & ~friendlies & position.Checkmask & position.PinnedPiece(in fromIndex);
+            var valid = attackFunc(fromIndex, ref occ) & ~friendlies & position.Checkmask & position.PinnedPiece(in fromIndex);
             var quiets = valid & ~position.Occupied;
             while (quiets != 0)
             {
@@ -176,10 +180,10 @@ public class MoveGenerator
 
     private static bool IsCastleLegal(ref readonly Position position, Castle requiredCastle, Move castle, ulong enemyAttacks)
     {
-        requiredCastle &= (position.CurrentPlayer == Color.White) 
+        requiredCastle &= (position.CurrentPlayer == Color.White)
             ? Castle.WhiteQueen | Castle.WhiteKing
             : Castle.BlackQueen | Castle.BlackKing;
-            
+
         var clearingRequired = MovePatterns.SquaresBetween[castle.FromIndex][castle.CaptureIndex]
             & ~castle.CaptureSquare;
 
@@ -206,8 +210,8 @@ public class MoveGenerator
         var occupiedAfter = position.Occupied ^ (Squares.FromIndex(in epCapture) | Squares.FromIndex(in sq) | (1ul << attack));
 
         var kingindex = Squares.ToIndex(king);
-        var kingRook = MovePatterns.RookAttacks(kingindex, occupiedAfter);
-        var kingBishop = MovePatterns.BishopAttacks(kingindex, occupiedAfter);
+        var kingRook = MovePatterns.RookAttacks(kingindex, ref occupiedAfter);
+        var kingBishop = MovePatterns.BishopAttacks(kingindex, ref occupiedAfter);
 
         var epWouldCheck = 0 != (kingRook & (opponentQueen | opponentRook));
         epWouldCheck |= 0 != (kingBishop & (opponentQueen | opponentBishop));

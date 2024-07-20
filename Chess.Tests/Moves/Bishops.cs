@@ -47,7 +47,7 @@ public class Bishops
             for (int j = 0; j < 250; j++)
             {
                 var blockers = (ulong)random.NextInt64();
-                var bishopMoves = MovePatterns.BishopAttacks(i, blockers);
+                var bishopMoves = MovePatterns.BishopAttacks(i, ref blockers);
                 var occFill = MovePatterns.GenerateBishopAttacks(Squares.FromIndex(i), ~blockers);
 
                 bishopMoves.Should().Be(occFill, "Failed:\n\n{0}\n\n{1}\n\n{2}", 
