@@ -81,10 +81,11 @@ public static class Bitboards
         return lsb;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte PopLsb(ref ulong board)
     {
-        var lsb = (byte)BitOperations.TrailingZeroCount(board);
-        board ^= Squares.FromIndex(in lsb);
+        byte lsb = (byte)Bmi1.X64.TrailingZeroCount(board);
+        board = Bmi1.X64.ResetLowestSetBit(board);
         return lsb;
     }
 

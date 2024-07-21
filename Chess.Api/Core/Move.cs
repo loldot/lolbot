@@ -1,95 +1,167 @@
-using System.Numerics;
-using System.Runtime.InteropServices;
-
 namespace Lolbot.Core;
 
-[StructLayout(LayoutKind.Sequential)]
-public readonly struct MoveOld : IEquatable<MoveOld>
+public readonly struct Move : IEquatable<Move>
 {
+    public readonly Piece FromPiece;
     public readonly byte FromIndex;
     public readonly byte ToIndex;
-    public readonly byte CaptureIndex = 0;
-    public readonly byte CastleIndex = 0;
-    public readonly Piece CapturePiece = Piece.None;
-    public Piece PromotionPiece { get; init; } = Piece.None;
+    public readonly Piece CapturePiece;
+    public readonly byte CaptureIndex;
+    public readonly Piece PromotionPiece;
+    public readonly Castle CastleFlag;
 
-    public Square FromSquare => Squares.FromIndex(in FromIndex);
-    public Square ToSquare => Squares.FromIndex(in ToIndex);
-    public Square CaptureSquare => Squares.FromIndex(in CaptureIndex);
-    public Square CastleSquare => Squares.FromIndex(in CastleIndex);
+    public readonly ulong FromSquare => Squares.FromIndex(in FromIndex);
+    public readonly ulong ToSquare => Squares.FromIndex(in ToIndex);
+    public readonly ulong CaptureSquare => CapturePiece == Piece.None ? 0 : Squares.FromIndex(in CaptureIndex);
 
-
-    public MoveOld(string from, string to) : this(
-        Squares.FromCoordinates(from),
-        Squares.FromCoordinates(to)
-    )
-    { }
-
-    public MoveOld(string from, string to, string captureSquare, char capturePiece) : this(
-        Squares.IndexFromCoordinate(from),
-        Squares.IndexFromCoordinate(to),
-        Squares.IndexFromCoordinate(captureSquare),
-        Utils.FromName(capturePiece)
-    )
-    { }
-
-    public MoveOld(Square from, Square to)
+    public readonly ulong CastleSquare => CastleFlag == Core.Castle.None ? 0 : Squares.FromIndex(CastleIndex);
+    public readonly byte CastleIndex => CastleFlag switch
     {
-        FromIndex = (byte)BitOperations.Log2(from);
-        ToIndex = (byte)BitOperations.Log2(to);
+        Core.Castle.WhiteKing => Squares.F1,
+        Core.Castle.WhiteQueen => Squares.D1,
+        Core.Castle.BlackKing => Squares.F8,
+        Core.Castle.BlackQueen => Squares.D8,
+        _ => 0
+    };
+
+    public static Move Promote(char fromPiece, string fromCoordinate, string toCoordinate, char toPiece)
+    {
+        return new Move(
+            Utils.FromName(fromPiece),
+            Squares.IndexFromCoordinate(fromCoordinate),
+            Squares.IndexFromCoordinate(toCoordinate),
+            Piece.None,
+            Utils.FromName(toPiece)
+        );
     }
 
-    public MoveOld(byte fromIndex, byte toIndex)
-    : this(fromIndex, toIndex, 0, 0, Piece.None, Piece.None) { }
-
-    public MoveOld(byte fromIndex, byte toIndex, byte captureIndex, Piece capturePiece)
-    : this(fromIndex, toIndex, captureIndex, 0, capturePiece, Piece.None) { }
-
-
-    public MoveOld(
-        byte fromIndex,
-        byte toIndex,
-        byte captureIndex,
-        byte castleIndex,
-        Piece capturePiece,
-        Piece promotionPiece)
+    public static Move PromoteWithCapture(char fromPiece, string fromCoordinate, string toCoordinate, char capturePiece, char toPiece)
     {
+        return new Move(
+            Utils.FromName(fromPiece),
+            Squares.IndexFromCoordinate(fromCoordinate),
+            Squares.IndexFromCoordinate(toCoordinate),
+            Utils.FromName(capturePiece),
+            Utils.FromName(toPiece)
+        );
+    }
+
+
+    public Move(char fromPiece, string fromCoordinate, string toCoordinate) : this()
+    {
+        FromPiece = Utils.FromName(fromPiece);
+        FromIndex = Squares.IndexFromCoordinate(fromCoordinate);
+        ToIndex = Squares.IndexFromCoordinate(toCoordinate); ;
+    }
+
+    public Move(char fromPiece, string fromCoordinate, string toCoordinate, char capturePiece) : this()
+    {
+        FromPiece = Utils.FromName(fromPiece);
+        FromIndex = Squares.IndexFromCoordinate(fromCoordinate);
+        ToIndex = Squares.IndexFromCoordinate(toCoordinate);
+        CaptureIndex = Squares.IndexFromCoordinate(toCoordinate);
+        CapturePiece = Utils.FromName(capturePiece);
+    }
+
+    public Move(Piece fromPiece, byte fromIndex, byte toIndex) : this()
+    {
+        FromPiece = fromPiece;
         FromIndex = fromIndex;
         ToIndex = toIndex;
-        CaptureIndex = captureIndex;
-        CastleIndex = castleIndex;
+    }
+
+    public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece)
+        : this(fromPiece, fromIndex, toIndex)
+    {
         CapturePiece = capturePiece;
+        CaptureIndex = capturePiece != Piece.None ? toIndex : (byte)0;;
+    }
+
+    public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece, Piece promotionPiece)
+        : this(fromPiece, fromIndex, toIndex)
+    {
+        CapturePiece = capturePiece;
+        CaptureIndex = capturePiece != Piece.None ? toIndex : (byte)0;
         PromotionPiece = promotionPiece;
     }
 
-    private static readonly MoveOld WhiteCastle = new(
-        Squares.E1,
+    public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece, byte captureIndex)
+        : this(fromPiece, fromIndex, toIndex)
+    {
+        CapturePiece = capturePiece;
+        CaptureIndex = captureIndex;
+    }
+
+    public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece, byte captureIndex, Castle castle)
+        : this(fromPiece, fromIndex, toIndex)
+    {
+        CapturePiece = capturePiece;
+        CaptureIndex = captureIndex;
+        CastleFlag = castle;
+    }
+
+    private static readonly Move WhiteCastle = new(
+        Piece.WhiteKing, Squares.E1,
         Squares.G1,
-        Squares.H1,
-        Squares.F1, Piece.WhiteRook, Piece.None);
-    private static readonly MoveOld BlackCastle = new(
-        Squares.E8,
+        Piece.WhiteRook, Squares.H1,
+        Core.Castle.WhiteKing
+    );
+
+    private static readonly Move BlackCastle = new(
+        Piece.BlackKing, Squares.E8,
         Squares.G8,
-        Squares.H8,
-        Squares.F8, Piece.BlackRook, Piece.None);
+        Piece.BlackRook, Squares.H8,
+        Core.Castle.BlackKing
+    );
 
-    private static readonly MoveOld WhiteQueenCastle = new(
-        Squares.E1,
+    private static readonly Move WhiteQueenCastle = new(
+        Piece.WhiteKing, Squares.E1,
         Squares.C1,
-        Squares.A1,
-        Squares.D1, Piece.WhiteRook, Piece.None);
-    private static readonly MoveOld BlackQueenCastle = new(
-        Squares.E8,
+        Piece.WhiteRook, Squares.A1,
+        Core.Castle.WhiteQueen
+    );
+    private static readonly Move BlackQueenCastle = new(
+        Piece.BlackKing, Squares.E8,
         Squares.C8,
-        Squares.A8,
-        Squares.D8, Piece.BlackRook, Piece.None);
+        Piece.BlackRook, Squares.A8,
+        Core.Castle.BlackQueen
+    );
 
 
-    //TODO: Fisher castling rules :cry:
-    public static MoveOld Castle(Color color)
+    // TODO: Fisher castling rules :cry:
+    public static Move Castle(Color color)
         => color == Color.White ? WhiteCastle : BlackCastle;
-    public static MoveOld QueenSideCastle(Color color)
+    public static Move QueenSideCastle(Color color)
         => color == Color.White ? WhiteQueenCastle : BlackQueenCastle;
+
+    public static bool operator ==(Move left, Move right)
+    {
+        return left.FromIndex == right.FromIndex
+            && left.FromPiece == right.FromPiece
+
+            && left.ToIndex == right.ToIndex
+
+            && left.CaptureIndex == right.CaptureIndex
+            && left.CapturePiece == right.CapturePiece
+            && left.PromotionPiece == right.PromotionPiece
+            && left.CastleFlag == right.CastleFlag;
+    }
+
+    public static bool operator !=(Move left, Move right) => !(left == right);
+
+    public override int GetHashCode() =>
+        FromIndex << 26 ^
+        ToIndex << 20 ^
+        CaptureIndex << 12 ^
+        (byte)PromotionPiece ^
+        (byte)CastleFlag;
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is Move other) return Equals(other);
+        return false;
+    }
+    public bool Equals(Move other) => this == other;
 
     public override string ToString()
     {
@@ -102,37 +174,5 @@ public readonly struct MoveOld : IEquatable<MoveOld>
             + ((CapturePiece != Piece.None) ? "x" : "")
             + $"{Squares.ToCoordinate(ToSquare)}"
             + (PromotionPiece != Piece.None ? $"={Utils.PieceName(PromotionPiece)}" : "");
-    }
-
-    public bool Equals(MoveOld other)
-    {
-        return FromIndex == other.FromIndex
-            && ToIndex == other.ToIndex
-            && CaptureIndex == other.CaptureIndex
-            && CastleIndex == other.CastleIndex
-            && CapturePiece == other.CapturePiece
-            && PromotionPiece == other.PromotionPiece;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is MoveOld && Equals((MoveOld)obj);
-    }
-
-    public static bool operator ==(MoveOld left, MoveOld right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(MoveOld left, MoveOld right)
-    {
-        return !(left == right);
-    }
-
-    public override int GetHashCode()
-    {
-        int firstHalf = FromIndex << 26 | ToIndex << 20;
-        int secondHalf = CastleIndex + CaptureIndex + (int)CapturePiece + (int)PromotionPiece;
-        return firstHalf | (secondHalf & 0xffffff);
     }
 }

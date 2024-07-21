@@ -14,10 +14,11 @@ public enum Castle : byte
     All = WhiteKing | WhiteQueen | BlackKing | BlackQueen
 }
 public enum Color : byte { None = 0, White = 1, Black = 2 }
-public enum PieceType : byte {
+public enum PieceType : byte
+{
     None = 0,
     Pawn = 1,
-    Knight=2,
+    Knight = 2,
     Bishop = 3,
     Rook = 4,
     Queen = 5,
@@ -117,21 +118,30 @@ public class Engine
     public static Move? Reply(Game game)
     {
         const int DEPTH = 5;
+        Span<Move> legalMoves = stackalloc Move[218];
 
-        var legalMoves = game.CurrentPosition.GenerateLegalMoves().ToArray();
-        var evals = new int[legalMoves.Length];
+        var position = game.CurrentPosition;
+        var count = MoveGenerator.Legal(ref position, ref legalMoves);
+        legalMoves = legalMoves[..count];
+        var evals = new int[count];
+        var positions = new Position[count];
 
-        if (legalMoves.Length == 0) return null;
+        if (count == 0) return null;
 
-        Parallel.For(0, legalMoves.Length, i =>
+        for (int i = 0; i < count; i++)
         {
-            evals[i] = EvaluateMove(game.CurrentPosition.Move(legalMoves[i]), DEPTH);
+            positions[i] = position.Move(legalMoves[i]);
+        }
+
+        Parallel.For(0, count, i =>
+        {
+            evals[i] = EvaluateMove(positions[i], DEPTH);
         });
 
         var bestEval = 999_999;
         var bestMove = legalMoves[0];
 
-        for (int i = 0; i < legalMoves.Length; i++)
+        for (int i = 0; i < count; i++)
         {
             if (evals[i] < bestEval)
             {
@@ -164,7 +174,13 @@ public class Engine
     private static int AlphaBetaMax(Position position, int alpha, int beta, int remainingDepth)
     {
         if (remainingDepth == 0) return Evaluate(position);
-        foreach (var candidate in position.GenerateLegalMoves())
+
+        Span<Move> moves = stackalloc Move[218];
+        var count = MoveGenerator.Legal(ref position, ref moves);
+        moves = moves[..count];
+        moves.Sort(MoveComparer);
+
+        foreach (var candidate in moves)
         {
             var score = AlphaBetaMin(position.Move(candidate), alpha, beta, remainingDepth - 1);
             if (score >= beta)
@@ -179,10 +195,12 @@ public class Engine
     {
         if (remainingDepth == 0) return Evaluate(position);
 
-        var candidateMoves = position.GenerateLegalMoves();
-        candidateMoves.Sort(MoveComparer);
+        Span<Move> moves = stackalloc Move[218];
+        var count = MoveGenerator.Legal(ref position, ref moves);
+        moves = moves[..count];
+        moves.Sort(MoveComparer);
 
-        foreach (var candidate in candidateMoves)
+        foreach (var candidate in moves)
         {
             var score = AlphaBetaMax(position.Move(candidate), alpha, beta, remainingDepth - 1);
             if (score <= alpha)

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using Lolbot.Core;
 
@@ -60,7 +61,7 @@ public class Perft
 
     private static int GetPerftCounts(Position position, int remainingDepth = 4, int split = 0)
     {
-        Span<Move> moves = new Move[218];
+        Span<Move> moves = stackalloc Move[218];
         var currentCount = MoveGenerator.Legal(ref position, ref moves);
         var count = 0;
 
