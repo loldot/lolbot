@@ -10,14 +10,14 @@ public class Moves
     {
         var startMoves = new Position().GenerateLegalMoves(Piece.WhitePawn);
         startMoves.ToArray().Should().BeEquivalentTo([
-            new Move("a2", "a3"), new Move("a2", "a4"),
-            new Move("b2", "b3"), new Move("b2", "b4"),
-            new Move("c2", "c3"), new Move("c2", "c4"),
-            new Move("d2", "d3"), new Move("d2", "d4"),
-            new Move("e2", "e3"), new Move("e2", "e4"),
-            new Move("f2", "f3"), new Move("f2", "f4"),
-            new Move("g2", "g3"), new Move("g2", "g4"),
-            new Move("h2", "h3"), new Move("h2", "h4"),
+            new Move('P', "a2", "a3"), new Move('P', "a2", "a4"),
+            new Move('P', "b2", "b3"), new Move('P', "b2", "b4"),
+            new Move('P', "c2", "c3"), new Move('P', "c2", "c4"),
+            new Move('P', "d2", "d3"), new Move('P', "d2", "d4"),
+            new Move('P', "e2", "e3"), new Move('P', "e2", "e4"),
+            new Move('P', "f2", "f3"), new Move('P', "f2", "f4"),
+            new Move('P', "g2", "g3"), new Move('P', "g2", "g4"),
+            new Move('P', "h2", "h3"), new Move('P', "h2", "h4"),
         ]);
     }
 
@@ -46,14 +46,14 @@ public class Moves
         var startMoves = position.GenerateLegalMoves(Piece.BlackPawn);
 
         startMoves.ToArray().Should().BeEquivalentTo([
-            new Move("a7", "a6"), new Move("a7", "a5"),
-            new Move("b7", "b6"), new Move("b7", "b5"),
-            new Move("c7", "c6"), new Move("c7", "c5"),
-            new Move("d7", "d6"), new Move("d7", "d5"),
-            new Move("e7", "e6"), new Move("e7", "e5"),
-            new Move("f7", "f6"), new Move("f7", "f5"),
-            new Move("g7", "g6"), new Move("g7", "g5"),
-            new Move("h7", "h6"), new Move("h7", "h5"),
+            new Move('p', "a7", "a6"), new Move('p', "a7", "a5"),
+            new Move('p', "b7", "b6"), new Move('p', "b7", "b5"),
+            new Move('p', "c7", "c6"), new Move('p', "c7", "c5"),
+            new Move('p', "d7", "d6"), new Move('p', "d7", "d5"),
+            new Move('p', "e7", "e6"), new Move('p', "e7", "e5"),
+            new Move('p', "f7", "f6"), new Move('p', "f7", "f5"),
+            new Move('p', "g7", "g6"), new Move('p', "g7", "g5"),
+            new Move('p', "h7", "h6"), new Move('p', "h7", "h5"),
         ]);
     }
 
@@ -62,11 +62,11 @@ public class Moves
     {
         var startMoves = new Position().GenerateLegalMoves(Piece.WhiteKnight);
         startMoves.ToArray().Should().BeEquivalentTo([
-            new Move("b1", "a3"),
-            new Move("b1", "c3"),
+            new Move('N', "b1", "a3"),
+            new Move('N', "b1", "c3"),
 
-            new Move("g1", "h3"),
-            new Move("g1", "f3"),
+            new Move('N', "g1", "h3"),
+            new Move('N', "g1", "f3"),
         ]);
     }
 
@@ -94,10 +94,7 @@ public class Moves
     [TestCase("B1", "H4", 1, 31)]
     public void From_Coordinates_Should_Map_To_Indices(string from, string to, byte fromIdx, byte toIdx)
     {
-        var move = new Move(
-            Squares.FromCoordinates(from),
-            Squares.FromCoordinates(to)
-        );
+        var move = new Move('Q', from, to);
 
         move.FromIndex.Should().Be(fromIdx);
         move.ToIndex.Should().Be(toIdx);

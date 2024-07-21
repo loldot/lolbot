@@ -14,6 +14,15 @@ public enum Castle : byte
     All = WhiteKing | WhiteQueen | BlackKing | BlackQueen
 }
 public enum Color : byte { None = 0, White = 1, Black = 2 }
+public enum PieceType : byte {
+    None = 0,
+    Pawn = 1,
+    Knight=2,
+    Bishop = 3,
+    Rook = 4,
+    Queen = 5,
+    King = 6
+}
 public enum Piece : byte
 {
     None = 0,

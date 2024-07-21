@@ -23,29 +23,19 @@ public class Pgn
         var (game, _) = await reader.Read(pgnFile);
 
         Move[] expectedMoves = [
-            new Move("e2", "e4"),
-            new Move("e7", "e5"),
-            new Move("g1", "f3"),
-            new Move("b8", "c6"),
-            new Move("f1", "b5"),
-            new Move("a7", "a6"),
-            new Move("b5", "a4")
+            new Move('P', "e2", "e4"),
+            new Move('p', "e7", "e5"),
+            new Move('N', "g1", "f3"),
+            new Move('n', "b8", "c6"),
+            new Move('B', "f1", "b5"),
+            new Move('p', "a7", "a6"),
+            new Move('B', "b5", "a4")
         ];
 
         game.Moves[0..expectedMoves.Length].Should().BeEquivalentTo(expectedMoves);
-        game.Moves[19].Should().Be(new Move("b8", "d7"));
-        game.Moves[22].Should().Be(new Move(
-            Squares.IndexFromCoordinate("c4"), 
-            Squares.IndexFromCoordinate("b5"),
-            Squares.IndexFromCoordinate("b5"),
-            Piece.BlackPawn
-        ));
+        game.Moves[19].Should().Be(new Move('n', "b8", "d7"));
+        game.Moves[22].Should().Be(new Move('P', "c4", "b5", 'p'));
 
-        game.Moves[47].Should().Be(new Move(
-            Squares.IndexFromCoordinate("f8"), 
-            Squares.IndexFromCoordinate("f7"),
-            Squares.IndexFromCoordinate("f7"),
-            Piece.WhiteBishop
-        ));
+        game.Moves[47].Should().Be(new Move('r',"f8","f7",'B'));
     }
 }

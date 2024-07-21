@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Lolbot.Core;
 
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct Move : IEquatable<Move>
+public readonly struct MoveOld : IEquatable<MoveOld>
 {
     public readonly byte FromIndex;
     public readonly byte ToIndex;
@@ -19,13 +19,13 @@ public readonly struct Move : IEquatable<Move>
     public Square CastleSquare => Squares.FromIndex(in CastleIndex);
 
 
-    public Move(string from, string to) : this(
+    public MoveOld(string from, string to) : this(
         Squares.FromCoordinates(from),
         Squares.FromCoordinates(to)
     )
     { }
 
-    public Move(string from, string to, string captureSquare, char capturePiece) : this(
+    public MoveOld(string from, string to, string captureSquare, char capturePiece) : this(
         Squares.IndexFromCoordinate(from),
         Squares.IndexFromCoordinate(to),
         Squares.IndexFromCoordinate(captureSquare),
@@ -33,20 +33,20 @@ public readonly struct Move : IEquatable<Move>
     )
     { }
 
-    public Move(Square from, Square to)
+    public MoveOld(Square from, Square to)
     {
         FromIndex = (byte)BitOperations.Log2(from);
         ToIndex = (byte)BitOperations.Log2(to);
     }
 
-    public Move(byte fromIndex, byte toIndex)
+    public MoveOld(byte fromIndex, byte toIndex)
     : this(fromIndex, toIndex, 0, 0, Piece.None, Piece.None) { }
 
-    public Move(byte fromIndex, byte toIndex, byte captureIndex, Piece capturePiece)
+    public MoveOld(byte fromIndex, byte toIndex, byte captureIndex, Piece capturePiece)
     : this(fromIndex, toIndex, captureIndex, 0, capturePiece, Piece.None) { }
 
 
-    public Move(
+    public MoveOld(
         byte fromIndex,
         byte toIndex,
         byte captureIndex,
@@ -62,33 +62,33 @@ public readonly struct Move : IEquatable<Move>
         PromotionPiece = promotionPiece;
     }
 
-    private static readonly Move WhiteCastle = new(
+    private static readonly MoveOld WhiteCastle = new(
         Squares.E1,
         Squares.G1,
         Squares.H1,
         Squares.F1, Piece.WhiteRook, Piece.None);
-    private static readonly Move BlackCastle = new(
+    private static readonly MoveOld BlackCastle = new(
         Squares.E8,
         Squares.G8,
         Squares.H8,
         Squares.F8, Piece.BlackRook, Piece.None);
 
-    private static readonly Move WhiteQueenCastle = new(
+    private static readonly MoveOld WhiteQueenCastle = new(
         Squares.E1,
         Squares.C1,
         Squares.A1,
         Squares.D1, Piece.WhiteRook, Piece.None);
-    private static readonly Move BlackQueenCastle = new(
+    private static readonly MoveOld BlackQueenCastle = new(
         Squares.E8,
         Squares.C8,
         Squares.A8,
         Squares.D8, Piece.BlackRook, Piece.None);
 
 
-    // TODO: Fisher castling rules :cry:
-    public static Move Castle(Color color)
+    //TODO: Fisher castling rules :cry:
+    public static MoveOld Castle(Color color)
         => color == Color.White ? WhiteCastle : BlackCastle;
-    public static Move QueenSideCastle(Color color)
+    public static MoveOld QueenSideCastle(Color color)
         => color == Color.White ? WhiteQueenCastle : BlackQueenCastle;
 
     public override string ToString()
@@ -104,7 +104,7 @@ public readonly struct Move : IEquatable<Move>
             + (PromotionPiece != Piece.None ? $"={Utils.PieceName(PromotionPiece)}" : "");
     }
 
-    public bool Equals(Move other)
+    public bool Equals(MoveOld other)
     {
         return FromIndex == other.FromIndex
             && ToIndex == other.ToIndex
@@ -116,15 +116,15 @@ public readonly struct Move : IEquatable<Move>
 
     public override bool Equals(object? obj)
     {
-        return obj is Move && Equals((Move)obj);
+        return obj is MoveOld && Equals((MoveOld)obj);
     }
 
-    public static bool operator ==(Move left, Move right)
+    public static bool operator ==(MoveOld left, MoveOld right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(Move left, Move right)
+    public static bool operator !=(MoveOld left, MoveOld right)
     {
         return !(left == right);
     }

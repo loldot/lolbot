@@ -17,10 +17,10 @@ public class TrickyPosition
     public void Should_Have_Captures_With_Promotions()
     {
         moves.Should().IntersectWith([
-            new Move("d7", "c8", "c8", 'b') with { PromotionPiece = Piece.WhiteKnight },
-            new Move("d7", "c8", "c8", 'b') with { PromotionPiece = Piece.WhiteBishop },
-            new Move("d7", "c8", "c8", 'b') with { PromotionPiece = Piece.WhiteRook },
-            new Move("d7", "c8", "c8", 'b') with { PromotionPiece = Piece.WhiteQueen }
+            Move.PromoteWithCapture('P', "d7", "c8", 'b', 'N'),
+            Move.PromoteWithCapture('P', "d7", "c8", 'b', 'B'),
+            Move.PromoteWithCapture('P', "d7", "c8", 'b', 'R'),
+            Move.PromoteWithCapture('P', "d7", "c8", 'b', 'Q')
         ]);
     }
     [Test]

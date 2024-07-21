@@ -62,9 +62,9 @@ class Kings
         var pos = Position.FromFen("r3k2r/8/8/8/8/3b4/8/R3K2R w KQkq - 0 1");
         pos.GenerateLegalMoves('K').ToArray().Should().BeEquivalentTo([
             Move.QueenSideCastle(Color.White),
-            new Move("e1","d1"),
-            new Move("e1","d2"),
-            new Move("e1","f2")
+            new Move('K', "e1","d1"),
+            new Move('K', "e1","d2"),
+            new Move('K', "e1","f2")
         ]);
     }
 

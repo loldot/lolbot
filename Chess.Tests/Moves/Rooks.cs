@@ -105,13 +105,13 @@ public class Rooks
     public void BlackCastle()
     {
         var g = new Game(new Position(), [
-            new Move("e2", "e4"),
-            new Move("e7", "e5"),
-            new Move("d2", "d4"),
-            new Move("f8", "d6"),
-            new Move("d4", "d5"),
-            new Move("g8", "f6"),
-            new Move("f2", "f3"),
+            new Move('P', "e2", "e4"),
+            new Move('p', "e7", "e5"),
+            new Move('P', "d2", "d4"),
+            new Move('b', "f8", "d6"),
+            new Move('P', "d4", "d5"),
+            new Move('n', "g8", "f6"),
+            new Move('P', "f2", "f3"),
             Move.Castle(Color.Black)
         ]);
         var rooks = g.CurrentPosition.BlackRooks;

@@ -38,7 +38,7 @@ public class Utilities
     public void EP()
     {
         var position = new Position()
-            .Move(new Move(11, 27));
+            .Move(new Move(Piece.WhitePawn, 11, 27));
         position.EnPassant.Should().Be(19);
     }
 
@@ -46,7 +46,7 @@ public class Utilities
     public void NEP()
     {
         var position = new Position()
-            .Move(new Move(11, 19));
+            .Move(new Move(Piece.WhitePawn, 11, 19));
         position.EnPassant.Should().Be(0);
     }
 
@@ -54,7 +54,7 @@ public class Utilities
     public void EP_Bl()
     {
         var position = new Position()
-            .Move(new Move(51, 35));
+            .Move(new Move(Piece.BlackPawn, 51, 35));
         position.EnPassant.Should().Be(43);
     }
 

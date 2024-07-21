@@ -1,8 +1,4 @@
-using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -10,6 +6,7 @@ namespace Lolbot.Core;
 public readonly record struct Position
 {
     public readonly Color CurrentPlayer { get; init; } = Color.White;
+    
     public readonly ulong WhitePawns { get; init; } = 0x000000000000ff00;
     public readonly ulong WhiteRooks { get; init; } = Bitboards.Create("A1", "H1");
     public readonly ulong WhiteBishops { get; init; } = Bitboards.Create("C1", "F1");
@@ -62,24 +59,38 @@ public readonly record struct Position
         return fenSerializer.Parse(fen);
     }
 
-    public ulong this[Piece piece]
+    public readonly ulong this[byte index]
     {
-        get => piece switch
+        get => index switch 
         {
-            Piece.WhitePawn => WhitePawns,
-            Piece.WhiteKnight => WhiteKnights,
-            Piece.WhiteBishop => WhiteBishops,
-            Piece.WhiteRook => WhiteRooks,
-            Piece.WhiteQueen => WhiteQueens,
-            Piece.WhiteKing => WhiteKing,
-            Piece.BlackPawn => BlackPawns,
-            Piece.BlackKnight => BlackKnights,
-            Piece.BlackBishop => BlackBishops,
-            Piece.BlackRook => BlackRooks,
-            Piece.BlackQueen => BlackQueens,
-            Piece.BlackKing => BlackKing,
-            _ => Empty,
+            1 => White,
+            2 => Black,
+            0x11 => WhitePawns,
+            0x12 => WhiteKnights,
+            0x13 => WhiteBishops,
+            0x14 => WhiteRooks,
+            0x15 => WhiteQueens,
+            0x16 => WhiteKing,
+            0x21 => BlackPawns,
+            0x22 => BlackKnights,
+            0x23 => BlackBishops,
+            0x24 => BlackRooks,
+            0x25 => BlackQueens,
+            0x26 => BlackKing,
+            0xfe => Black,
+            0xfd => White,
+            _ => Empty
         };
+    }
+
+    public readonly ulong this[Piece piece] => this[(byte)piece];
+    public readonly ulong this[Color color]
+    {
+        get => this [(byte)color];
+    }
+    public readonly ulong this[Color color, PieceType pieceType]
+    {
+        get => this [(Piece)((byte)color << 4 | (byte)pieceType)];
     }
 
     public readonly ulong White { get; init; }
@@ -108,22 +119,13 @@ public readonly record struct Position
 
     public Position Move(Move m)
     {
-        var (colorOffset, next) = CurrentPlayer == Color.White ? (0x10, Color.Black) : (0x20, Color.White);
-
-        Piece piece = Piece.None;
-        ulong bitboard = 0;
-
-        for (var i = 0; i <= 6; i++)
-        {
-            piece = (Piece)(colorOffset + i);
-            bitboard = this[piece];
-            if ((bitboard & m.FromSquare) != 0) break;
-        }
+        var next = CurrentPlayer == Color.White ? Color.Black : Color.White;
+        ulong bitboard = this[m.FromPiece];
 
         var update = m.FromSquare | m.ToSquare;
         var capture = m.CapturePiece != Piece.None ? m.CaptureSquare : 0;
 
-        var position = Update(piece, bitboard ^ update)
+        var position = Update(m.FromPiece, bitboard ^ update)
             .Update(m.CapturePiece, this[m.CapturePiece] ^ capture) with
         {
             CastlingRights = ApplyCastlingRights(ref m),
@@ -140,7 +142,7 @@ public readonly record struct Position
         if (m.PromotionPiece != Piece.None)
         {
             position = position.Update(m.PromotionPiece, this[m.PromotionPiece] | m.ToSquare);
-            position = position.Update(piece, position[piece] & ~m.ToSquare);
+            position = position.Update(m.FromPiece, position[m.FromPiece] & ~m.ToSquare);
         }
         if (m.CastleIndex != 0)
         {
@@ -210,14 +212,23 @@ public readonly record struct Position
     }
 
     private static ulong Castle(ulong mask, Move m)
-        => mask & Squares.FromIndex(in m.CastleIndex);
+        => mask & m.CastleSquare;
 
-    public Span<Move> GenerateLegalMoves(Piece? pieceType = null)
+    public Span<Move> GenerateLegalMoves(Piece pieceType)
     {
         const int max_moves = 218;
 
         Span<Move> moves = stackalloc Move[max_moves];
         var count = MoveGenerator.Legal(in this, ref moves, pieceType);
+        return moves[..count].ToArray();
+    }
+
+    public Span<Move> GenerateLegalMoves()
+    {
+        const int max_moves = 218;
+
+        Span<Move> moves = stackalloc Move[max_moves];
+        var count = MoveGenerator.Legal(in this, ref moves);
         return moves[..count].ToArray();
     }
 

@@ -11,7 +11,7 @@ public static class ApiMove
                 Squares.ToCoordinate(move.ToSquare),
         ];
 
-        if (move.CastleIndex != 0)
+        if (move.CastleFlag != Castle.None)
         {
             return [
                 ..basic,
@@ -32,13 +32,6 @@ public static class ApiMove
 
 
         return basic;
-    }
-
-    public static Move Parse(string[] movedata)
-    {
-        if (movedata.Length < 2) throw new ArgumentException("Invalid movedata");
-        
-        return new Move(movedata[0], movedata[1]);
     }
 }
 
