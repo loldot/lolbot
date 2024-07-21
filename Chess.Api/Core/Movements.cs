@@ -128,6 +128,7 @@ public static class MovePatterns
         return ~result;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong BishopAttacks(byte square, ref ulong occupied)
     {
         var index = BishopPextIndex[square]
@@ -135,6 +136,7 @@ public static class MovePatterns
         return PextTable[index];
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong RookAttacks(byte square, ref ulong occupied)
     {
         var index = RookPextIndex[square]
@@ -280,7 +282,7 @@ public static class MovePatterns
             Piece.BlackKnight => Knights[sq],
             Piece.WhiteBishop => BishopAttacks(sq, ref occupied),
             Piece.BlackBishop => BishopAttacks(sq, ref occupied),
-            Piece.WhiteRook => RookAttacks(sq , ref occupied),
+            Piece.WhiteRook => RookAttacks(sq, ref occupied),
             Piece.WhiteQueen => RookAttacks(sq, ref occupied) | BishopAttacks(sq, ref occupied),
             Piece.BlackRook => RookAttacks(sq, ref occupied),
             Piece.BlackQueen => RookAttacks(sq, ref occupied) | BishopAttacks(sq, ref occupied),

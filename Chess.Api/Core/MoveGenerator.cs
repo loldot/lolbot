@@ -6,7 +6,7 @@ public class MoveGenerator
     {
         var count = 0;
         var attackmask = 0ul;
-        AddKingMoves(in position, ref moves, ref count);
+        AddKingMoves(in position, ref moves, ref count, ref attackmask);
 
         if (position.CheckerCount > 1) return count;
 
@@ -19,7 +19,7 @@ public class MoveGenerator
         return count;
     }
 
-    private static void AddKingMoves(ref readonly Position position, ref Span<Move> moves, ref int count)
+    private static void AddKingMoves(ref readonly Position position, ref Span<Move> moves, ref int count, ref ulong attackmask)
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.King);
         var king = position[piece];
@@ -35,7 +35,9 @@ public class MoveGenerator
             moves[count++] = new Move(piece, fromIndex, toIndex);
         }
 
-        var attacks = MovePatterns.Kings[fromIndex] & targets & ~enemyAttacks;
+        var pseudoAttacks = MovePatterns.Kings[fromIndex];
+        attackmask |= pseudoAttacks;
+        var attacks = pseudoAttacks & targets & ~enemyAttacks;
         while (attacks != 0)
         {
             var attack = Bitboards.PopLsb(ref attacks);
@@ -100,6 +102,7 @@ public class MoveGenerator
 
             var pseudoAttacks = attackFunc(fromIndex, ref occ);
             attackmask |= pseudoAttacks;
+            attackmask |= 1ul << fromIndex;
 
             var valid = pseudoAttacks & ~friendlies & position.Checkmask & position.PinnedPiece(in fromIndex);
             var quiets = valid & ~position.Occupied;
