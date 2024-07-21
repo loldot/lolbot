@@ -114,6 +114,16 @@ public static class Bitboards
         }
         return board;
     }
+
+    public static ulong Create(params byte[] squares)
+    {
+        ulong board = 0;
+        for (int i = 0; i < squares.Length; i++)
+        {
+            board |= 1ul << squares[i];
+        }
+        return board;
+    }
     public static ulong Create(int[] value)
     {
         ulong l = 0;

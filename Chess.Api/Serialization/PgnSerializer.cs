@@ -67,7 +67,10 @@ public sealed partial class PgnSerializer
         ReadOnlySpan<char> pieceName,
         ReadOnlySpan<char> disambiguation)
     {
-        var piece = Utils.FromName(pieceName[0]);
+        
+        var piece = (game.CurrentPlayer == Color.White) 
+            ? Utils.FromName(pieceName[0])
+            : Utils.FromName(char.ToLower(pieceName[0]));
         var legalMoves = game.CurrentPosition.GenerateLegalMoves(piece);
 
         char? fileAmbiguity = null;

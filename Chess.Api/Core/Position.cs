@@ -219,8 +219,12 @@ public readonly record struct Position
         const int max_moves = 218;
 
         Span<Move> moves = stackalloc Move[max_moves];
-        var count = MoveGenerator.Legal(in this, ref moves, pieceType);
-        return moves[..count].ToArray();
+        var count = MoveGenerator.Legal(in this, ref moves);
+
+
+        return moves[..count].ToArray()
+            .Where(x => x.FromPiece == pieceType)
+            .ToArray();
     }
 
     [Obsolete]
@@ -324,13 +328,6 @@ public readonly record struct Position
     public readonly ulong PinnedPiece(ref readonly byte fromIndex)
     {
         if (!IsPinned) return ulong.MaxValue;
-        // var sq = Squares.FromIndex(in fromIndex);
-        // var mask = Pinmasks & 
-
-        // var v = Vector128.ConditionalSelect(mask, Pinmasks.GetLower(), Pinmasks.GetUpper());
-        // var pin = Vector64.ConditionalSelect(Vector64.CreateScalar(sq), v.GetLower(), v.GetUpper()).ToScalar();
-
-        // return pin == 0 ? ulong.MaxValue : pin;
 
         var sq = Squares.FromIndex(in fromIndex);
         for (var i = 0; i < 4; i++)

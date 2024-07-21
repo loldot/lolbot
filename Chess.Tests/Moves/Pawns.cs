@@ -122,7 +122,7 @@ public class Pawns
     public void Should_Not_EnPassant_On_Square_0()
     {
         var position = Position.FromFen("5k2/8/8/8/8/8/1p6/R5K1 b - - 0 1");
-        var movesTo0 = position.GenerateLegalMoves('P').ToArray()
+        var movesTo0 = position.GenerateLegalMoves('p').ToArray()
             .Where(m => m.ToIndex == Squares.A1).ToArray();
 
         movesTo0

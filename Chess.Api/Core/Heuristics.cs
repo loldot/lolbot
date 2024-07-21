@@ -14,12 +14,12 @@ public static class Heuristics
         return Bitboards.CountOccupied(bitboard) * GetPieceValue(piece) + piece switch
         {
             Piece.WhitePawn => GetBonus(WhitePawnSquareBonus, bitboard),
-            Piece.WhiteKnight => GetBonus(KnightSquareBonus, bitboard),
+            Piece.WhiteKnight => GetBonus(WhiteKnightSquareBonus, bitboard),
             Piece.WhiteBishop => GetBonus(WhiteBishopSquareBonus, bitboard),
             Piece.WhiteRook => GetBonus(WhiteRookSquareBonus, bitboard),
 
             Piece.BlackPawn => GetBonus(BlackPawnSquareBonus, bitboard),
-            Piece.BlackKnight => GetBonus(KnightSquareBonus, bitboard),
+            Piece.BlackKnight => GetBonus(BlackKnightSquareBonus, bitboard),
             Piece.BlackBishop => GetBonus(BlackBishopSquareBonus, bitboard),
             Piece.BlackRook => GetBonus(BlackRookSquareBonus, bitboard),
             _ => 0
@@ -37,10 +37,16 @@ public static class Heuristics
         return bonus;
     }
 
-    public static (ulong, int)[] KnightSquareBonus = [
+    public static (ulong, int)[] WhiteKnightSquareBonus = [
         (Bitboards.Masks.Corners, -10),
         (0x7e424242427e00, +5),
         (0x3c3c3c3c0000, +15)
+    ];
+
+     public static (ulong, int)[] BlackKnightSquareBonus = [
+        (Bitboards.Masks.Corners, -10),
+        (Bitboards.FlipAlongVertical(0x7e424242427e00), +5),
+        (Bitboards.FlipAlongVertical(0x3c3c3c3c0000), +15)
     ];
 
     public static (ulong, int)[] WhiteRookSquareBonus = [
