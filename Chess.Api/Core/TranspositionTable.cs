@@ -1,3 +1,6 @@
+
+using System.Diagnostics;
+
 namespace Lolbot.Core;
 
 public class TranspositionTable
@@ -20,7 +23,7 @@ public class TranspositionTable
         }
     }
 
-    private readonly Entry[] entries = new Entry[ushort.MaxValue];
+    private readonly Entry[] entries = new Entry[ushort.MaxValue + 1];
 
     public Entry Add(ulong key, int depth, int alpha, int beta, Move bestMove)
     {
@@ -29,7 +32,9 @@ public class TranspositionTable
         index ^= key >> 32 & 0xffff;
         index ^= key >> 48 & 0xffff;
 
-        return entries[index] = new Entry((ushort)index, depth, alpha, beta, bestMove);
+        Debug.Assert(index <= ushort.MaxValue);
+
+        return entries[(ushort)index] = new Entry((ushort)index, depth, alpha, beta, bestMove);
     }
 
     public Entry Get(ulong key)
@@ -39,7 +44,22 @@ public class TranspositionTable
         index ^= key >> 32 & 0xffff;
         index ^= key >> 48 & 0xffff;
 
-        return entries[index];
+        Debug.Assert(index <= ushort.MaxValue);
+
+        return entries[(ushort)index];
     }
 
+    public bool Contains(ulong hash, int remainingDepth, ref Move bestMove, ref int alpha, ref int beta)
+    {
+        var entry = Get(hash);
+        if (entry.IsSet && entry.Depth <= remainingDepth)
+        {
+            bestMove = entry.BestMove;
+            alpha = entry.Alpha;
+            beta = entry.Beta;
+
+            return true;
+        }
+        return false;
+    }
 }

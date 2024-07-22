@@ -40,7 +40,7 @@ public static class MovePatterns
         {
             var square = Squares.FromIndex(i);
             WhitePawnPushes[i] = GetPawnPushes(square);
-            WhitePawnAttacks[i] = CalculateAllPawnAttacks(square);
+            WhitePawnAttacks[i] = CalculateAllPawnAttacksWhite(square);
             Knights[i] = PseudoKnightMoves(i);
             Bishops[i] = PseudoBishopMoves(i);
             Rooks[i] = PseudoRookMoves(i);
@@ -219,12 +219,20 @@ public static class MovePatterns
         return Math.Max(Math.Abs(r2 - r1), Math.Abs(f2 - f1));
     }
 
-    public static ulong CalculateAllPawnAttacks(ulong pawns)
+    public static ulong CalculateAllPawnAttacksWhite(ulong pawns)
     {
         const ulong notAFileMask = 0xfefefefefefefefe;
         const ulong notHFileMask = 0x7f7f7f7f7f7f7f7f;
         return ((pawns << 7) & notHFileMask)
             | ((pawns << 9) & notAFileMask);
+    }
+
+    public static ulong CalculateAllPawnAttacksBlack(ulong pawns)
+    {
+        const ulong notAFileMask = 0xfefefefefefefefe;
+        const ulong notHFileMask = 0x7f7f7f7f7f7f7f7f;
+        return ((pawns >> 7) & notHFileMask)
+            | ((pawns >> 9) & notAFileMask);
     }
     private static ulong GetPawnPushes(ulong pawns)
     {
@@ -276,8 +284,8 @@ public static class MovePatterns
         var occupied = ~empty;
         return piece switch
         {
-            Piece.WhitePawn => CalculateAllPawnAttacks(bitboard) & occupied,
-            Piece.BlackPawn => Bitboards.FlipAlongVertical(CalculateAllPawnAttacks(Bitboards.FlipAlongVertical(bitboard))) & occupied,
+            Piece.WhitePawn => CalculateAllPawnAttacksWhite(bitboard) & occupied,
+            Piece.BlackPawn => Bitboards.FlipAlongVertical(CalculateAllPawnAttacksWhite(Bitboards.FlipAlongVertical(bitboard))) & occupied,
             Piece.WhiteKnight => Knights[sq],
             Piece.BlackKnight => Knights[sq],
             Piece.WhiteBishop => BishopAttacks(sq, ref occupied),

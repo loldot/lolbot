@@ -74,6 +74,7 @@ public record Game(Position InitialPosition, Move[] Moves)
 
 public class Engine
 {
+    private static readonly TranspositionTable tt = new TranspositionTable();
     public static Game NewGame() => new Game();
 
     public static Game Move(Game game, string from, string to)
@@ -177,17 +178,32 @@ public class Engine
 
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(ref position, ref moves);
+        if (count == 0) return -999_999;
+
         moves = moves[..count];
         moves.Sort(MoveComparer);
+        var bestMove = moves[0];
 
-        foreach (var candidate in moves)
+        for (byte i = 0; i < count; i++)
         {
-            var score = AlphaBetaMin(position.Move(candidate), alpha, beta, remainingDepth - 1);
+            // if (tt.Contains(position.Hash, remainingDepth, ref bestMove, ref alpha, ref beta))
+            // {
+            //     break;
+            // }
+            var score = AlphaBetaMin(position.Move(moves[i]), alpha, beta, remainingDepth - 1);
+
             if (score >= beta)
+            {
                 return beta;   // fail hard beta-cutoff
+            }
             if (score > alpha)
+            {
                 alpha = score; // alpha acts like max in MiniMax
+                bestMove = moves[i];
+            }
         }
+
+        tt.Add(position.Hash, remainingDepth, alpha, beta, bestMove);
         return alpha;
     }
 
@@ -197,17 +213,29 @@ public class Engine
 
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(ref position, ref moves);
+        if (count == 0) return 999_999;
+
         moves = moves[..count];
         moves.Sort(MoveComparer);
+        var bestMove = moves[0];
 
-        foreach (var candidate in moves)
+        for (byte i = 0; i < count; i++)
         {
-            var score = AlphaBetaMax(position.Move(candidate), alpha, beta, remainingDepth - 1);
+            // if (tt.Contains(position.Hash, remainingDepth, ref bestMove, ref alpha, ref beta))
+            // {
+            //     break;
+            // }
+            var score = AlphaBetaMax(position.Move(moves[i]), alpha, beta, remainingDepth - 1);
             if (score <= alpha)
                 return alpha; // fail hard alpha-cutoff
             if (score < beta)
+            {
                 beta = score; // beta acts like min in MiniMax
+                bestMove = moves[i];
+            }
         }
+
+        tt.Add(position.Hash, remainingDepth, alpha, beta, bestMove);
         return beta;
     }
 

@@ -89,7 +89,8 @@ public class FenSerializer
             CheckerCount = checkers,
             Checkmask = checkmask,
             Pinmasks = isPinned ? pinmasks : Vector256<ulong>.Zero,
-            IsPinned = isPinned
+            IsPinned = isPinned,
+            Hash = Hashes.New(position)
         };
     }
 

@@ -93,11 +93,17 @@ public readonly record struct Position
         get => this [(Piece)((byte)color << 4 | (byte)pieceType)];
     }
 
+    public readonly ulong this[PieceType pieceType]
+    {
+        get => this [(Piece)((byte)CurrentPlayer << 4 | (byte)pieceType)];
+    }
+
     public readonly ulong White { get; init; }
     public readonly ulong Black { get; init; }
 
     public readonly ulong Occupied { get; init; }
     public readonly ulong Empty { get; init; }
+    public readonly ulong Hash { get; init; } = Hashes.Default;
 
     public override string ToString()
     {
@@ -161,12 +167,21 @@ public readonly record struct Position
         var (checkmask, checkers) = position.CreateCheckMask(next);
         var (isPinned, pinmasks) = position.CreatePinmasks(next);
 
+        var hash = position.Hash
+            ^ Hashes.GetValue(m.FromPiece, m.FromIndex)
+            ^ Hashes.GetValue(m.FromPiece, m.ToIndex)
+            ^ Hashes.GetValue(m.CapturePiece, m.CaptureIndex)
+            ^ Hashes.GetValue(m.PromotionPiece, m.ToIndex)
+            ^ Hashes.GetValue(position.CastlingRights)
+            ^ Hashes.GetValue(position.CurrentPlayer);
+
         return position with
         {
             Checkmask = checkmask,
             Pinmasks = pinmasks,
             IsPinned = isPinned,
             CheckerCount = checkers,
+            Hash = hash
         };
     }
 
@@ -364,7 +379,7 @@ public readonly record struct Position
             enemyAttacks |= MovePatterns.Knights[fromIndex];
         }
 
-        var enemyPawnAttacks = MovePatterns.CalculateAllPawnAttacks(enemyPawns);
+        var enemyPawnAttacks = MovePatterns.CalculateAllPawnAttacksWhite(enemyPawns);
         if (color == Color.White)
         {
             enemyAttacks |= Bitboards.FlipAlongVertical(enemyPawnAttacks);

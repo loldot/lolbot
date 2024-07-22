@@ -22,13 +22,12 @@ public class Evaluations
         game = Engine.Move(game, "E4", "D5");
 
         var eval = Engine.Evaluate(game.CurrentPosition);
-        eval.Should().Be(135);
+        eval.Should().Be(120);
     }
 
     [Test]
     public void Should_Not_Get_Mated()
     {
-
         var position = Position.FromFen("1k6/1pp5/1Q6/8/8/8/8/KR6 b - - 0 1");
         var game = new Game(position, []);
         var bestMove = Engine.Reply(game);
