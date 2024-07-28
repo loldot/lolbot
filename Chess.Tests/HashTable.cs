@@ -20,7 +20,7 @@ public class HashTable
     {
         ulong x = 0x1337_d3ad_b33f_0f13;
         var m = new Move(Piece.WhitePawn, Squares.A2, Squares.A4);
-        var entry = tt.Add(x, 1, 199, TranspositionTable.Alpa, m);
+        var entry = tt.Add(x, 1, 199, TranspositionTable.Alpha, m);
 
         entry.IsSet.Should().BeTrue();
         entry.Evaluation.Should().Be(199);

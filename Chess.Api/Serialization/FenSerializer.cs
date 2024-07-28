@@ -101,18 +101,18 @@ public class FenSerializer
             : Squares.IndexFromCoordinate(epSquare);
     }
 
-    private static Castle ParseCastlingRights(string fenCastlingRights)
+    private static CastlingRights ParseCastlingRights(string fenCastlingRights)
     {
-        Dictionary<char, Castle> map = new()
+        Dictionary<char, CastlingRights> map = new()
         {
-            ['-'] = Castle.None,
-            ['K'] = Castle.WhiteKing,
-            ['Q'] = Castle.WhiteQueen,
-            ['k'] = Castle.BlackKing,
-            ['q'] = Castle.BlackQueen,
+            ['-'] = CastlingRights.None,
+            ['K'] = CastlingRights.WhiteKing,
+            ['Q'] = CastlingRights.WhiteQueen,
+            ['k'] = CastlingRights.BlackKing,
+            ['q'] = CastlingRights.BlackQueen,
         };
 
-        var castlingRights = Castle.None;
+        var castlingRights = CastlingRights.None;
         foreach (var c in fenCastlingRights)
         {
             castlingRights |= map[c];

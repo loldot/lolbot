@@ -8,19 +8,19 @@ public readonly struct Move : IEquatable<Move>
     public readonly Piece CapturePiece;
     public readonly byte CaptureIndex;
     public readonly Piece PromotionPiece;
-    public readonly Castle CastleFlag;
+    public readonly CastlingRights CastleFlag;
 
     public readonly ulong FromSquare => Squares.FromIndex(in FromIndex);
     public readonly ulong ToSquare => Squares.FromIndex(in ToIndex);
     public readonly ulong CaptureSquare => CapturePiece == Piece.None ? 0 : Squares.FromIndex(in CaptureIndex);
 
-    public readonly ulong CastleSquare => CastleFlag == Core.Castle.None ? 0 : Squares.FromIndex(CastleIndex);
+    public readonly ulong CastleSquare => CastleFlag == Core.CastlingRights.None ? 0 : Squares.FromIndex(CastleIndex);
     public readonly byte CastleIndex => CastleFlag switch
     {
-        Core.Castle.WhiteKing => Squares.F1,
-        Core.Castle.WhiteQueen => Squares.D1,
-        Core.Castle.BlackKing => Squares.F8,
-        Core.Castle.BlackQueen => Squares.D8,
+        Core.CastlingRights.WhiteKing => Squares.F1,
+        Core.CastlingRights.WhiteQueen => Squares.D1,
+        Core.CastlingRights.BlackKing => Squares.F8,
+        Core.CastlingRights.BlackQueen => Squares.D8,
         _ => 0
     };
 
@@ -92,7 +92,7 @@ public readonly struct Move : IEquatable<Move>
         CaptureIndex = captureIndex;
     }
 
-    public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece, byte captureIndex, Castle castle)
+    public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece, byte captureIndex, CastlingRights castle)
         : this(fromPiece, fromIndex, toIndex)
     {
         CapturePiece = capturePiece;
@@ -104,27 +104,27 @@ public readonly struct Move : IEquatable<Move>
         Piece.WhiteKing, Squares.E1,
         Squares.G1,
         Piece.WhiteRook, Squares.H1,
-        Core.Castle.WhiteKing
+        Core.CastlingRights.WhiteKing
     );
 
     private static readonly Move BlackCastle = new(
         Piece.BlackKing, Squares.E8,
         Squares.G8,
         Piece.BlackRook, Squares.H8,
-        Core.Castle.BlackKing
+        Core.CastlingRights.BlackKing
     );
 
     private static readonly Move WhiteQueenCastle = new(
         Piece.WhiteKing, Squares.E1,
         Squares.C1,
         Piece.WhiteRook, Squares.A1,
-        Core.Castle.WhiteQueen
+        Core.CastlingRights.WhiteQueen
     );
     private static readonly Move BlackQueenCastle = new(
         Piece.BlackKing, Squares.E8,
         Squares.C8,
         Piece.BlackRook, Squares.A8,
-        Core.Castle.BlackQueen
+        Core.CastlingRights.BlackQueen
     );
 
 

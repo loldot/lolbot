@@ -49,11 +49,11 @@ class Kings
     {
         var pos = Position.FromFen("r3k2r/p6p/8/8/8/8/P6P/R3K2R w KQkq - 0 1");
         var game = new Game(pos, []);
-        game.CurrentPosition.CastlingRights.Should().Be(Castle.All);
+        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.All);
         game = Engine.Move(game, "e1", "e2");
 
-        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(Castle.WhiteQueen);
-        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(Castle.WhiteKing);
+        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteQueen);
+        game.CurrentPosition.CastlingRights.Should().NotHaveFlag(CastlingRights.WhiteKing);
     }
 
     [Test]
@@ -75,7 +75,7 @@ class Kings
         var game = new Game(pos, []);
         game = Engine.Move(game, Move.Castle(Color.White));
 
-        game.CurrentPosition.CastlingRights.Should().Be(Castle.BlackKing | Castle.BlackQueen);
+        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.BlackKing | CastlingRights.BlackQueen);
         game.CurrentPosition.WhiteRooks.Should().Be(Bitboards.Create("A1", "F1"));
         game.CurrentPosition.WhiteKing.Should().Be(Bitboards.Create("G1"));
         
@@ -97,7 +97,7 @@ class Kings
         var game = new Game(pos, []);
         game = Engine.Move(game, Move.Castle(Color.Black));
 
-        game.CurrentPosition.CastlingRights.Should().Be(Castle.WhiteKing | Castle.WhiteQueen);
+        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.WhiteKing | CastlingRights.WhiteQueen);
         game.CurrentPosition.BlackRooks.Should().Be(Bitboards.Create("A8", "F8"));
         game.CurrentPosition.BlackKing.Should().Be(Bitboards.Create("G8"));
         

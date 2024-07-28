@@ -11,7 +11,7 @@ public static class ApiMove
                 Squares.ToCoordinate(move.ToSquare),
         ];
 
-        if (move.CastleFlag != Castle.None)
+        if (move.CastleFlag != CastlingRights.None)
         {
             return [
                 ..basic,

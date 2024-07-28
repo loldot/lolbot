@@ -243,13 +243,13 @@ public partial class Hashes
         return zobrist;
     }
 
-    public static ulong GetValue(Castle castlingRights)
+    public static ulong GetValue(CastlingRights castlingRights)
     {
         ulong value = 0;
-        value ^= castlingRights.HasFlag(Castle.WhiteKing) ? Seeds[CastleOffset] : 0;
-        value ^= castlingRights.HasFlag(Castle.WhiteQueen) ? Seeds[CastleOffset + 1] : 0;
-        value ^= castlingRights.HasFlag(Castle.BlackKing) ? Seeds[CastleOffset + 2] : 0;
-        value ^= castlingRights.HasFlag(Castle.BlackQueen) ? Seeds[CastleOffset + 3] : 0;
+        value ^= castlingRights.HasFlag(CastlingRights.WhiteKing) ? Seeds[CastleOffset] : 0;
+        value ^= castlingRights.HasFlag(CastlingRights.WhiteQueen) ? Seeds[CastleOffset + 1] : 0;
+        value ^= castlingRights.HasFlag(CastlingRights.BlackKing) ? Seeds[CastleOffset + 2] : 0;
+        value ^= castlingRights.HasFlag(CastlingRights.BlackQueen) ? Seeds[CastleOffset + 3] : 0;
         return value;
     }
 

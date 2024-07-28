@@ -7,9 +7,11 @@ namespace Lolbot.Core;
 
 public class TranspositionTable
 {
-    public static readonly byte Alpa = 1;
+    public static readonly byte Alpha = 1;
     public static readonly byte Beta = 2;
     public static readonly byte Exact = 3;
+
+    public static readonly ulong BucketMask = 0xff;
 
 
     public readonly struct Entry
@@ -36,7 +38,14 @@ public class TranspositionTable
         }
     }
 
-    private readonly Entry[] entries = new Entry[ushort.MaxValue + 1];
+    private readonly Entry[][] entries = new Entry[256][];
+    public TranspositionTable()
+    {
+        for (int i = 0; i < entries.Length; i++)
+        {
+            entries[i] = new Entry[ushort.MaxValue + 1];
+        }
+    }
 
     public Entry Add(ulong key, int depth, int eval, byte type, Move bestMove)
     {
@@ -47,7 +56,7 @@ public class TranspositionTable
 
         Debug.Assert(index <= ushort.MaxValue);
 
-        return entries[(ushort)index] = new Entry((ushort)index, depth, eval, type, bestMove);
+        return entries[(byte)(key & BucketMask)][(ushort)index] = new Entry((ushort)index, depth, eval, type, bestMove);
     }
 
     public Entry Get(ulong key)
@@ -59,12 +68,12 @@ public class TranspositionTable
 
         Debug.Assert(index <= ushort.MaxValue);
 
-        return entries[(ushort)index];
+        return entries[(byte)(key & BucketMask)][(ushort)index];
     }
 
     public bool TryGet(ulong hash, int depth, out Entry entry)
     {
         entry = Get(hash);
-        return entry.IsSet && entry.Depth >= depth && hash == entry.Key ;
+        return entry.IsSet && entry.Depth >= depth && hash == entry.Key;
     }
 }

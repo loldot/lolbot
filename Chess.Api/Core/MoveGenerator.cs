@@ -44,12 +44,12 @@ public class MoveGenerator
             moves[count++] = new Move(piece, fromIndex, attack, position.GetOccupant(ref attack));
         }
 
-        if (IsCastleLegal(in position, Castle.WhiteKing | Castle.BlackKing, Move.Castle(position.CurrentPlayer), enemyAttacks))
+        if (IsCastleLegal(in position, CastlingRights.WhiteKing | CastlingRights.BlackKing, Move.Castle(position.CurrentPlayer), enemyAttacks))
         {
             moves[count++] = Move.Castle(position.CurrentPlayer);
         }
 
-        if (IsCastleLegal(in position, Castle.WhiteQueen | Castle.BlackQueen, Move.QueenSideCastle(position.CurrentPlayer), enemyAttacks))
+        if (IsCastleLegal(in position, CastlingRights.WhiteQueen | CastlingRights.BlackQueen, Move.QueenSideCastle(position.CurrentPlayer), enemyAttacks))
         {
             moves[count++] = Move.QueenSideCastle(position.CurrentPlayer);
         }
@@ -197,11 +197,11 @@ public class MoveGenerator
         }
     }
 
-    private static bool IsCastleLegal(ref readonly Position position, Castle requiredCastle, Move castle, ulong enemyAttacks)
+    private static bool IsCastleLegal(ref readonly Position position, CastlingRights requiredCastle, Move castle, ulong enemyAttacks)
     {
         requiredCastle &= (position.CurrentPlayer == Color.White)
-            ? Castle.WhiteQueen | Castle.WhiteKing
-            : Castle.BlackQueen | Castle.BlackKing;
+            ? CastlingRights.WhiteQueen | CastlingRights.WhiteKing
+            : CastlingRights.BlackQueen | CastlingRights.BlackKing;
 
         var clearingRequired = MovePatterns.SquaresBetween[castle.FromIndex][castle.CaptureIndex]
             & ~castle.CaptureSquare;
