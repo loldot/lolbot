@@ -1,31 +1,44 @@
 
 using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
+using System.Xml.Serialization;
 
 namespace Lolbot.Core;
 
 public class TranspositionTable
 {
+    public static readonly byte Alpa = 1;
+    public static readonly byte Beta = 2;
+    public static readonly byte Exact = 3;
+
+
     public readonly struct Entry
     {
         public readonly ushort Key;
-        public readonly int Depth, Alpha, Beta;
+        public readonly int Depth, Evaluation;
+        public readonly byte Type;
         public readonly Move BestMove;
         public readonly bool IsSet;
 
-        public Entry(ushort key, int depth, int alpha, int beta, Move bestMove)
+        public Entry(ushort key, int depth, int eval, byte type, Move bestMove)
         {
             Key = key;
             Depth = depth;
-            Alpha = alpha;
-            Beta = beta;
+            Evaluation = eval;
+            Type = type;
             BestMove = bestMove;
             IsSet = true;
+        }
+
+        override public string ToString()
+        {
+            return $"[{BestMove}] d:{Depth}, alpha: {Evaluation}, beta: {Beta}";
         }
     }
 
     private readonly Entry[] entries = new Entry[ushort.MaxValue + 1];
 
-    public Entry Add(ulong key, int depth, int alpha, int beta, Move bestMove)
+    public Entry Add(ulong key, int depth, int eval, byte type, Move bestMove)
     {
         var index = key & 0xffff;
         index ^= key >> 16 & 0xffff;
@@ -34,7 +47,7 @@ public class TranspositionTable
 
         Debug.Assert(index <= ushort.MaxValue);
 
-        return entries[(ushort)index] = new Entry((ushort)index, depth, alpha, beta, bestMove);
+        return entries[(ushort)index] = new Entry((ushort)index, depth, eval, type, bestMove);
     }
 
     public Entry Get(ulong key)
@@ -49,17 +62,9 @@ public class TranspositionTable
         return entries[(ushort)index];
     }
 
-    public bool Contains(ulong hash, int remainingDepth, ref Move bestMove, ref int alpha, ref int beta)
+    public bool TryGet(ulong hash, int depth, out Entry entry)
     {
-        var entry = Get(hash);
-        if (entry.IsSet && entry.Depth <= remainingDepth)
-        {
-            bestMove = entry.BestMove;
-            alpha = entry.Alpha;
-            beta = entry.Beta;
-
-            return true;
-        }
-        return false;
+        entry = Get(hash);
+        return entry.IsSet && entry.Depth >= depth && hash == entry.Key ;
     }
 }

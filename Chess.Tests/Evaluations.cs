@@ -56,6 +56,12 @@ public class Evaluations
         GetBestMove("7k/8/6Q1/3p4/8/8/8/2q3RK b - - 0 1")
             .Should().Be(new Move('q', "c1", "g1", 'R'));
     }
+    [Test]
+    public void Should_Find_Super_Easy_Mate_In_One()
+    {
+        GetBestMove("4n2K/6Q1/8/8/8/8/8/k5q1 b - - 0 1")
+            .Should().Be(new Move('q', "g1", "g7", 'Q'));
+    }
 
     private Move? GetBestMove(string fen)
     {
