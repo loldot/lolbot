@@ -4,7 +4,7 @@ namespace Lolbot.Core;
 
 public class Engine
 {
-    const int Max_Depth = 12;
+    const int Max_Depth = 64;
     private static readonly TranspositionTable tt = new TranspositionTable();
     public static Game NewGame() => new Game();
 
@@ -116,7 +116,7 @@ public class Engine
         var count = MoveGenerator.Legal(ref position, ref moves);
 
         if (count == 0) return eval - depth;
-        if (depth == 0) return color * Evaluate(position);
+        if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
 
         moves = moves[..count];
         moves.Sort(MoveComparer);
@@ -136,6 +136,30 @@ public class Engine
         tt.Add(position.Hash, depth, eval, ttType, new Move());
 
         return eval;
+    }
+
+    private static int QuiesenceSearch(Position position, int alpha, int beta, int color)
+    {
+        var standPat = color * Evaluate(position);
+
+        if (standPat >= beta) return beta;
+        if (alpha < standPat) alpha = standPat;
+
+        Span<Move> moves = stackalloc Move[218];
+
+        var count = MoveGenerator.Captures(ref position, ref moves);
+        moves = moves[..count];
+
+        for (byte i = 0; i < count; i++)
+        {
+            var eval = -QuiesenceSearch(position.Move(moves[i]), -beta, -alpha, -color);
+            
+            if (eval >= beta) return beta;
+            
+            alpha = Max(eval, alpha);
+        }
+
+        return alpha;
     }
 
     private static int MoveComparer(Move x, Move y)

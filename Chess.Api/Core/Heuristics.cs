@@ -17,11 +17,15 @@ public static class Heuristics
             Piece.WhiteKnight => GetBonus(WhiteKnightSquareBonus, bitboard),
             Piece.WhiteBishop => GetBonus(WhiteBishopSquareBonus, bitboard),
             Piece.WhiteRook => GetBonus(WhiteRookSquareBonus, bitboard),
+            Piece.WhiteQueen => GetBonus(WhiteQueenSquareBonus, bitboard),
+            Piece.WhiteKing => GetBonus(WhiteKingSquareBonus, bitboard),
 
             Piece.BlackPawn => GetBonus(BlackPawnSquareBonus, bitboard),
             Piece.BlackKnight => GetBonus(BlackKnightSquareBonus, bitboard),
             Piece.BlackBishop => GetBonus(BlackBishopSquareBonus, bitboard),
             Piece.BlackRook => GetBonus(BlackRookSquareBonus, bitboard),
+            Piece.BlackQueen => GetBonus(BlackQueenSquareBonus, bitboard),
+            Piece.BlackKing => GetBonus(BlackKingSquareBonus, bitboard),
             _ => 0
         };
     }
@@ -43,11 +47,11 @@ public static class Heuristics
         (0x3c3c3c3c0000, +15)
     ];
 
-     public static (ulong, int)[] BlackKnightSquareBonus = [
-        (Bitboards.Masks.Corners, -10),
+    public static (ulong, int)[] BlackKnightSquareBonus = [
+       (Bitboards.Masks.Corners, -10),
         (Bitboards.FlipAlongVertical(0x7e424242427e00), +5),
         (Bitboards.FlipAlongVertical(0x3c3c3c3c0000), +15)
-    ];
+   ];
 
     public static (ulong, int)[] WhiteRookSquareBonus = [
         (Bitboards.Masks.Rank_7, +25),
@@ -59,6 +63,38 @@ public static class Heuristics
         (Bitboards.Masks.Rank_2, +25),
         (Bitboards.Create(Squares.D8, Squares.E8), +10),
         (Bitboards.Create(Squares.F8), +5),
+    ];
+
+    public static (ulong, int)[] WhiteQueenSquareBonus = [
+        (0x3c3c3c3e0400, +5),
+        (0x1800008180000018, -5),
+        (0x6681810000818166, -10),
+        (Bitboards.Masks.Corners, -20)
+    ];
+
+    public static (ulong, int)[] BlackQueenSquareBonus = [
+        (Bitboards.FlipAlongVertical(0x3c3c3c3e0400), +5),
+        (Bitboards.FlipAlongVertical(0x1800008180000018), -5),
+        (Bitboards.FlipAlongVertical(0x6681810000818166), -10),
+        (Bitboards.Masks.Corners, -20)
+    ];
+
+    public static (ulong, int)[] WhiteKingSquareBonus = [
+        (0x1818181800000000, -50),
+        (0x6666666618000000, -40),
+        (0x8181818166000000, -30),
+        (0x817e0000, -20),
+        (0xc381, 20),
+        (0x42, 35)
+    ];
+
+    public static (ulong, int)[] BlackKingSquareBonus = [
+        (Bitboards.FlipAlongVertical(0x1818181800000000), -50),
+        (Bitboards.FlipAlongVertical(0x6666666618000000), -40),
+        (Bitboards.FlipAlongVertical(0x8181818166000000), -30),
+        (Bitboards.FlipAlongVertical(0x817e0000), -20),
+        (Bitboards.FlipAlongVertical(0xc381), 20),
+        (Bitboards.FlipAlongVertical(0x42), 35)
     ];
 
     public static (ulong, int)[] WhiteBishopSquareBonus = [

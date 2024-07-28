@@ -19,6 +19,22 @@ public class MoveGenerator
         return count;
     }
 
+    public static int Captures(ref readonly Position position, ref Span<Move> moves)
+    {
+        var count = 0;
+        AddKingCaptures(in position, ref moves, ref count);
+
+        if (position.CheckerCount > 1) return count;
+
+        AddPawnCaptures(in position, ref moves, ref count);
+        AddKnightCaptures(in position, ref moves, ref count);
+        AddBishopCaptures(in position, ref moves, ref count);
+        AddRookCaptures(in position, ref moves, ref count);
+        AddQueenCaptures(in position, ref moves, ref count);
+
+        return count;
+    }
+
     private static void AddKingMoves(ref readonly Position position, ref Span<Move> moves, ref int count, ref ulong attackmask)
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.King);
@@ -55,6 +71,24 @@ public class MoveGenerator
         }
     }
 
+    private static void AddKingCaptures(ref readonly Position position, ref Span<Move> moves, ref int count)
+    {
+        var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.King);
+        var king = position[piece];
+        var targets = position[~position.CurrentPlayer];
+
+        ulong enemyAttacks = position.CreateAttackMask(position.CurrentPlayer);
+
+        var fromIndex = Squares.ToIndex(king);
+
+        var attacks = MovePatterns.Kings[fromIndex] & targets & ~enemyAttacks;
+        while (attacks != 0)
+        {
+            var attack = Bitboards.PopLsb(ref attacks);
+            moves[count++] = new Move(piece, fromIndex, attack, position.GetOccupant(ref attack));
+        }
+    }
+
     private static void AddQueenMoves(ref readonly Position position, ref Span<Move> moves, ref int count, ref ulong attackmask)
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Queen);
@@ -64,12 +98,28 @@ public class MoveGenerator
         AddSlider(ref piece, in position, ref moves, queens, MovePatterns.BishopAttacks, ref count, ref attackmask);
     }
 
+    private static void AddQueenCaptures(ref readonly Position position, ref Span<Move> moves, ref int count)
+    {
+        var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Queen);
+        var queens = position[piece];
+
+        AddSliderCaptures(ref piece, in position, ref moves, queens, MovePatterns.RookAttacks, ref count);
+        AddSliderCaptures(ref piece, in position, ref moves, queens, MovePatterns.BishopAttacks, ref count);
+    }
+
     private static void AddRookMoves(ref readonly Position position, ref Span<Move> moves, ref int count, ref ulong attackmask)
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Rook);
         var rooks = position[piece];
 
         AddSlider(ref piece, in position, ref moves, rooks, MovePatterns.RookAttacks, ref count, ref attackmask);
+    }
+    private static void AddRookCaptures(ref readonly Position position, ref Span<Move> moves, ref int count)
+    {
+        var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Rook);
+        var rooks = position[piece];
+
+        AddSliderCaptures(ref piece, in position, ref moves, rooks, MovePatterns.RookAttacks, ref count);
     }
 
     private static void AddBishopMoves(ref readonly Position position, ref Span<Move> moves, ref int count, ref ulong attackmask)
@@ -79,6 +129,14 @@ public class MoveGenerator
 
         AddSlider(ref piece, in position, ref moves, bishops, MovePatterns.BishopAttacks, ref count, ref attackmask);
     }
+    private static void AddBishopCaptures(ref readonly Position position, ref Span<Move> moves, ref int count)
+    {
+        var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Bishop);
+        var bishops = position[piece];
+
+        AddSliderCaptures(ref piece, in position, ref moves, bishops, MovePatterns.BishopAttacks, ref count);
+    }
+
 
     private delegate ulong SligerGen(byte sq, ref ulong bitboard);
 
@@ -121,6 +179,35 @@ public class MoveGenerator
         }
     }
 
+    private static void AddSliderCaptures(
+    ref Piece piece,
+    ref readonly Position position,
+    ref Span<Move> moves,
+    ulong bitboard,
+    SligerGen attackFunc,
+    ref int count)
+    {
+        var friendlies = position[position.CurrentPlayer];
+        var targets = position[~position.CurrentPlayer];
+
+        var occ = position.Occupied;
+
+        while (bitboard != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref bitboard);
+
+            var pseudoAttacks = attackFunc(fromIndex, ref occ);
+            var valid = pseudoAttacks & position.Checkmask & position.PinnedPiece(in fromIndex);
+
+            var attacks = valid & targets;
+            while (attacks != 0)
+            {
+                var attack = Bitboards.PopLsb(ref attacks);
+                moves[count++] = new Move(piece, fromIndex, attack, position.GetOccupant(ref attack));
+            }
+        }
+    }
+
     private static void AddKnightMoves(ref readonly Position position, ref Span<Move> moves, ref int count, ref ulong attackmask)
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Knight);
@@ -140,6 +227,25 @@ public class MoveGenerator
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(piece, fromIndex, toIndex);
             }
+
+            var attacks = MovePatterns.Knights[fromIndex] & targets & position.Checkmask & position.PinnedPiece(in fromIndex);
+            while (attacks != 0)
+            {
+                var attack = Bitboards.PopLsb(ref attacks);
+                moves[count++] = new Move(piece, fromIndex, attack, position.GetOccupant(ref attack));
+            }
+        }
+    }
+
+    private static void AddKnightCaptures(ref readonly Position position, ref Span<Move> moves, ref int count)
+    {
+        var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Knight);
+        var knights = position[piece];
+        var targets = position[~position.CurrentPlayer];
+
+        while (knights != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref knights);
 
             var attacks = MovePatterns.Knights[fromIndex] & targets & position.Checkmask & position.PinnedPiece(in fromIndex);
             while (attacks != 0)
@@ -180,6 +286,38 @@ public class MoveGenerator
 
             var pseudoAttacks = attackPattern[sq];
             attackmask |= pseudoAttacks;
+            var attacks = pseudoAttacks & targets & position.Checkmask & position.PinnedPiece(ref sq);
+
+            if (position.EnPassant != 0 && ((1ul << position.EnPassant) & attackPattern[sq]) != 0)
+                count = DoEnPassant(in position, ref moves, count, ref sq, position.EnPassant);
+
+            while (attacks != 0)
+            {
+                var attack = Bitboards.PopLsb(ref attacks);
+
+                foreach (var promotionPiece in MovePatterns.PromotionPieces[attack])
+                {
+                    moves[count++] = new Move(piece, sq, attack, position.GetOccupant(ref attack), promotionPiece);
+                }
+            }
+        }
+    }
+
+    private static void AddPawnCaptures(ref readonly Position position, ref Span<Move> moves, ref int count)
+    {
+        var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Pawn);
+        var pawns = position[piece];
+        var targets = position[~position.CurrentPlayer];
+
+        var attackPattern = (position.CurrentPlayer == Color.White)
+            ? MovePatterns.WhitePawnAttacks
+            : MovePatterns.BlackPawnAttacks;
+
+        while (pawns != 0)
+        {
+            var sq = Bitboards.PopLsb(ref pawns);
+
+            var pseudoAttacks = attackPattern[sq];
             var attacks = pseudoAttacks & targets & position.Checkmask & position.PinnedPiece(ref sq);
 
             if (position.EnPassant != 0 && ((1ul << position.EnPassant) & attackPattern[sq]) != 0)
