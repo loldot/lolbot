@@ -55,26 +55,24 @@ public class Engine
 
         while (depth <= Max_Depth && !timer.Token.IsCancellationRequested)
         {
-            bestMove = BestMove(game, depth, timer.Token);
-            Console.WriteLine($"{bestMove} after {depth}");
+            bestMove = BestMove(game, depth, bestMove, timer.Token);
             depth++;
         }
 
         return bestMove;
     }
 
-    public static Move? BestMove(Game game, int depth, CancellationToken ct)
+    public static Move? BestMove(Game game, int depth, Move? currentBest, CancellationToken ct)
     {
         Span<Move> legalMoves = stackalloc Move[218];
 
         var position = game.CurrentPosition;
         var count = MoveGenerator.Legal(ref position, ref legalMoves);
         legalMoves = legalMoves[..count];
-
-        if (count == 0) return null;
+        Console.WriteLine($"{count} legal moves ({depth})");
 
         var bestEval = -999_999;
-        var bestMove = legalMoves[0];
+        var bestMove = currentBest;
 
         var alpha = -999_999;
         var beta = 999_999;
@@ -91,7 +89,7 @@ public class Engine
                 alpha = Max(alpha, eval);
             }
         }
-
+        Console.WriteLine($"{bestMove} {bestEval} after {depth}");
 
         return bestMove;
     }
@@ -139,7 +137,7 @@ public class Engine
 
         return eval;
     }
-   
+
     private static int MoveComparer(Move x, Move y)
     {
         int score = 0;
