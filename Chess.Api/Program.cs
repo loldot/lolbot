@@ -161,7 +161,7 @@ app.MapGet("/game/{seq}/debug", (int seq) =>
     Console.WriteLine("En passant:");
     Bitboards.Debug(1ul << game.CurrentPosition.EnPassant);
 
-    Console.WriteLine("Evaluation: {0}", Engine.Evaluate(game.CurrentPosition));
+    // Console.WriteLine("Evaluation: {0}", Engine.Evaluate(game.CurrentPosition));
 
     return Results.NoContent();
 });

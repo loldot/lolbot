@@ -15,19 +15,39 @@ public static class Heuristics
         for (int i = 0; i < 7; i++)
         {
             mmvlva[i] = new int[7];
-            int capture = PieceValues[i];
 
             for (int j = 1; i > 0 && j < 7; j++)
             {
+                int capture = PieceValues[i];
                 int attacker = PieceValues[j];
 
                 int val = capture * capture / (1 + attacker);
 
                 mmvlva[i][j] = val;
-
             }
-            Console.WriteLine("cap " + capture + ":" + string.Join(" ", mmvlva[i]));
         }
+    }
+
+    public static int Mobility(Position position, Color color)
+    {
+        int movecount = 0;
+
+        var occ = position.Occupied;
+        ulong rooks = position[color, PieceType.Rook] | position[color, PieceType.Queen];
+        while (rooks != 0)
+        {
+            var sq = Bitboards.PopLsb(ref rooks);
+            movecount += Bitboards.CountOccupied(MovePatterns.RookAttacks(sq, ref occ));
+        }
+
+        ulong bishops = position[color, PieceType.Bishop] | position[color, PieceType.Queen];
+        while (bishops != 0)
+        {
+            var sq = Bitboards.PopLsb(ref bishops);
+            movecount += Bitboards.CountOccupied(MovePatterns.BishopAttacks(sq, ref occ));
+        }
+
+        return movecount;
     }
 
     public static int MVV_LVA(Piece capture, Piece attacker)

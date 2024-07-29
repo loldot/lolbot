@@ -104,6 +104,7 @@ public readonly record struct Position
     public readonly ulong Occupied { get; init; }
     public readonly ulong Empty { get; init; }
     public readonly ulong Hash { get; init; } = Hashes.Default;
+    public bool IsCheck => Checkmask != ulong.MaxValue;
 
     public override string ToString()
     {

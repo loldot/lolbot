@@ -33,9 +33,13 @@ public class Engine
         return new Game(game.InitialPosition, [.. game.Moves, move]);
     }
 
-    public static int Evaluate(Position position)
+    public static int Evaluate(Position position, int color)
     {
         var eval = 0;
+
+        eval += Heuristics.Mobility(position, Color.White);
+        eval -= Heuristics.Mobility(position, Color.Black);
+
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
             eval += Heuristics.GetPieceValue(i, position[i]);
@@ -44,12 +48,12 @@ public class Engine
         {
             eval -= Heuristics.GetPieceValue(i, position[i]);
         }
-        return eval;
+        return color * eval;
     }
 
     public static Move? Reply(Game game)
     {
-        var timer = new CancellationTokenSource(1_000);
+        var timer = new CancellationTokenSource(5_000);
         var bestMove = default(Move?);
         var depth = 1;
 
@@ -140,7 +144,7 @@ public class Engine
 
     private static int QuiesenceSearch(Position position, int alpha, int beta, int color)
     {
-        var standPat = color * Evaluate(position);
+        var standPat = Evaluate(position, color);
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;

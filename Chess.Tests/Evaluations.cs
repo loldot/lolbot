@@ -8,7 +8,7 @@ public class Evaluations
     public void New_Game_Should_Have_EqualPosition()
     {
         var newGame = Engine.NewGame();
-        var eval = Engine.Evaluate(newGame.CurrentPosition);
+        var eval = Engine.Evaluate(newGame.CurrentPosition, 1);
         eval.Should().Be(0);
     }
 
@@ -21,7 +21,7 @@ public class Evaluations
         game = Engine.Move(game, "D7", "D5");
         game = Engine.Move(game, "E4", "D5");
 
-        var eval = Engine.Evaluate(game.CurrentPosition);
+        var eval = Engine.Evaluate(game.CurrentPosition, 1);
         eval.Should().Be(120);
     }
 
