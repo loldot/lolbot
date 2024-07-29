@@ -1,10 +1,37 @@
+
 using System.Runtime.CompilerServices;
+using static System.Math;
 
 namespace Lolbot.Core;
 
 public static class Heuristics
 {
-    public static int[] PieceValues = [0, 100, 300, 325, 500, 900, 999_999];
+    public static int[] PieceValues = [0, 100, 300, 325, 500, 900, 9_999];
+
+    private static readonly int[][] mmvlva = new int[7][];
+
+    static Heuristics()
+    {
+        for (int i = 0; i < 7; i++)
+        {
+            mmvlva[i] = new int[7];
+            int capture = PieceValues[i];
+
+            for (int j = 1; i > 0 && j < 7; j++)
+            {
+                int attacker = PieceValues[j];
+
+                int val = capture * capture / (1 + attacker);
+
+                mmvlva[i][j] = val;
+
+            }
+            Console.WriteLine("cap " + capture + ":" + string.Join(" ", mmvlva[i]));
+        }
+    }
+
+    public static int MVV_LVA(Piece capture, Piece attacker)
+        => mmvlva[0xf & (byte)capture][0xf & (byte)attacker];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetPieceValue(Piece piece) => PieceValues[0xf & (byte)piece];

@@ -149,13 +149,14 @@ public class Engine
 
         var count = MoveGenerator.Captures(ref position, ref moves);
         moves = moves[..count];
+        moves.Sort(MoveComparer);
 
         for (byte i = 0; i < count; i++)
         {
             var eval = -QuiesenceSearch(position.Move(moves[i]), -beta, -alpha, -color);
-            
+
             if (eval >= beta) return beta;
-            
+
             alpha = Max(eval, alpha);
         }
 
@@ -165,11 +166,12 @@ public class Engine
     private static int MoveComparer(Move x, Move y)
     {
         int score = 0;
+
         score -= Heuristics.GetPieceValue(x.PromotionPiece);
-        score -= Heuristics.GetPieceValue(x.CapturePiece);
+        score -= Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
 
         score += Heuristics.GetPieceValue(y.PromotionPiece);
-        score += Heuristics.GetPieceValue(y.CapturePiece);
+        score += Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
 
         return score;
     }
