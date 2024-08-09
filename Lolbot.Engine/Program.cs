@@ -18,7 +18,7 @@ while (true)
     else if (command == "uci") Uci();
     else if (command == "isready") IsReady();
     else if (command.StartsWith("position")) game = SetPosition(command);
-    else if (command.StartsWith("go")) Go();
+    else if (command.StartsWith("go")) Go(command);
     else Unknown(command);
 }
 
@@ -61,9 +61,27 @@ Game SetPosition(string command)
     return game;
 }
 
-void Go()
+void Go(string command)
 {
-    var move = Engine.Reply(game);
+    var tokens = Regex.Split(command, @"\s");
+
+    int wtime = 2_000; int winc = 0;
+    int btime = 2_000; int binc = 0;
+
+    for (int i = 1; i < tokens.Length; i++)
+    {
+        if (tokens[i] == "wtime") wtime = int.Parse(tokens[++i]);
+        if (tokens[i] == "btime") btime = int.Parse(tokens[++i]);
+        if (tokens[i] == "winc") winc = int.Parse(tokens[++i]);
+        if (tokens[i] == "binc") binc = int.Parse(tokens[++i]);
+    }
+
+    var (timeleft, increment) = game.CurrentPlayer == Color.White 
+        ? (wtime, winc) 
+        : (btime, binc);
+
+    var timer = new CancellationTokenSource(timeleft / 20 + increment / 2);
+    var move = Engine.Reply(game, timer.Token);
 
     var from = Squares.ToCoordinate(move.Value.FromSquare);
     var to = Squares.ToCoordinate(move.Value.ToSquare);
@@ -73,7 +91,7 @@ void Go()
         var promotion = Utils.PieceName(move.Value.PromotionPiece);
         Console.WriteLine($"bestmove {from}{to}{promotion}");
     }
-    
+
     Console.WriteLine($"bestmove {from}{to}");
 }
 

@@ -65,12 +65,18 @@ public static class Engine
     public static Move? Reply(Game game)
     {
         var timer = new CancellationTokenSource(2_000);
+
+        return Reply(game, timer.Token);
+    }
+
+    public static Move? Reply(Game game, CancellationToken ct)
+    {
         var bestMove = default(Move?);
         var depth = 1;
 
-        while (depth <= Max_Depth && !timer.Token.IsCancellationRequested)
+        while (depth <= Max_Depth && !ct.IsCancellationRequested)
         {
-            bestMove = BestMove(game, depth, bestMove, timer.Token);
+            bestMove = BestMove(game, depth, bestMove, ct);
             depth++;
         }
 
@@ -96,6 +102,8 @@ public static class Engine
 
         for (int i = 0; i < count; i++)
         {
+            if (ct.IsCancellationRequested) break;
+            
             var move = legalMoves[i];
             var eval = -EvaluateMove(position.Move(move), depth, -beta, -alpha, -us);
 
@@ -114,7 +122,7 @@ public static class Engine
     private static void OrderMoves(ref Span<Move> legalMoves, ref Move? currentBest)
     {
         legalMoves.Sort(MoveComparer);
-        
+
         if (currentBest is not null && legalMoves.Length > 1)
         {
             var index = legalMoves.IndexOf(currentBest.Value);
