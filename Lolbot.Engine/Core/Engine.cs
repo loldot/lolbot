@@ -91,10 +91,12 @@ public static class Engine
         var alpha = -999_999;
         var beta = 999_999;
 
+        var us = game.CurrentPlayer == Color.White ? 1 : -1;
+
         for (int i = 0; i < count; i++)
         {
             var move = legalMoves[i];
-            var eval = -EvaluateMove(position.Move(move), depth, -beta, -alpha, 1);
+            var eval = -EvaluateMove(position.Move(move), depth, -beta, -alpha, -us);
 
             if (eval > bestEval)
             {

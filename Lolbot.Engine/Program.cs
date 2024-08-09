@@ -2,8 +2,8 @@
 using System.Text.RegularExpressions;
 using Lolbot.Core;
 
-FileStream logfile = File.OpenWrite("log.txt");
-StreamWriter log = new(logfile);
+// FileStream logfile = File.OpenWrite("log.txt");
+// StreamWriter log = new(logfile);
 
 string command;
 Game game = Engine.NewGame();
@@ -11,8 +11,8 @@ Game game = Engine.NewGame();
 while (true)
 {
     command = Console.ReadLine() ?? "quit";
-    log.WriteLine(command);
-    log.Flush();
+    // log.WriteLine(command);
+    // log.Flush();
 
     if (command == "quit") break;
     else if (command == "uci") Uci();
@@ -67,6 +67,13 @@ void Go()
 
     var from = Squares.ToCoordinate(move.Value.FromSquare);
     var to = Squares.ToCoordinate(move.Value.ToSquare);
+
+    if (move.Value.PromotionPiece != Piece.None)
+    {
+        var promotion = Utils.PieceName(move.Value.PromotionPiece);
+        Console.WriteLine($"bestmove {from}{to}{promotion}");
+    }
+    
     Console.WriteLine($"bestmove {from}{to}");
 }
 
