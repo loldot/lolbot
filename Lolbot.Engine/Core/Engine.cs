@@ -2,11 +2,22 @@ using static System.Math;
 
 namespace Lolbot.Core;
 
-public class Engine
+public static class Engine
 {
     const int Max_Depth = 64;
     private static readonly TranspositionTable tt = new TranspositionTable();
+
+    public static void Init()
+    {
+        Console.WriteLine("info " + MovePatterns.PextTable.Length);
+    }
+
     public static Game NewGame() => new Game();
+    
+    public static Game FromPosition(string fenstring)
+    {
+        return new Game(Position.FromFen(fenstring), []);
+    }
 
     public static Game Move(Game game, string from, string to)
     {
@@ -53,7 +64,7 @@ public class Engine
 
     public static Move? Reply(Game game)
     {
-        var timer = new CancellationTokenSource(5_000);
+        var timer = new CancellationTokenSource(2_000);
         var bestMove = default(Move?);
         var depth = 1;
 
@@ -73,7 +84,6 @@ public class Engine
         var position = game.CurrentPosition;
         var count = MoveGenerator.Legal(ref position, ref legalMoves);
         legalMoves = legalMoves[..count];
-        Console.WriteLine($"{count} legal moves ({depth})");
 
         var bestEval = -999_999;
         var bestMove = currentBest;
@@ -93,7 +103,7 @@ public class Engine
                 alpha = Max(alpha, eval);
             }
         }
-        Console.WriteLine($"{bestMove} {bestEval} after {depth}");
+        Console.WriteLine($"info score cp {bestEval} depth {depth}");
 
         return bestMove;
     }

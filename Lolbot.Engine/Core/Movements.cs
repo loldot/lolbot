@@ -115,8 +115,7 @@ public static class MovePatterns
             }
         }
 
-        Console.WriteLine(currentIndex);
-        Console.WriteLine($"Pext init took {sw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"info Pext init took {sw.ElapsedMilliseconds} ms");
         sw.Stop();
     }
 
