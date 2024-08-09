@@ -13,7 +13,7 @@ public static class Engine
     }
 
     public static Game NewGame() => new Game();
-    
+
     public static Game FromPosition(string fenstring)
     {
         return new Game(Position.FromFen(fenstring), []);
@@ -84,6 +84,7 @@ public static class Engine
         var position = game.CurrentPosition;
         var count = MoveGenerator.Legal(ref position, ref legalMoves);
         legalMoves = legalMoves[..count];
+        OrderMoves(ref legalMoves, ref currentBest);
 
         var bestEval = -999_999;
         var bestMove = currentBest;
@@ -108,6 +109,18 @@ public static class Engine
         Console.WriteLine($"info score cp {bestEval} depth {depth}");
 
         return bestMove;
+    }
+
+    private static void OrderMoves(ref Span<Move> legalMoves, ref Move? currentBest)
+    {
+        legalMoves.Sort(MoveComparer);
+        
+        if (currentBest is not null && legalMoves.Length > 1)
+        {
+            var index = legalMoves.IndexOf(currentBest.Value);
+            legalMoves[index] = legalMoves[0];
+            legalMoves[0] = currentBest.Value;
+        }
     }
 
     public static int EvaluateMove(Position position, int depth, int alpha, int beta, int color)
