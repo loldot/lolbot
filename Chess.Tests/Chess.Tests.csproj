@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Chess.Api\Chess.Api.csproj" />
+    <ProjectReference Include="..\Lolbot.Engine\Lolbot.Engine.csproj" />
   </ItemGroup>
 
   <ItemGroup>
