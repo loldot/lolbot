@@ -11,6 +11,12 @@ public class RepetitionTable
 
     public void Update(Move m, ulong key)
     {
+        if (moveCount >= history.Length)
+        {
+            Array.Resize(ref history, moveCount * 2);
+            Array.Resize(ref irreversible, moveCount * 2);
+        }
+
         history[moveCount] = key;
 
         if (IsIrreversible(ref m))
