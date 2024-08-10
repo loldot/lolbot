@@ -11,10 +11,15 @@ public record Game(Position InitialPosition, Move[] Moves)
     public int PlyCount => Moves.Length;
     public Color CurrentPlayer => CurrentPosition.CurrentPlayer;
     public Position CurrentPosition => GetPosition(InitialPosition, Moves);
+    public readonly RepetitionTable RepetitionTable = new RepetitionTable();
 
     public Position GetPosition(Position position, Move[] moves)
     {
-        foreach (var m in moves) position = position.Move(m);
+        foreach (var m in moves)
+        {
+            position = position.Move(m);
+            RepetitionTable.Update(m, position.Hash);
+        } 
 
         return position;
     }

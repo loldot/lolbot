@@ -85,12 +85,14 @@ public static class Engine
 
     public static Move? BestMove(Game game, int depth, Move? currentBest, CancellationToken ct)
     {
-        Span<Move> legalMoves = stackalloc Move[218];
+        Span<Move> moves = stackalloc Move[218];
 
+        var history = game.RepetitionTable;
         var position = game.CurrentPosition;
-        var count = MoveGenerator.Legal(ref position, ref legalMoves);
-        legalMoves = legalMoves[..count];
-        OrderMoves(ref legalMoves, ref currentBest);
+
+        var count = MoveGenerator.Legal(ref position, ref moves);
+        moves = moves[..count];
+        OrderMoves(ref moves, ref currentBest);
 
         var bestEval = -999_999;
         var bestMove = currentBest;
@@ -103,9 +105,13 @@ public static class Engine
         for (int i = 0; i < count; i++)
         {
             if (ct.IsCancellationRequested) break;
-            
-            var move = legalMoves[i];
-            var eval = -EvaluateMove(position.Move(move), depth, -beta, -alpha, -us);
+
+            var move = moves[i];
+            var nextPosition = position.Move(move);
+
+            history.Update(move, nextPosition.Hash);
+            var eval = -EvaluateMove(history, nextPosition, depth, -beta, -alpha, -us);
+            history.Unwind();
 
             if (eval > bestEval)
             {
@@ -131,11 +137,12 @@ public static class Engine
         }
     }
 
-    public static int EvaluateMove(Position position, int depth, int alpha, int beta, int color)
+    public static int EvaluateMove(RepetitionTable history, Position position, int depth, int alpha, int beta, int color)
     {
         var eval = -999_999;
         var alphaOrig = alpha;
 
+        if (history.IsDrawByRepetition(position.Hash)) return 0;
         if (tt.TryGet(position.Hash, depth, out var ttEntry))
         {
             if (ttEntry.Type == TranspositionTable.Exact)
@@ -160,7 +167,12 @@ public static class Engine
 
         for (byte i = 0; i < count; i++)
         {
-            eval = Max(eval, -EvaluateMove(position.Move(moves[i]), depth - 1, -beta, -alpha, -color));
+            var nextPosition = position.Move(moves[i]);
+            history.Update(moves[i], position.Hash);
+
+            eval = Max(eval, -EvaluateMove(history, nextPosition, depth - 1, -beta, -alpha, -color));
+            
+            history.Unwind();
             alpha = Max(eval, alpha);
             if (alpha >= beta) break;
         }
