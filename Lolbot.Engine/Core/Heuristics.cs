@@ -1,14 +1,24 @@
 
 using System.Runtime.CompilerServices;
-using static System.Math;
 
 namespace Lolbot.Core;
 
 public static class Heuristics
 {
+    private static readonly int[] GamePhaseInterpolation = [
+         0,  0,  0,  0, 0,  0,  0,  0,  
+         1,  1,  2,  3, 5,  8, 13, 21, 
+        34, 55, 69, 76, 81, 85, 88, 91, 
+        93, 94, 95, 96, 97, 98, 99, 99, 100
+    ];
+
     public static int[] PieceValues = [0, 100, 300, 325, 500, 900, 9_999];
 
     private static readonly int[][] mmvlva = new int[7][];
+
+    public static readonly PieceSquareTables Opening = new PieceSquareTables();
+    public static readonly PieceSquareTables EndGame = new PieceSquareTables();
+
 
     static Heuristics()
     {
@@ -26,6 +36,167 @@ public static class Heuristics
                 mmvlva[i][j] = val;
             }
         }
+
+        #region Opening Piece Square Tables
+        Opening.SetBonus(Piece.WhitePawn, [
+            (0x1800, -20),
+            (0x240000, -10),
+            (0x420000, -5),
+            (0xc32400006600, 10),
+            (0x1818000000, 20),
+            (Bitboards.Masks.Rank_7, 50)
+        ]);
+        Opening.SetBonus(Piece.BlackPawn, [
+            (Bitboards.FlipAlongVertical(0x1800), -20),
+            (Bitboards.FlipAlongVertical(0x240000), -10),
+            (Bitboards.FlipAlongVertical(0x420000), -5),
+            (Bitboards.FlipAlongVertical(0xc32400006600), 10),
+            (Bitboards.FlipAlongVertical(0x1818000000), 20),
+            (Bitboards.Masks.Rank_2, 50)
+        ]);
+
+        Opening.SetBonus(Piece.WhiteKnight, [
+            (Bitboards.Masks.Corners, -10),
+            (0x7e424242427e00, +5),
+            (0x3c3c3c3c0000, +15)
+        ]);
+        Opening.SetBonus(Piece.BlackKnight, [
+            (Bitboards.Masks.Corners, -10),
+            (Bitboards.FlipAlongVertical(0x7e424242427e00), +5),
+            (Bitboards.FlipAlongVertical(0x3c3c3c3c0000), +15)
+        ]);
+
+        Opening.SetBonus(Piece.WhiteBishop, [
+            (Bitboards.Masks.Edges, -10),
+            (0x42000066244200, +5),
+            (0x7e3c18180000, +10)
+        ]);
+        Opening.SetBonus(Piece.BlackBishop, [
+            (Bitboards.Masks.Edges, -10),
+            (Bitboards.FlipAlongVertical(0x42000066244200), +5),
+            (Bitboards.FlipAlongVertical(0x7e3c18180000), +10)
+        ]);
+
+        Opening.SetBonus(Piece.WhiteRook, [
+            (Bitboards.Masks.Rank_7, +25),
+            (Bitboards.Create(Squares.D1, Squares.E1), +10),
+            (Bitboards.Create(Squares.F1), +5),
+        ]);
+        Opening.SetBonus(Piece.BlackRook, [
+            (Bitboards.Masks.Rank_2, +25),
+            (Bitboards.Create(Squares.D8, Squares.E8), +10),
+            (Bitboards.Create(Squares.F8), +5),
+        ]);
+
+        Opening.SetBonus(Piece.WhiteQueen, [
+            (0x3c3c3c3e0400, +5),
+            (0x1800008180000018, -5),
+            (0x6681810000818166, -10),
+            (Bitboards.Masks.Corners, -20)
+        ]);
+        Opening.SetBonus(Piece.BlackQueen, [
+            (Bitboards.FlipAlongVertical(0x3c3c3c3e0400), +5),
+            (Bitboards.FlipAlongVertical(0x1800008180000018), -5),
+            (Bitboards.FlipAlongVertical(0x6681810000818166), -10),
+            (Bitboards.Masks.Corners, -20)
+        ]);
+
+        Opening.SetBonus(Piece.WhiteKing, [
+            (0x1818181800000000, -50),
+            (0x6666666618000000, -40),
+            (0x8181818166000000, -30),
+            (0x817e0000, -20),
+            (0xc381, 20),
+            (0x42, 35)
+        ]);
+        Opening.SetBonus(Piece.BlackKing, [
+            (Bitboards.FlipAlongVertical(0x1818181800000000), -50),
+            (Bitboards.FlipAlongVertical(0x6666666618000000), -40),
+            (Bitboards.FlipAlongVertical(0x8181818166000000), -30),
+            (Bitboards.FlipAlongVertical(0x817e0000), -20),
+            (Bitboards.FlipAlongVertical(0xc381), 20),
+            (Bitboards.FlipAlongVertical(0x42), 35)
+        ]);
+        #endregion
+
+        #region Endgame Piece Square Tables
+        EndGame.SetBonus(Piece.WhitePawn, [
+            (0xc3000000000000, +175),
+            (0x3c000000000000, +140),
+            (0xc30000000000, +95),
+            (0x3c0000000000, +160),
+            (0x3ca58100, -5)
+        ]);
+
+        EndGame.SetBonus(Piece.BlackPawn, [
+            (Bitboards.FlipAlongVertical(0xc3000000000000), +175),
+            (Bitboards.FlipAlongVertical(0x3c000000000000), +140),
+            (Bitboards.FlipAlongVertical(0xc30000000000), +95),
+            (Bitboards.FlipAlongVertical(0x3c0000000000), +160),
+            (Bitboards.FlipAlongVertical(0x3ca58100), -5)
+        ]);
+
+        EndGame.SetBonus(Piece.WhiteKnight, [
+            (Bitboards.Masks.Corners, -10),
+            (0x7e424242427e00, +5),
+            (0x3c3c3c3c0000, +15)
+        ]);
+        EndGame.SetBonus(Piece.BlackKnight, [
+            (Bitboards.Masks.Corners, -10),
+            (Bitboards.FlipAlongVertical(0x7e424242427e00), +5),
+            (Bitboards.FlipAlongVertical(0x3c3c3c3c0000), +15)
+        ]);
+
+        EndGame.SetBonus(Piece.WhiteBishop, [
+            (Bitboards.Masks.Edges, -10),
+            (0x42000066244200, +5),
+            (0x7e3c18180000, +10)
+        ]);
+        EndGame.SetBonus(Piece.BlackBishop, [
+            (Bitboards.Masks.Edges, -10),
+            (Bitboards.FlipAlongVertical(0x42000066244200), +5),
+            (Bitboards.FlipAlongVertical(0x7e3c18180000), +10)
+        ]);
+
+        EndGame.SetBonus(Piece.WhiteRook, [
+            (Bitboards.Masks.Rank_7, +25),
+            (Bitboards.Create(Squares.D1, Squares.E1), +10),
+            (Bitboards.Create(Squares.F1), +5),
+        ]);
+        EndGame.SetBonus(Piece.BlackRook, [
+            (Bitboards.Masks.Rank_2, +25),
+            (Bitboards.Create(Squares.D8, Squares.E8), +10),
+            (Bitboards.Create(Squares.F8), +5),
+        ]);
+
+        EndGame.SetBonus(Piece.WhiteQueen, [
+            (0x3c3c3c3e0400, +5),
+            (0x1800008180000018, -5),
+            (0x6681810000818166, -10),
+            (Bitboards.Masks.Corners, -20)
+        ]);
+        EndGame.SetBonus(Piece.BlackQueen, [
+            (Bitboards.FlipAlongVertical(0x3c3c3c3e0400), +5),
+            (Bitboards.FlipAlongVertical(0x1800008180000018), -5),
+            (Bitboards.FlipAlongVertical(0x6681810000818166), -10),
+            (Bitboards.Masks.Corners, -20)
+        ]);
+
+        EndGame.SetBonus(Piece.WhiteKing, [
+            (Bitboards.Masks.Corners, -50),
+            (0x81818181817e, -25),
+            (0x42427e00, -5),
+            (0x7e7e3c3c3c0000, +20)
+        ]);
+
+        EndGame.SetBonus(Piece.BlackKing, [
+            (Bitboards.Masks.Corners, -50),
+            (Bitboards.FlipAlongVertical(0x81818181817e), -25),
+            (Bitboards.FlipAlongVertical(0x42427e00), -5),
+            (Bitboards.FlipAlongVertical(0x7e7e3c3c3c0000), +20)
+        ]);
+
+        #endregion
     }
 
     public static int Mobility(Position position, Color color)
@@ -47,7 +218,7 @@ public static class Heuristics
             movecount += Bitboards.CountOccupied(MovePatterns.BishopAttacks(sq, ref occ));
         }
 
-        return movecount;
+        return (int)Math.Sqrt(movecount);
     }
 
     public static int MVV_LVA(Piece capture, Piece attacker)
@@ -56,121 +227,39 @@ public static class Heuristics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetPieceValue(Piece piece) => PieceValues[0xf & (byte)piece];
 
-    public static int GetPieceValue(Piece piece, ulong bitboard)
+    public static int GetPieceValue(Piece piece, ulong bitboard, ulong occupied)
     {
-        return Bitboards.CountOccupied(bitboard) * GetPieceValue(piece) + piece switch
-        {
-            Piece.WhitePawn => GetBonus(WhitePawnSquareBonus, bitboard),
-            Piece.WhiteKnight => GetBonus(WhiteKnightSquareBonus, bitboard),
-            Piece.WhiteBishop => GetBonus(WhiteBishopSquareBonus, bitboard),
-            Piece.WhiteRook => GetBonus(WhiteRookSquareBonus, bitboard),
-            Piece.WhiteQueen => GetBonus(WhiteQueenSquareBonus, bitboard),
-            Piece.WhiteKing => GetBonus(WhiteKingSquareBonus, bitboard),
+        var pieceCount = Math.Max(Bitboards.CountOccupied(occupied), 0);
+        var phase = GamePhaseInterpolation[pieceCount];
 
-            Piece.BlackPawn => GetBonus(BlackPawnSquareBonus, bitboard),
-            Piece.BlackKnight => GetBonus(BlackKnightSquareBonus, bitboard),
-            Piece.BlackBishop => GetBonus(BlackBishopSquareBonus, bitboard),
-            Piece.BlackRook => GetBonus(BlackRookSquareBonus, bitboard),
-            Piece.BlackQueen => GetBonus(BlackQueenSquareBonus, bitboard),
-            Piece.BlackKing => GetBonus(BlackKingSquareBonus, bitboard),
-            _ => 0
-        };
+        var openingBonus = Opening.GetBonus(piece, bitboard);
+        var endgameBonus = EndGame.GetBonus(piece, bitboard);
+
+        var bonus = (phase * openingBonus + (100 - phase) * endgameBonus) / 100;
+
+        return Bitboards.CountOccupied(bitboard) * GetPieceValue(piece) + bonus;
+    }
+}
+
+public sealed class PieceSquareTables
+{
+    (ulong bitboard, int bonus)[][] tables = new (ulong, int)[0x27][];
+
+    public void SetBonus(Piece piece, (ulong, int)[] squarebonus)
+    {
+        tables[(int)piece] = squarebonus;
     }
 
-    private static int GetBonus((ulong, int)[] squarebonus, ulong bitboard)
+    public int GetBonus(Piece piece, ulong bitboard)
     {
         int bonus = 0;
-        for (int i = 0; i < squarebonus.Length; i++)
+        var table = tables[(int)piece];
+
+        for (int i = 0; i < table.Length; i++)
         {
-            var (mask, b) = squarebonus[i];
+            var (mask, b) = table[i];
             bonus += b * Bitboards.CountOccupied(mask & bitboard);
         }
         return bonus;
     }
-
-    public static (ulong, int)[] WhiteKnightSquareBonus = [
-        (Bitboards.Masks.Corners, -10),
-        (0x7e424242427e00, +5),
-        (0x3c3c3c3c0000, +15)
-    ];
-
-    public static (ulong, int)[] BlackKnightSquareBonus = [
-       (Bitboards.Masks.Corners, -10),
-        (Bitboards.FlipAlongVertical(0x7e424242427e00), +5),
-        (Bitboards.FlipAlongVertical(0x3c3c3c3c0000), +15)
-   ];
-
-    public static (ulong, int)[] WhiteRookSquareBonus = [
-        (Bitboards.Masks.Rank_7, +25),
-        (Bitboards.Create(Squares.D1, Squares.E1), +10),
-        (Bitboards.Create(Squares.F1), +5),
-    ];
-
-    public static (ulong, int)[] BlackRookSquareBonus = [
-        (Bitboards.Masks.Rank_2, +25),
-        (Bitboards.Create(Squares.D8, Squares.E8), +10),
-        (Bitboards.Create(Squares.F8), +5),
-    ];
-
-    public static (ulong, int)[] WhiteQueenSquareBonus = [
-        (0x3c3c3c3e0400, +5),
-        (0x1800008180000018, -5),
-        (0x6681810000818166, -10),
-        (Bitboards.Masks.Corners, -20)
-    ];
-
-    public static (ulong, int)[] BlackQueenSquareBonus = [
-        (Bitboards.FlipAlongVertical(0x3c3c3c3e0400), +5),
-        (Bitboards.FlipAlongVertical(0x1800008180000018), -5),
-        (Bitboards.FlipAlongVertical(0x6681810000818166), -10),
-        (Bitboards.Masks.Corners, -20)
-    ];
-
-    public static (ulong, int)[] WhiteKingSquareBonus = [
-        (0x1818181800000000, -50),
-        (0x6666666618000000, -40),
-        (0x8181818166000000, -30),
-        (0x817e0000, -20),
-        (0xc381, 20),
-        (0x42, 35)
-    ];
-
-    public static (ulong, int)[] BlackKingSquareBonus = [
-        (Bitboards.FlipAlongVertical(0x1818181800000000), -50),
-        (Bitboards.FlipAlongVertical(0x6666666618000000), -40),
-        (Bitboards.FlipAlongVertical(0x8181818166000000), -30),
-        (Bitboards.FlipAlongVertical(0x817e0000), -20),
-        (Bitboards.FlipAlongVertical(0xc381), 20),
-        (Bitboards.FlipAlongVertical(0x42), 35)
-    ];
-
-    public static (ulong, int)[] WhiteBishopSquareBonus = [
-        (Bitboards.Masks.Edges, -10),
-        (0x42000066244200, +5),
-        (0x7e3c18180000, +10)
-    ];
-
-    public static (ulong, int)[] BlackBishopSquareBonus = [
-        (Bitboards.Masks.Edges, -10),
-        (Bitboards.FlipAlongVertical(0x42000066244200), +5),
-        (Bitboards.FlipAlongVertical(0x7e3c18180000), +10)
-    ];
-
-    public static (ulong, int)[] WhitePawnSquareBonus = [
-        (0x1800, -20),
-        (0x240000, -10),
-        (0x420000, -5),
-        (0xc32400006600, 10),
-        (0x1818000000, 20),
-        (Bitboards.Masks.Rank_7, 50)
-    ];
-
-    public static (ulong, int)[] BlackPawnSquareBonus = [
-        (Bitboards.FlipAlongVertical(0x1800), -20),
-        (Bitboards.FlipAlongVertical(0x240000), -10),
-        (Bitboards.FlipAlongVertical(0x420000), -5),
-        (Bitboards.FlipAlongVertical(0xc32400006600), 10),
-        (Bitboards.FlipAlongVertical(0x1818000000), 20),
-        (Bitboards.Masks.Rank_2, 50)
-    ];
 }

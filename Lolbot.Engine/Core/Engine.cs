@@ -48,16 +48,19 @@ public static class Engine
     {
         var eval = 0;
 
+        eval += position.CurrentPlayer == Color.Black && position.IsCheck ? 50 : 0;
+        eval -= position.CurrentPlayer == Color.White && position.IsCheck ? 50 : 0;
+
         eval += Heuristics.Mobility(position, Color.White);
         eval -= Heuristics.Mobility(position, Color.Black);
 
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
-            eval += Heuristics.GetPieceValue(i, position[i]);
+            eval += Heuristics.GetPieceValue(i, position[i], position.Occupied);
         }
         for (Piece i = Piece.BlackPawn; i < Piece.BlackKing; i++)
         {
-            eval -= Heuristics.GetPieceValue(i, position[i]);
+            eval -= Heuristics.GetPieceValue(i, position[i], position.Occupied);
         }
         return color * eval;
     }
