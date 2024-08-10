@@ -1,7 +1,5 @@
 
 using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
-using System.Xml.Serialization;
 
 namespace Lolbot.Core;
 
@@ -13,28 +11,32 @@ public class TranspositionTable
 
     public static readonly ulong BucketMask = 0xff;
 
+    public int set_count = 0;
+    public int collision_count = 0;
+    public int rewrite_count = 0;
+
+    public double FillFactor => set_count / (256.0 * (ushort.MaxValue + 1));
+
 
     public readonly struct Entry
     {
-        public readonly ushort Key;
-        public readonly int Depth, Evaluation;
         public readonly byte Type;
-        public readonly Move BestMove;
         public readonly bool IsSet;
-
-        public Entry(ushort key, int depth, int eval, byte type, Move bestMove)
+        public readonly int Depth, Evaluation;
+        public readonly ulong Key;
+        
+        public Entry(ulong key, int depth, int eval, byte type)
         {
             Key = key;
             Depth = depth;
             Evaluation = eval;
             Type = type;
-            BestMove = bestMove;
             IsSet = true;
         }
 
         override public string ToString()
         {
-            return $"[{BestMove}] d:{Depth}, alpha: {Evaluation}, beta: {Beta}";
+            return $"d:{Depth}, alpha: {Evaluation}, beta: {Beta}";
         }
     }
 
@@ -47,28 +49,27 @@ public class TranspositionTable
         }
     }
 
-    public Entry Add(ulong key, int depth, int eval, byte type, Move bestMove)
+    public Entry Add(ulong hash, int depth, int eval, byte type)
     {
-        var index = key & 0xffff;
-        index ^= key >> 16 & 0xffff;
-        index ^= key >> 32 & 0xffff;
-        index ^= key >> 48 & 0xffff;
+        var index = hash.GetHashCode() & 0xffff;
 
         Debug.Assert(index <= ushort.MaxValue);
 
-        return entries[(byte)(key & BucketMask)][(ushort)index] = new Entry((ushort)index, depth, eval, type, bestMove);
+        var current = entries[(byte)(hash & BucketMask)][(ushort)index];
+        if (!current.IsSet) set_count++;
+        else if (hash == current.Key) rewrite_count++;
+        else if (hash != current.Key) collision_count++;
+
+        return entries[(byte)(hash & BucketMask)][(ushort)index] = new Entry(hash, depth, eval, type);
     }
 
-    public Entry Get(ulong key)
+    public Entry Get(ulong hash)
     {
-        var index = key & 0xffff;
-        index ^= key >> 16 & 0xffff;
-        index ^= key >> 32 & 0xffff;
-        index ^= key >> 48 & 0xffff;
+        var index = hash.GetHashCode() & 0xffff;
 
         Debug.Assert(index <= ushort.MaxValue);
 
-        return entries[(byte)(key & BucketMask)][(ushort)index];
+        return entries[(byte)(hash & BucketMask)][(ushort)index];
     }
 
     public bool TryGet(ulong hash, int depth, out Entry entry)

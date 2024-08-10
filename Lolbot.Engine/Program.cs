@@ -81,7 +81,7 @@ void Go(string command)
         : (btime, binc);
 
     var timer = new CancellationTokenSource(timeleft / 20 + increment / 2);
-    var move = Engine.Reply(game, timer.Token);
+    var move = Engine.BestMove(game, timer.Token);
 
     var from = Squares.ToCoordinate(move.Value.FromSquare);
     var to = Squares.ToCoordinate(move.Value.ToSquare);

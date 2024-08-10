@@ -122,18 +122,20 @@ public static class Heuristics
         #region Endgame Piece Square Tables
         EndGame.SetBonus(Piece.WhitePawn, [
             (0xc3000000000000, +175),
-            (0x3c000000000000, +140),
+            (0x3c000000000000, +160),
+            (0x3c0000000000, +120),
             (0xc30000000000, +95),
-            (0x3c0000000000, +160),
-            (0x3ca58100, -5)
+            (0x3ca58100, -5),
+            (0x7e42420000, -10)
         ]);
 
         EndGame.SetBonus(Piece.BlackPawn, [
             (Bitboards.FlipAlongVertical(0xc3000000000000), +175),
-            (Bitboards.FlipAlongVertical(0x3c000000000000), +140),
+            (Bitboards.FlipAlongVertical(0x3c000000000000), +160),
+            (Bitboards.FlipAlongVertical(0x3c0000000000), +120),
             (Bitboards.FlipAlongVertical(0xc30000000000), +95),
-            (Bitboards.FlipAlongVertical(0x3c0000000000), +160),
-            (Bitboards.FlipAlongVertical(0x3ca58100), -5)
+            (Bitboards.FlipAlongVertical(0x3ca58100), -5),
+            (Bitboards.FlipAlongVertical(0x7e42420000), -10)
         ]);
 
         EndGame.SetBonus(Piece.WhiteKnight, [
@@ -186,14 +188,14 @@ public static class Heuristics
             (Bitboards.Masks.Corners, -50),
             (0x81818181817e, -25),
             (0x42427e00, -5),
-            (0x7e7e3c3c3c0000, +20)
+            (0x7e7e3c3c3c0000, +10)
         ]);
 
         EndGame.SetBonus(Piece.BlackKing, [
             (Bitboards.Masks.Corners, -50),
             (Bitboards.FlipAlongVertical(0x81818181817e), -25),
             (Bitboards.FlipAlongVertical(0x42427e00), -5),
-            (Bitboards.FlipAlongVertical(0x7e7e3c3c3c0000), +20)
+            (Bitboards.FlipAlongVertical(0x7e7e3c3c3c0000), +10)
         ]);
 
         #endregion

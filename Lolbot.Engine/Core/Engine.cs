@@ -44,12 +44,25 @@ public static class Engine
         return new Game(game.InitialPosition, [.. game.Moves, move]);
     }
 
+    
     public static int Evaluate(Position position, int color)
+    {
+        return Evaluate(position, position.GenerateLegalMoves(), color);
+    }
+
+    public static int Evaluate(Position position, Span<Move> moves, int color)
     {
         var eval = 0;
 
-        eval += position.CurrentPlayer == Color.Black && position.IsCheck ? 50 : 0;
-        eval -= position.CurrentPlayer == Color.White && position.IsCheck ? 50 : 0;
+        if (moves.Length == 0)
+        {
+            return position.IsCheck ? color * -999_999 : 0;
+        }
+
+        if (position.IsCheck)
+        {
+            eval -= position.CurrentPlayer == Color.White ? 50 : -50;
+        }
 
         eval += Heuristics.Mobility(position, Color.White);
         eval -= Heuristics.Mobility(position, Color.Black);
@@ -65,14 +78,14 @@ public static class Engine
         return color * eval;
     }
 
-    public static Move? Reply(Game game)
+    public static Move? BestMove(Game game)
     {
         var timer = new CancellationTokenSource(2_000);
 
-        return Reply(game, timer.Token);
+        return BestMove(game, timer.Token);
     }
 
-    public static Move? Reply(Game game, CancellationToken ct)
+    public static Move? BestMove(Game game, CancellationToken ct)
     {
         var bestMove = default(Move?);
         var depth = 1;
@@ -82,6 +95,12 @@ public static class Engine
             bestMove = BestMove(game, depth, bestMove, ct);
             depth++;
         }
+
+        Console.WriteLine($"info tt fill factor: {tt.FillFactor}");
+        Console.WriteLine($"info tt set count: {tt.set_count}");
+        Console.WriteLine($"info tt rewrite count: {tt.rewrite_count}");
+        Console.WriteLine($"info tt collision count: {tt.collision_count}");
+
 
         return bestMove;
     }
@@ -162,7 +181,7 @@ public static class Engine
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(ref position, ref moves);
 
-        if (count == 0) return eval - depth;
+        if (count == 0) return position.IsCheck ? eval - depth : 0;
         if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
 
         moves = moves[..count];
@@ -174,7 +193,7 @@ public static class Engine
             history.Update(moves[i], nextPosition.Hash);
 
             eval = Max(eval, -EvaluateMove(history, nextPosition, depth - 1, -beta, -alpha, -color));
-            
+
             history.Unwind();
             alpha = Max(eval, alpha);
             if (alpha >= beta) break;
@@ -185,23 +204,23 @@ public static class Engine
         else if (eval >= beta) ttType = TranspositionTable.Beta;
         else ttType = TranspositionTable.Exact;
 
-        tt.Add(position.Hash, depth, eval, ttType, new Move());
+        tt.Add(position.Hash, depth, eval, ttType);
 
         return eval;
     }
 
     private static int QuiesenceSearch(Position position, int alpha, int beta, int color)
     {
-        var standPat = Evaluate(position, color);
-
-        if (standPat >= beta) return beta;
-        if (alpha < standPat) alpha = standPat;
-
         Span<Move> moves = stackalloc Move[218];
 
         var count = MoveGenerator.Captures(ref position, ref moves);
         moves = moves[..count];
         moves.Sort(MoveComparer);
+
+        var standPat = Evaluate(position, moves, color);
+
+        if (standPat >= beta) return beta;
+        if (alpha < standPat) alpha = standPat;
 
         for (byte i = 0; i < count; i++)
         {
@@ -227,4 +246,5 @@ public static class Engine
 
         return score;
     }
+
 }

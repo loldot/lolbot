@@ -19,8 +19,7 @@ public class HashTable
     public void Should_Add_Move()
     {
         ulong x = 0x1337_d3ad_b33f_0f13;
-        var m = new Move(Piece.WhitePawn, Squares.A2, Squares.A4);
-        var entry = tt.Add(x, 1, 199, TranspositionTable.Alpha, m);
+        var entry = tt.Add(x, 1, 199, TranspositionTable.Alpha);
 
         entry.IsSet.Should().BeTrue();
         entry.Evaluation.Should().Be(199);
@@ -33,12 +32,11 @@ public class HashTable
         ulong x = 0x1337_d3ad_b33f_0f13;
         var m = new Move(Piece.WhitePawn, Squares.A2, Squares.A4);
 
-        tt.Add(x, 1, 199, TranspositionTable.Exact, m);
+        tt.Add(x, 1, 199, TranspositionTable.Exact);
 
         var entry = tt.Get(x);
         entry.IsSet.Should().BeTrue();
         entry.Evaluation.Should().Be(199);
-        entry.BestMove.Should().Be(m);
     }
 
 
@@ -48,9 +46,7 @@ public class HashTable
         ulong x = 0x1337_d3ad_b33f_0f13;
         ulong y = 0x2337_d3ad_b33f_0f13;
 
-        var m = new Move(Piece.WhitePawn, Squares.A2, Squares.A4);
-
-        tt.Add(x, 1, 199, TranspositionTable.Exact, m);
+        tt.Add(x, 1, 199, TranspositionTable.Exact);
 
         var entry = tt.Get(y);
         entry.IsSet.Should().BeFalse();
