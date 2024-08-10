@@ -22,7 +22,7 @@ public class Evaluations
         game = Engine.Move(game, "E4", "D5");
 
         var eval = Engine.Evaluate(game.CurrentPosition, 1);
-        eval.Should().Be(120);
+        eval.Should().Be(121);
     }
 
     [Test]
@@ -61,6 +61,18 @@ public class Evaluations
     {
         GetBestMove("4n2K/6Q1/8/8/8/8/8/k5q1 b - - 0 1")
             .Should().Be(new Move('q', "g1", "g7", 'Q'));
+    }
+
+    [Test]
+    public async ValueTask Should_Not_Crash()
+    {
+        using var fs = File.OpenRead("./Testdata/lolbot-lolbot.pgn");
+
+        var pgn = new PgnSerializer();
+        var (game, _) = await pgn.Read(fs);
+
+        var ct = new CancellationTokenSource(20_000);
+        var bestMove = Engine.Reply(game, ct.Token);
     }
 
     private Move? GetBestMove(string fen)

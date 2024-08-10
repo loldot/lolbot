@@ -1,0 +1,23 @@
+[Event "?"]
+[Site "?"]
+[Date "2024.08.10"]
+[Round "?"]
+[White "Lolbot 1.0-alpha"]
+[Black "Lolbot 1.1-alpha"]
+[Result "1-0"]
+[ECO "D00"]
+[GameDuration "00:03:57"]
+[GameEndTime "2024-08-10T13:17:21.124 W. Europe Daylight Time"]
+[GameStartTime "2024-08-10T13:13:23.201 W. Europe Daylight Time"]
+[Opening "Queen's pawn game"]
+[PlyCount "21"]
+[Termination "abandoned"]
+[TimeControl "40/300"]
+
+1. d4 d5 2. Qd3 Nc6 
+3. Nc3 e5 4. e3 e4 
+5. Qb5 Nf6 6. Qb3 Na5
+7. Qa4+  Nc6  8. Qb3  a6 
+9. Bd2  b5  10. Nce2 
+Bd6  11. Nh3  1-0
+

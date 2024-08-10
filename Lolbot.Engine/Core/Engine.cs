@@ -168,7 +168,7 @@ public static class Engine
         for (byte i = 0; i < count; i++)
         {
             var nextPosition = position.Move(moves[i]);
-            history.Update(moves[i], position.Hash);
+            history.Update(moves[i], nextPosition.Hash);
 
             eval = Max(eval, -EvaluateMove(history, nextPosition, depth - 1, -beta, -alpha, -color));
             

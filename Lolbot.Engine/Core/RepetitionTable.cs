@@ -1,4 +1,5 @@
 
+
 namespace Lolbot.Core;
 
 public class RepetitionTable
@@ -10,8 +11,18 @@ public class RepetitionTable
 
     public void Update(Move m, ulong key)
     {
-        history[moveCount++] = key;
-        irreversible[moveCount] = IsIrreversible(ref m) ? moveCount - 1 : irreversible[moveCount - 1];
+        history[moveCount] = key;
+
+        if (IsIrreversible(ref m))
+        {
+            irreversible[moveCount] = moveCount - 1;
+        }
+        else
+        {
+            irreversible[moveCount] = moveCount - 1 > 0 ? irreversible[moveCount - 1] : 0;
+        }
+
+        moveCount++;
     }
 
     private static bool IsIrreversible(ref readonly Move m)
@@ -24,6 +35,7 @@ public class RepetitionTable
     public bool IsDrawByRepetition(ulong key)
     {
         ulong posCount = 0;
+        if (moveCount <= 2) return false;
 
         // Console.WriteLine(key);
         // Console.WriteLine($"MoveCount: {moveCount}");
@@ -46,4 +58,6 @@ public class RepetitionTable
 
         return false;
     }
+
+    public void Clear() => moveCount = 0;
 }

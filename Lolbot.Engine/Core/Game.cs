@@ -15,6 +15,7 @@ public record Game(Position InitialPosition, Move[] Moves)
 
     public Position GetPosition(Position position, Move[] moves)
     {
+        RepetitionTable.Clear();
         foreach (var m in moves)
         {
             position = position.Move(m);
