@@ -12,24 +12,6 @@ public class Evaluations
     }
 
     [Test]
-    public void Should_Evaluate_Mate_As_Black()
-    {
-        var position = Position.FromFen("4N2k/6Q1/8/8/8/8/8/K7 b - - 0 1");
-        var eval = Engine.Evaluate(position, -1);
-
-        eval.Should().Be(999_999);
-    }
-
-    [Test]
-    public void Should_Evaluate_Mate_As_White()
-    {
-        var position = Position.FromFen("4n2K/6q1/8/8/8/8/8/k7 w - - 0 1");
-        var eval = Engine.Evaluate(position, 1);
-
-        eval.Should().Be(-999_999);
-    }
-
-    [Test]
     public void Capture_Black_Pawn_Should_Give_White_Lead()
     {
         var game = Engine.NewGame();

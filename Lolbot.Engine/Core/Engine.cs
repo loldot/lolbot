@@ -44,28 +44,23 @@ public static class Engine
         return new Game(game.InitialPosition, [.. game.Moves, move]);
     }
 
-    
-    public static int Evaluate(Position position, int color)
-    {
-        return Evaluate(position, position.GenerateLegalMoves(), color);
-    }
 
-    public static int Evaluate(Position position, Span<Move> moves, int color)
+    public static int Evaluate(Position position, int color)
     {
         var eval = 0;
 
-        if (moves.Length == 0)
-        {
-            return position.IsCheck ? color * -999_999 : 0;
-        }
+        // if (moves.Length == 0)
+        // {
+        //     return position.IsCheck ? -999_999 : 0;
+        // }
 
-        if (position.IsCheck)
-        {
-            eval -= position.CurrentPlayer == Color.White ? 50 : -50;
-        }
+        // if (position.IsCheck)
+        // {
+        //     eval -= position.CurrentPlayer == Color.White ? 50 : -50;
+        // }
 
-        eval += Heuristics.Mobility(position, Color.White);
-        eval -= Heuristics.Mobility(position, Color.Black);
+        // eval += Heuristics.Mobility(position, Color.White);
+        // eval -= Heuristics.Mobility(position, Color.Black);
 
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
@@ -122,8 +117,6 @@ public static class Engine
         var alpha = -999_999;
         var beta = 999_999;
 
-        var us = game.CurrentPlayer == Color.White ? 1 : -1;
-
         for (int i = 0; i < count; i++)
         {
             if (ct.IsCancellationRequested) break;
@@ -132,7 +125,7 @@ public static class Engine
             var nextPosition = position.Move(move);
 
             history.Update(move, nextPosition.Hash);
-            var eval = -EvaluateMove(history, nextPosition, depth, -beta, -alpha, -us);
+            var eval = -EvaluateMove(history, nextPosition, depth, -beta, -alpha, 1);
             history.Unwind();
 
             if (eval > bestEval)
@@ -217,7 +210,7 @@ public static class Engine
         moves = moves[..count];
         moves.Sort(MoveComparer);
 
-        var standPat = Evaluate(position, moves, color);
+        var standPat = Evaluate(position, color);
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;

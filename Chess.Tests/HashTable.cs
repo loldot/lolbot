@@ -48,7 +48,7 @@ public class HashTable
 
         tt.Add(x, 1, 199, TranspositionTable.Exact);
 
-        var entry = tt.Get(y);
-        entry.IsSet.Should().BeFalse();
+        var found = tt.TryGet(y, 1, out var _);
+        found.Should().BeFalse();
     }
 }

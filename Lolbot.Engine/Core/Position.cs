@@ -21,7 +21,7 @@ public readonly record struct Position
     public readonly ulong BlackQueens { get; init; } = Bitboards.Create("D8");
     public readonly ulong BlackKing { get; init; } = Bitboards.Create("E8");
     public readonly byte EnPassant { get; init; } = 0;
-    public readonly CastlingRights CastlingRights { get; init; } = Core.CastlingRights.All;
+    public readonly CastlingRights CastlingRights { get; init; } = CastlingRights.All;
 
     public readonly ulong Checkmask { get; init; } = ulong.MaxValue;
     public readonly Vector256<ulong> Pinmasks { get; init; } = Vector256<ulong>.Zero;
@@ -190,22 +190,22 @@ public readonly record struct Position
     {
         var removedCastling = m.FromIndex switch
         {
-            Squares.A1 => Core.CastlingRights.WhiteQueen,
-            Squares.E1 => Core.CastlingRights.WhiteKing | Core.CastlingRights.WhiteQueen,
-            Squares.H1 => Core.CastlingRights.WhiteKing,
-            Squares.A8 => Core.CastlingRights.BlackQueen,
-            Squares.E8 => Core.CastlingRights.BlackKing | Core.CastlingRights.BlackQueen,
-            Squares.H8 => Core.CastlingRights.BlackKing,
-            _ => Core.CastlingRights.None
+            Squares.A1 => CastlingRights.WhiteQueen,
+            Squares.E1 => CastlingRights.WhiteKing | CastlingRights.WhiteQueen,
+            Squares.H1 => CastlingRights.WhiteKing,
+            Squares.A8 => CastlingRights.BlackQueen,
+            Squares.E8 => CastlingRights.BlackKing | CastlingRights.BlackQueen,
+            Squares.H8 => CastlingRights.BlackKing,
+            _ => CastlingRights.None
         };
         if (m.CapturePiece != Piece.None)
             removedCastling |= m.CaptureIndex switch
             {
-                Squares.A1 => Core.CastlingRights.WhiteQueen,
-                Squares.H1 => Core.CastlingRights.WhiteKing,
-                Squares.A8 => Core.CastlingRights.BlackQueen,
-                Squares.H8 => Core.CastlingRights.BlackKing,
-                _ => Core.CastlingRights.None
+                Squares.A1 => CastlingRights.WhiteQueen,
+                Squares.H1 => CastlingRights.WhiteKing,
+                Squares.A8 => CastlingRights.BlackQueen,
+                Squares.H8 => CastlingRights.BlackKing,
+                _ => CastlingRights.None
             };
 
         return CastlingRights & ~removedCastling;
