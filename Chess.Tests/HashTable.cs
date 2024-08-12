@@ -19,7 +19,7 @@ public class HashTable
     public void Should_Add_Move()
     {
         ulong x = 0x1337_d3ad_b33f_0f13;
-        var entry = tt.Add(x, 1, 199, TranspositionTable.Alpha);
+        var entry = tt.Add(x, 1, 199, TranspositionTable.LowerBound);
 
         entry.IsSet.Should().BeTrue();
         entry.Evaluation.Should().Be(199);

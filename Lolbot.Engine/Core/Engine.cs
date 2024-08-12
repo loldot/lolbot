@@ -45,22 +45,18 @@ public static class Engine
     }
 
 
-    public static int Evaluate(Position position, int color)
+    public static int Evaluate(Position position)
     {
         var eval = 0;
-
-        // if (moves.Length == 0)
-        // {
-        //     return position.IsCheck ? -999_999 : 0;
-        // }
+        int color = position.CurrentPlayer == Color.White ? 1 : -1;
 
         // if (position.IsCheck)
         // {
         //     eval -= position.CurrentPlayer == Color.White ? 50 : -50;
         // }
 
-        // eval += Heuristics.Mobility(position, Color.White);
-        // eval -= Heuristics.Mobility(position, Color.Black);
+        eval += Heuristics.Mobility(position, Color.White);
+        eval -= Heuristics.Mobility(position, Color.Black);
 
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
@@ -91,7 +87,7 @@ public static class Engine
             depth++;
         }
 
-        Console.WriteLine($"info tt fill factor: {tt.FillFactor}");
+        Console.WriteLine($"info tt fill factor: {tt.FillFactor:P3}");
         Console.WriteLine($"info tt set count: {tt.set_count}");
         Console.WriteLine($"info tt rewrite count: {tt.rewrite_count}");
         Console.WriteLine($"info tt collision count: {tt.collision_count}");
@@ -125,7 +121,7 @@ public static class Engine
             var nextPosition = position.Move(move);
 
             history.Update(move, nextPosition.Hash);
-            var eval = -EvaluateMove(history, nextPosition, depth, -beta, -alpha, 1);
+            var eval = -EvaluateMove(history, ref nextPosition, depth, -beta, -alpha, -1);
             history.Unwind();
 
             if (eval > bestEval)
@@ -135,7 +131,7 @@ public static class Engine
                 alpha = Max(alpha, eval);
             }
         }
-        Console.WriteLine($"info score cp {bestEval} depth {depth}");
+        Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove}");
 
         return bestMove;
     }
@@ -152,7 +148,7 @@ public static class Engine
         }
     }
 
-    public static int EvaluateMove(RepetitionTable history, Position position, int depth, int alpha, int beta, int color)
+    public static int EvaluateMove(RepetitionTable history, ref Position position, int depth, int alpha, int beta, int color)
     {
         var eval = -999_999;
         var alphaOrig = alpha;
@@ -162,9 +158,9 @@ public static class Engine
         {
             if (ttEntry.Type == TranspositionTable.Exact)
                 return ttEntry.Evaluation;
-            else if (ttEntry.Type == TranspositionTable.Beta)
+            else if (ttEntry.Type == TranspositionTable.LowerBound)
                 alpha = Max(alpha, ttEntry.Evaluation);
-            else if (ttEntry.Type == TranspositionTable.Alpha)
+            else if (ttEntry.Type == TranspositionTable.UpperBound)
                 beta = Min(beta, ttEntry.Evaluation);
 
             if (alpha >= beta)
@@ -174,7 +170,7 @@ public static class Engine
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(ref position, ref moves);
 
-        if (count == 0) return position.IsCheck ? eval - depth : 0;
+        if (count == 0) return position.IsCheck ? (-16384 - depth) : 0;
         if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
 
         moves = moves[..count];
@@ -185,7 +181,7 @@ public static class Engine
             var nextPosition = position.Move(moves[i]);
             history.Update(moves[i], nextPosition.Hash);
 
-            eval = Max(eval, -EvaluateMove(history, nextPosition, depth - 1, -beta, -alpha, -color));
+            eval = Max(eval, -EvaluateMove(history, ref nextPosition, depth - 1, -beta, -alpha, -color));
 
             history.Unwind();
             alpha = Max(eval, alpha);
@@ -193,8 +189,8 @@ public static class Engine
         }
 
         byte ttType;
-        if (eval <= alphaOrig) ttType = TranspositionTable.Alpha;
-        else if (eval >= beta) ttType = TranspositionTable.Beta;
+        if (eval <= alphaOrig) ttType = TranspositionTable.UpperBound;
+        else if (eval >= beta) ttType = TranspositionTable.LowerBound;
         else ttType = TranspositionTable.Exact;
 
         tt.Add(position.Hash, depth, eval, ttType);
@@ -210,7 +206,7 @@ public static class Engine
         moves = moves[..count];
         moves.Sort(MoveComparer);
 
-        var standPat = Evaluate(position, color);
+        var standPat = Evaluate(position);
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;

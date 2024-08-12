@@ -5,8 +5,8 @@ namespace Lolbot.Core;
 
 public class TranspositionTable
 {
-    public static readonly byte Alpha = 1;
-    public static readonly byte Beta = 2;
+    public static readonly byte UpperBound = 1;
+    public static readonly byte LowerBound = 2;
     public static readonly byte Exact = 3;
 
     public static readonly ulong BucketMask = 0xff;
@@ -15,7 +15,7 @@ public class TranspositionTable
     public int collision_count = 0;
     public int rewrite_count = 0;
 
-    public double FillFactor => set_count / (256.0 * (ushort.MaxValue + 1));
+    public double FillFactor => set_count / (256.0 * ushort.MaxValue);
 
 
     public readonly struct Entry
@@ -36,7 +36,7 @@ public class TranspositionTable
 
         override public string ToString()
         {
-            return $"d:{Depth}, alpha: {Evaluation}, beta: {Beta}";
+            return $"d:{Depth}, alpha: {Evaluation}, beta: {LowerBound}";
         }
     }
 
@@ -45,13 +45,13 @@ public class TranspositionTable
     {
         for (int i = 0; i < entries.Length; i++)
         {
-            entries[i] = new Entry[ushort.MaxValue + 1];
+            entries[i] = new Entry[ushort.MaxValue];
         }
     }
 
     public Entry Add(ulong hash, int depth, int eval, byte type)
     {
-        var index = hash.GetHashCode() & 0xffff;
+        var index = (hash & 0xfffe0000) >> 16;
 
         Debug.Assert(index <= ushort.MaxValue);
 
@@ -65,7 +65,7 @@ public class TranspositionTable
 
     public Entry Get(ulong hash)
     {
-        var index = hash.GetHashCode() & 0xffff;
+        var index = (hash & 0xfffe0000) >> 16;
 
         Debug.Assert(index <= ushort.MaxValue);
 

@@ -243,7 +243,6 @@ public readonly record struct Position
             .ToArray();
     }
 
-    [Obsolete]
     public Span<Move> GenerateLegalMoves()
     {
         const int max_moves = 218;
