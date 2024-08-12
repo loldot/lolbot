@@ -27,7 +27,7 @@ public class GameHub : Hub
         GameDatabase.Instance.Update(message.GameId, updated);
         await Clients.AllExcept([Context.ConnectionId]).SendAsync("movePlayed", message);
 
-        var nextMove = Engine.Reply(updated);
+        var nextMove = Engine.BestMove(updated);
         if (nextMove is null)
         {
             await Clients.All.SendAsync("finished", new { Winner = "w" });

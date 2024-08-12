@@ -2,8 +2,8 @@
 using System.Text.RegularExpressions;
 using Lolbot.Core;
 
-// FileStream logfile = File.OpenWrite("log.txt");
-// StreamWriter log = new(logfile);
+FileStream logfile = File.OpenWrite("log.txt");
+StreamWriter log = new(logfile);
 
 string command;
 Game game = Engine.NewGame();
@@ -11,8 +11,8 @@ Game game = Engine.NewGame();
 while (true)
 {
     command = Console.ReadLine() ?? "quit";
-    // log.WriteLine(command);
-    // log.Flush();
+    log.WriteLine(command);
+    log.Flush();
 
     if (command == "quit") break;
     else if (command == "uci") Uci();
@@ -63,6 +63,7 @@ Game SetPosition(string command)
 
 void Go(string command)
 {
+    Engine.ClearTT();
     var tokens = Regex.Split(command, @"\s");
 
     int wtime = 2_000; int winc = 0;

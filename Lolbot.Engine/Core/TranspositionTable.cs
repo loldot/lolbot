@@ -24,7 +24,7 @@ public class TranspositionTable
         public readonly bool IsSet;
         public readonly int Depth, Evaluation;
         public readonly ulong Key;
-        
+
         public Entry(ulong key, int depth, int eval, byte type)
         {
             Key = key;
@@ -76,5 +76,17 @@ public class TranspositionTable
     {
         entry = Get(hash);
         return entry.IsSet && entry.Depth >= depth && hash == entry.Key;
+    }
+
+    internal void Clear()
+    {
+        for (int i = 0; i < entries.Length; i++)
+        {
+            entries[i] = new Entry[ushort.MaxValue];
+        }
+
+        set_count = 0;
+        collision_count = 0;
+        rewrite_count = 0;
     }
 }

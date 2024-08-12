@@ -6,10 +6,10 @@ namespace Lolbot.Core;
 public static class Heuristics
 {
     private static readonly int[] GamePhaseInterpolation = [
-         0,  0,  0,  0, 0,  0,  0,  0,  
-         1,  1,  2,  3, 5,  8, 13, 21, 
-        34, 55, 69, 76, 81, 85, 88, 91, 
-        93, 94, 95, 96, 97, 98, 99, 99, 100
+         0,  0,  0,  0,  0,  0,  0,  0,  
+         4,  8, 16, 20, 24, 28, 32, 36, 
+        40, 44, 48, 52, 56, 60, 64, 68, 
+        72, 76, 80, 84, 88, 92, 96, 100, 100
     ];
 
     public static int[] PieceValues = [0, 100, 300, 325, 500, 900, 9_999];

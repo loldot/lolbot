@@ -236,4 +236,5 @@ public static class Engine
         return score;
     }
 
+    internal static void ClearTT() => tt.Clear();
 }
