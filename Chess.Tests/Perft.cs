@@ -55,24 +55,7 @@ public class Perft
     [TestCase(pos8, 2, 1_908)]
     public void PerftCounts(string fen, int depth, int expectedCount)
     {
-        var perft = GetPerftCounts(Position.FromFen(fen), depth);
+        var perft = Engine.Perft(Position.FromFen(fen), depth);
         perft.Should().Be(expectedCount);
-    }
-
-    private static int GetPerftCounts(Position position, int remainingDepth = 4, int split = 0)
-    {
-        Span<Move> moves = stackalloc Move[218];
-        var currentCount = MoveGenerator.Legal(ref position, ref moves);
-        var count = 0;
-
-        if (remainingDepth == 1) return currentCount;
-
-        for (int i = 0; i < currentCount; i++)
-        {
-            var posCount = GetPerftCounts(position.Move(moves[i]), remainingDepth - 1);
-            if (remainingDepth == split) Console.WriteLine($"{moves[i]}: {posCount}");
-            count += posCount;
-        }
-        return count;
     }
 }

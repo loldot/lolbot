@@ -2,8 +2,8 @@
 using System.Text.RegularExpressions;
 using Lolbot.Core;
 
-FileStream logfile = File.OpenWrite("log.txt");
-StreamWriter log = new(logfile);
+// FileStream logfile = File.OpenWrite("log.txt");
+// StreamWriter log = new(logfile);
 
 string command;
 Game game = Engine.NewGame();
@@ -11,15 +11,30 @@ Game game = Engine.NewGame();
 while (true)
 {
     command = Console.ReadLine() ?? "quit";
-    log.WriteLine(command);
-    log.Flush();
+    // log.WriteLine(command);
+    // log.Flush();
 
     if (command == "quit") break;
     else if (command == "uci") Uci();
     else if (command == "isready") IsReady();
     else if (command.StartsWith("position")) game = SetPosition(command);
     else if (command.StartsWith("go")) Go(command);
+    else if (command.StartsWith("perft")) Perft(command);
     else Unknown(command);
+}
+
+void Perft(string command)
+{   
+    var tokens = Regex.Split(command, @"\s");
+    int depth = 6;
+
+    if (tokens.Length > 1) depth = int.Parse(tokens[1]);
+
+    var start = DateTime.Now;
+    var count = Engine.Perft(game.CurrentPosition, depth);
+    var ms = (DateTime.Now - start).TotalMilliseconds;
+    var mNodesPerSec = count / (1_000 * ms);
+    Console.WriteLine($"Total nodes: {count}, Elapsed: {ms:N0}ms, ({mNodesPerSec:N0} mnodes/s)");
 }
 
 void Uci()
@@ -77,8 +92,8 @@ void Go(string command)
         if (tokens[i] == "binc") binc = int.Parse(tokens[++i]);
     }
 
-    var (timeleft, increment) = game.CurrentPlayer == Color.White 
-        ? (wtime, winc) 
+    var (timeleft, increment) = game.CurrentPlayer == Color.White
+        ? (wtime, winc)
         : (btime, binc);
 
     var timer = new CancellationTokenSource(timeleft / 20 + increment / 2);

@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Lolbot.Core;
 
-public readonly record struct Position
+public readonly struct Position
 {
     public readonly Color CurrentPlayer { get; init; } = Color.White;
     
@@ -129,19 +129,19 @@ public readonly record struct Position
         var next = CurrentPlayer == Color.White ? Color.Black : Color.White;
         ulong bitboard = this[m.FromPiece];
 
-        var update = m.FromSquare | m.ToSquare;
-        var capture = m.CapturePiece != Piece.None ? m.CaptureSquare : 0;
+        var moveMask = m.FromSquare | m.ToSquare;
+        var captureMask = m.CapturePiece != Piece.None ? m.CaptureSquare : 0;
 
-        var position = Update(m.FromPiece, bitboard ^ update)
-            .Update(m.CapturePiece, this[m.CapturePiece] ^ capture) with
+        var position = Update(m.FromPiece, bitboard ^ moveMask)
+            .Update(m.CapturePiece, this[m.CapturePiece] ^ captureMask) with
         {
             CastlingRights = ApplyCastlingRights(ref m),
             EnPassant = SetEnPassant(ref m),
 
-            Occupied = Occupied ^ update ^ capture,
-            Empty = ~(Occupied ^ update ^ capture),
-            White = (CurrentPlayer == Color.White) ? White ^ update : White ^ capture,
-            Black = (CurrentPlayer == Color.Black) ? Black ^ update : Black ^ capture,
+            Occupied = Occupied ^ moveMask ^ captureMask,
+            Empty = ~(Occupied ^ moveMask ^ captureMask),
+            White = (CurrentPlayer == Color.White) ? White ^ moveMask : White ^ captureMask,
+            Black = (CurrentPlayer == Color.Black) ? Black ^ moveMask : Black ^ captureMask,
 
             CurrentPlayer = next
         };
@@ -153,14 +153,14 @@ public readonly record struct Position
         }
         if (m.CastleIndex != 0)
         {
-            var w_castle = Castle(Bitboards.Masks.Rank_1 ^ Bitboards.Create("a1", "h1"), m);
-            var b_castle = Castle(Bitboards.Masks.Rank_8 ^ Bitboards.Create("a8", "h8"), m);
+            var w_castle = Castle(0x7e, m);
+            var b_castle = Castle(0x7e00000000000000, m);
             position = position with
             {
                 WhiteRooks = position.WhiteRooks ^ w_castle,
                 BlackRooks = position.BlackRooks ^ b_castle,
-                White = position.White ^ (w_castle | capture),
-                Black = position.Black ^ (b_castle | capture),
+                White = position.White ^ (w_castle | captureMask),
+                Black = position.Black ^ (b_castle | captureMask),
                 Occupied = position.Occupied ^ (w_castle | b_castle)
             };
         }

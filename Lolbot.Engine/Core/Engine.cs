@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using static System.Math;
 
 namespace Lolbot.Core;
@@ -67,6 +68,23 @@ public static class Engine
             eval -= Heuristics.GetPieceValue(i, position[i], position.Occupied);
         }
         return color * eval;
+    }
+
+    public static int Perft(in Position position, int remainingDepth = 4, int split = 0)
+    {
+        Span<Move> moves = stackalloc Move[218];
+        var currentCount = MoveGenerator.Legal(in position, ref moves);
+        var count = 0;
+
+        if (remainingDepth == 1) return currentCount;
+
+        for (int i = 0; i < currentCount; i++)
+        {
+            var posCount = Perft(position.Move(moves[i]), remainingDepth - 1);
+            if (remainingDepth == split) Console.WriteLine($"{moves[i]}: {posCount}");
+            count += posCount;
+        }
+        return count;
     }
 
     public static Move? BestMove(Game game)
@@ -198,11 +216,11 @@ public static class Engine
         return eval;
     }
 
-    private static int QuiesenceSearch(Position position, int alpha, int beta, int color)
+    private static int QuiesenceSearch(in Position position, int alpha, int beta, int color)
     {
         Span<Move> moves = stackalloc Move[218];
 
-        var count = MoveGenerator.Captures(ref position, ref moves);
+        var count = MoveGenerator.Captures(in position, ref moves);
         moves = moves[..count];
         moves.Sort(MoveComparer);
 
@@ -223,6 +241,8 @@ public static class Engine
         return alpha;
     }
 
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int MoveComparer(Move x, Move y)
     {
         int score = 0;
@@ -235,6 +255,8 @@ public static class Engine
 
         return score;
     }
+
+
 
     internal static void ClearTT() => tt.Clear();
 }

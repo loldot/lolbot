@@ -120,6 +120,11 @@ public class Evaluations
         bestmove.Should().Be(new Move('K', "e4", "d5"));
     }
 
+    [Test]
+    public void Should_Win_Easy_EndGame()
+    {
+        var bm = GetBestMove("8/1p4p1/8/4kp1p/1p5P/1K6/5PP1/8 b - - 0 1");
+    }
 
     private Move? GetBestMove(string fen)
     {

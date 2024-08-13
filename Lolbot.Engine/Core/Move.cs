@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Lolbot.Core;
 
 public readonly struct Move : IEquatable<Move>
@@ -14,13 +16,13 @@ public readonly struct Move : IEquatable<Move>
     public readonly ulong ToSquare => Squares.FromIndex(in ToIndex);
     public readonly ulong CaptureSquare => CapturePiece == Piece.None ? 0 : Squares.FromIndex(in CaptureIndex);
 
-    public readonly ulong CastleSquare => CastleFlag == Core.CastlingRights.None ? 0 : Squares.FromIndex(CastleIndex);
+    public readonly ulong CastleSquare => CastleFlag == CastlingRights.None ? 0 : Squares.FromIndex(CastleIndex);
     public readonly byte CastleIndex => CastleFlag switch
     {
-        Core.CastlingRights.WhiteKing => Squares.F1,
-        Core.CastlingRights.WhiteQueen => Squares.D1,
-        Core.CastlingRights.BlackKing => Squares.F8,
-        Core.CastlingRights.BlackQueen => Squares.D8,
+        CastlingRights.WhiteKing => Squares.F1,
+        CastlingRights.WhiteQueen => Squares.D1,
+        CastlingRights.BlackKing => Squares.F8,
+        CastlingRights.BlackQueen => Squares.D8,
         _ => 0
     };
 
@@ -104,27 +106,27 @@ public readonly struct Move : IEquatable<Move>
         Piece.WhiteKing, Squares.E1,
         Squares.G1,
         Piece.WhiteRook, Squares.H1,
-        Core.CastlingRights.WhiteKing
+        CastlingRights.WhiteKing
     );
 
     private static readonly Move BlackCastle = new(
         Piece.BlackKing, Squares.E8,
         Squares.G8,
         Piece.BlackRook, Squares.H8,
-        Core.CastlingRights.BlackKing
+        CastlingRights.BlackKing
     );
 
     private static readonly Move WhiteQueenCastle = new(
         Piece.WhiteKing, Squares.E1,
         Squares.C1,
         Piece.WhiteRook, Squares.A1,
-        Core.CastlingRights.WhiteQueen
+        CastlingRights.WhiteQueen
     );
     private static readonly Move BlackQueenCastle = new(
         Piece.BlackKing, Squares.E8,
         Squares.C8,
         Piece.BlackRook, Squares.A8,
-        Core.CastlingRights.BlackQueen
+        CastlingRights.BlackQueen
     );
 
 

@@ -6,9 +6,9 @@ namespace Lolbot.Core;
 public static class Heuristics
 {
     private static readonly int[] GamePhaseInterpolation = [
-         0,  0,  0,  0,  0,  0,  0,  0,  
-         4,  8, 16, 20, 24, 28, 32, 36, 
-        40, 44, 48, 52, 56, 60, 64, 68, 
+         0,  0,  0,  0,  0,  0,  0,  0,
+         4,  8, 16, 20, 24, 28, 32, 36,
+        40, 44, 48, 52, 56, 60, 64, 68,
         72, 76, 80, 84, 88, 92, 96, 100, 100
     ];
 
@@ -223,6 +223,7 @@ public static class Heuristics
         return (int)Math.Sqrt(movecount);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int MVV_LVA(Piece capture, Piece attacker)
         => mmvlva[0xf & (byte)capture][0xf & (byte)attacker];
 

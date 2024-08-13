@@ -1,6 +1,6 @@
 namespace Lolbot.Core;
 
-public record Game(Position InitialPosition, Move[] Moves)
+public sealed record Game(Position InitialPosition, Move[] Moves)
 {
     public Game() : this(new Position(), []) { }
 
