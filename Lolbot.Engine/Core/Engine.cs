@@ -186,6 +186,7 @@ public static class Engine
             if (alpha >= beta)
                 return ttEntry.Evaluation;
         }
+        else if (depth > 3) depth--;
 
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(ref position, ref moves);
