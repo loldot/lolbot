@@ -78,7 +78,6 @@ Game SetPosition(string command)
 
 void Go(string command)
 {
-    Engine.ClearTT();
     var tokens = Regex.Split(command, @"\s");
 
     int wtime = 2_000; int winc = 0;
