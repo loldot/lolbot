@@ -51,10 +51,10 @@ public static class Engine
         var eval = 0;
         int color = position.CurrentPlayer == Color.White ? 1 : -1;
 
-        // if (position.IsCheck)
-        // {
-        //     eval -= position.CurrentPlayer == Color.White ? 50 : -50;
-        // }
+        if (position.IsCheck)
+        {
+            eval -= color * 50;
+        }
 
         eval += Heuristics.Mobility(position, Color.White);
         eval -= Heuristics.Mobility(position, Color.Black);
@@ -120,6 +120,8 @@ public static class Engine
 
         var history = game.RepetitionTable;
         var position = game.CurrentPosition;
+
+        if (position.IsCheck) depth++;
 
         var count = MoveGenerator.Legal(ref position, ref moves);
         moves = moves[..count];
