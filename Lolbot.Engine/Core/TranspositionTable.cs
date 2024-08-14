@@ -75,7 +75,10 @@ public class TranspositionTable
     public bool TryGet(ulong hash, int depth, out Entry entry)
     {
         entry = Get(hash);
-        return entry.IsSet && entry.Depth >= depth && hash == entry.Key;
+        bool isMatch = entry.IsSet && entry.Depth >= depth && hash == entry.Key;
+        // if (isMatch) Console.WriteLine($"info tt match: {entry.Key:X} [{entry.Type}]");
+
+        return isMatch;
     }
 
     internal void Clear()

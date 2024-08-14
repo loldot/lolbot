@@ -1,4 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace Lolbot.Core;
@@ -6,7 +9,7 @@ namespace Lolbot.Core;
 public readonly struct Position
 {
     public readonly Color CurrentPlayer { get; init; } = Color.White;
-    
+
     public readonly ulong WhitePawns { get; init; } = 0x000000000000ff00;
     public readonly ulong WhiteRooks { get; init; } = Bitboards.Create("A1", "H1");
     public readonly ulong WhiteBishops { get; init; } = Bitboards.Create("C1", "F1");
@@ -61,7 +64,7 @@ public readonly struct Position
 
     public readonly ulong this[byte index]
     {
-        get => index switch 
+        get => index switch
         {
             1 => White,
             2 => Black,
@@ -86,16 +89,16 @@ public readonly struct Position
     public readonly ulong this[Piece piece] => this[(byte)piece];
     public readonly ulong this[Color color]
     {
-        get => this [(byte)color];
+        get => this[(byte)color];
     }
     public readonly ulong this[Color color, PieceType pieceType]
     {
-        get => this [(Piece)((byte)color << 4 | (byte)pieceType)];
+        get => this[(Piece)((byte)color << 4 | (byte)pieceType)];
     }
 
     public readonly ulong this[PieceType pieceType]
     {
-        get => this [(Piece)((byte)CurrentPlayer << 4 | (byte)pieceType)];
+        get => this[(Piece)((byte)CurrentPlayer << 4 | (byte)pieceType)];
     }
 
     public readonly ulong White { get; init; }
@@ -168,13 +171,16 @@ public readonly struct Position
         var (checkmask, checkers) = position.CreateCheckMask(next);
         var (isPinned, pinmasks) = position.CreatePinmasks(next);
 
-        var hash = position.Hash
-            ^ Hashes.GetValue(m.FromPiece, m.FromIndex)
-            ^ Hashes.GetValue(m.FromPiece, m.ToIndex)
-            ^ Hashes.GetValue(m.CapturePiece, m.CaptureIndex)
-            ^ Hashes.GetValue(m.PromotionPiece, m.ToIndex)
-            ^ Hashes.GetValue(position.CastlingRights)
-            ^ Hashes.GetValue(position.CurrentPlayer);
+        var hash = position.Hash;
+        hash ^= Hashes.GetValue(m.FromPiece, m.FromIndex);
+        hash ^= Hashes.GetValue(m.FromPiece, m.ToIndex);
+        hash ^= Hashes.GetValue(m.CapturePiece, m.CaptureIndex);
+        hash ^= Hashes.GetValue(m.PromotionPiece, m.ToIndex);
+        hash ^= Hashes.GetValue(CastlingRights);
+        hash ^= Hashes.GetValue(position.CastlingRights);
+        hash ^= Hashes.GetValue(EnPassant);
+        hash ^= Hashes.GetValue(position.EnPassant);
+        hash ^= Hashes.GetValue(Color.White);
 
         return position with
         {
@@ -224,7 +230,12 @@ public readonly struct Position
         var fromBlack = from & BlackPawns;
         enPassant ^= (fromBlack >> 8) & (to << 8);
 
-        return Squares.ToIndex(enPassant);
+        var nextTo = (to << 1 | to >> 1) & this[~CurrentPlayer] 
+            & (
+                (WhitePawns & Bitboards.Masks.Rank_5) | (Bitboards.Masks.Rank_4 & BlackPawns)
+            );
+
+        return (nextTo != 0) ? Squares.ToIndex(enPassant) : (byte)0;
     }
 
     private static ulong Castle(ulong mask, Move m)

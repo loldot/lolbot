@@ -254,12 +254,20 @@ public partial class Hashes
     }
 
     public static ulong GetValue(Color color) => color == Color.White ? Seeds[ColorOffset] : 0;
+    public static ulong GetValue(byte square)
+    {
+        if (square == 0) return 0;
+
+        return Seeds[EnPassantOffset + (square % 8)];
+    }
+
     public static ulong GetValue(ulong pawnAttackMap, byte square)
     {
         if ((pawnAttackMap & (1ul << square)) == 0) return 0;
 
         return Seeds[EnPassantOffset + (square % 8)];
     }
+
     public static ulong GetValue(Piece piece, byte square)
     {
         if (piece == Piece.None) return 0;

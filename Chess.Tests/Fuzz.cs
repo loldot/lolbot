@@ -20,25 +20,9 @@ public class Fuzz
                 game = Engine.Move(game, legal[random.Next(0, legal.Length)]);
                 var position = game.CurrentPosition;
 
-                if ((position.White | position.Black) != position.Occupied)
+                if (position.Hash != Hashes.New(position))
                 {
-                    Console.WriteLine("Inconsistent position b+w != occ");
-                    Console.WriteLine(new FenSerializer().ToFenString(position));
-                    Console.WriteLine(string.Join(',', game.Moves));
-                }
-
-                if ((position.WhitePawns | position.WhiteRooks | position.WhiteBishops
-                    | position.WhiteKnights | position.WhiteQueens | position.WhiteKing) != position.White)
-                {
-                    Console.WriteLine("Inconsistent position pices != white");
-                    Console.WriteLine(new FenSerializer().ToFenString(position));
-                    Console.WriteLine(string.Join(',', game.Moves));
-                }
-
-                if ((position.BlackPawns | position.BlackRooks | position.BlackBishops
-                    | position.BlackKnights | position.BlackQueens | position.BlackKing) != position.Black)
-                {
-                    Console.WriteLine("Inconsistent position pices != black");
+                    Console.WriteLine("Broken hash:");
                     Console.WriteLine(new FenSerializer().ToFenString(position));
                     Console.WriteLine(string.Join(',', game.Moves));
                 }

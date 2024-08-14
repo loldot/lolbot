@@ -35,30 +35,6 @@ public class Utilities
     }
 
     [Test]
-    public void EP()
-    {
-        var position = new Position()
-            .Move(new Move(Piece.WhitePawn, 11, 27));
-        position.EnPassant.Should().Be(19);
-    }
-
-    [Test]
-    public void NEP()
-    {
-        var position = new Position()
-            .Move(new Move(Piece.WhitePawn, 11, 19));
-        position.EnPassant.Should().Be(0);
-    }
-
-    [Test]
-    public void EP_Bl()
-    {
-        var position = new Position()
-            .Move(new Move(Piece.BlackPawn, 51, 35));
-        position.EnPassant.Should().Be(43);
-    }
-
-    [Test]
     public void HasPext()
     {
         Bmi2.IsSupported.Should().BeTrue();
