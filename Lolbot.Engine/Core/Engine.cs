@@ -7,6 +7,7 @@ public static class Engine
 {
     const int Max_Depth = 64;
     private static readonly TranspositionTable tt = new TranspositionTable();
+    private static readonly int[] historyHeuristic = new int[4096];
 
     public static void Init()
     {
@@ -206,7 +207,11 @@ public static class Engine
 
             history.Unwind();
             alpha = Max(eval, alpha);
-            if (alpha >= beta) break;
+            if (alpha >= beta)
+            {
+                historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
+                break;
+            }
         }
 
         byte ttType;
@@ -252,9 +257,11 @@ public static class Engine
 
         score -= Heuristics.GetPieceValue(x.PromotionPiece);
         score -= Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
+        score -= historyHeuristic[64 * x.FromIndex + x.ToIndex];
 
         score += Heuristics.GetPieceValue(y.PromotionPiece);
         score += Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
+        score += historyHeuristic[64 * y.FromIndex + y.ToIndex];
 
         return score;
     }
