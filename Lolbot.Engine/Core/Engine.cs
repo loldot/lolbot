@@ -131,9 +131,7 @@ public static class Engine
         var bestEval = -999_999;
         var bestMove = currentBest;
 
-        var alpha = -999_999;
-        var beta = 999_999;
-
+        var (alpha, beta) = (-999_999, 999_999);
         for (int i = 0; i < count; i++)
         {
             if (ct.IsCancellationRequested) break;
@@ -141,8 +139,19 @@ public static class Engine
             var move = moves[i];
             var nextPosition = position.Move(move);
 
+            int eval;
             history.Update(move, nextPosition.Hash);
-            var eval = -EvaluateMove(history, ref nextPosition, depth, -beta, -alpha, -1);
+            if (i == 0)
+            {
+                eval = -EvaluateMove(history, ref nextPosition, depth, -beta, -alpha, -1);
+            }
+            else
+            {
+                eval = -EvaluateMove(history, ref nextPosition, depth, -alpha - 1, -alpha, -1);
+                if (eval > alpha && beta - alpha > 1)
+                    eval = -EvaluateMove(history, ref nextPosition, depth, -beta, -alpha, -1);
+            }
+
             history.Unwind();
 
             if (eval > bestEval)
