@@ -121,6 +121,25 @@ public class Evaluations
     }
 
     [Test]
+    public void Should_Find_Zugzwang()
+    {
+        var position = Position.FromFen("6k1/1rp2b2/1p1p2p1/3P1p1p/2P1p2Q/7R/5PPP/2q2BK1 w - - 0 1");
+        var game = new Game(position, []);
+
+
+        var bestmove = Engine.BestMove(game);
+        bestmove.Should().Be(new Move('Q', "h4", "d8"));
+
+        game = Engine.Move(game, bestmove!.Value);
+        
+        bestmove = Engine.BestMove(game);
+        game = Engine.Move(game, bestmove!.Value);
+
+        bestmove = Engine.BestMove(game);
+        bestmove.Should().Be(new Move('Q', "d8", "a8"));
+    }
+
+    [Test]
     public void Should_Win_Easy_EndGame()
     {
         var bm = GetBestMove("8/1p4p1/8/4kp1p/1p5P/1K6/5PP1/8 b - - 0 1");

@@ -12,13 +12,11 @@ public static class Heuristics
         72, 76, 80, 84, 88, 92, 96, 100, 100
     ];
 
-    public static int[] PieceValues = [0, 100, 300, 325, 500, 900, 9_999];
+    // https://lichess.org/@/ubdip/blog/finding-the-value-of-pieces/PByOBlNB
+    // https://lichess.org/@/ubdip/blog/comments-on-piece-values/Ps9kghhO
+    public static int[] PieceValues = [0, 100, 316, 328, 493, 982, 9_999];
 
     private static readonly int[][] mmvlva = new int[7][];
-
-    public static readonly PieceSquareTables Opening = new PieceSquareTables();
-    public static readonly PieceSquareTables EndGame = new PieceSquareTables();
-
 
     static Heuristics()
     {
@@ -36,169 +34,6 @@ public static class Heuristics
                 mmvlva[i][j] = val;
             }
         }
-
-        #region Opening Piece Square Tables
-        Opening.SetBonus(Piece.WhitePawn, [
-            (0x1800, -20),
-            (0x240000, -10),
-            (0x420000, -5),
-            (0xc32400006600, 10),
-            (0x1818000000, 20),
-            (Bitboards.Masks.Rank_7, 50)
-        ]);
-        Opening.SetBonus(Piece.BlackPawn, [
-            (Bitboards.FlipAlongVertical(0x1800), -20),
-            (Bitboards.FlipAlongVertical(0x240000), -10),
-            (Bitboards.FlipAlongVertical(0x420000), -5),
-            (Bitboards.FlipAlongVertical(0xc32400006600), 10),
-            (Bitboards.FlipAlongVertical(0x1818000000), 20),
-            (Bitboards.Masks.Rank_2, 50)
-        ]);
-
-        Opening.SetBonus(Piece.WhiteKnight, [
-            (Bitboards.Masks.Corners, -10),
-            (0x7e424242427e00, +5),
-            (0x3c3c3c3c0000, +15)
-        ]);
-        Opening.SetBonus(Piece.BlackKnight, [
-            (Bitboards.Masks.Corners, -10),
-            (Bitboards.FlipAlongVertical(0x7e424242427e00), +5),
-            (Bitboards.FlipAlongVertical(0x3c3c3c3c0000), +15)
-        ]);
-
-        Opening.SetBonus(Piece.WhiteBishop, [
-            (Bitboards.Masks.Edges, -10),
-            (0x42000066244200, +5),
-            (0x7e3c18180000, +10)
-        ]);
-        Opening.SetBonus(Piece.BlackBishop, [
-            (Bitboards.Masks.Edges, -10),
-            (Bitboards.FlipAlongVertical(0x42000066244200), +5),
-            (Bitboards.FlipAlongVertical(0x7e3c18180000), +10)
-        ]);
-
-        Opening.SetBonus(Piece.WhiteRook, [
-            (Bitboards.Masks.Rank_7, +25),
-            (Bitboards.Create(Squares.D1, Squares.E1), +10),
-            (Bitboards.Create(Squares.F1), +5),
-        ]);
-        Opening.SetBonus(Piece.BlackRook, [
-            (Bitboards.Masks.Rank_2, +25),
-            (Bitboards.Create(Squares.D8, Squares.E8), +10),
-            (Bitboards.Create(Squares.F8), +5),
-        ]);
-
-        Opening.SetBonus(Piece.WhiteQueen, [
-            (0x3c3c3c3e0400, +5),
-            (0x1800008180000018, -5),
-            (0x6681810000818166, -10),
-            (Bitboards.Masks.Corners, -20)
-        ]);
-        Opening.SetBonus(Piece.BlackQueen, [
-            (Bitboards.FlipAlongVertical(0x3c3c3c3e0400), +5),
-            (Bitboards.FlipAlongVertical(0x1800008180000018), -5),
-            (Bitboards.FlipAlongVertical(0x6681810000818166), -10),
-            (Bitboards.Masks.Corners, -20)
-        ]);
-
-        Opening.SetBonus(Piece.WhiteKing, [
-            (0x1818181800000000, -50),
-            (0x6666666618000000, -40),
-            (0x8181818166000000, -30),
-            (0x817e0000, -20),
-            (0xc381, 20),
-            (0x42, 35)
-        ]);
-        Opening.SetBonus(Piece.BlackKing, [
-            (Bitboards.FlipAlongVertical(0x1818181800000000), -50),
-            (Bitboards.FlipAlongVertical(0x6666666618000000), -40),
-            (Bitboards.FlipAlongVertical(0x8181818166000000), -30),
-            (Bitboards.FlipAlongVertical(0x817e0000), -20),
-            (Bitboards.FlipAlongVertical(0xc381), 20),
-            (Bitboards.FlipAlongVertical(0x42), 35)
-        ]);
-        #endregion
-
-        #region Endgame Piece Square Tables
-        EndGame.SetBonus(Piece.WhitePawn, [
-            (0xc3000000000000, +175),
-            (0x3c000000000000, +160),
-            (0x3c0000000000, +120),
-            (0xc30000000000, +95),
-            (0x3ca58100, -5),
-            (0x7e42420000, -10)
-        ]);
-
-        EndGame.SetBonus(Piece.BlackPawn, [
-            (Bitboards.FlipAlongVertical(0xc3000000000000), +175),
-            (Bitboards.FlipAlongVertical(0x3c000000000000), +160),
-            (Bitboards.FlipAlongVertical(0x3c0000000000), +120),
-            (Bitboards.FlipAlongVertical(0xc30000000000), +95),
-            (Bitboards.FlipAlongVertical(0x3ca58100), -5),
-            (Bitboards.FlipAlongVertical(0x7e42420000), -10)
-        ]);
-
-        EndGame.SetBonus(Piece.WhiteKnight, [
-            (Bitboards.Masks.Corners, -10),
-            (0x7e424242427e00, +5),
-            (0x3c3c3c3c0000, +15)
-        ]);
-        EndGame.SetBonus(Piece.BlackKnight, [
-            (Bitboards.Masks.Corners, -10),
-            (Bitboards.FlipAlongVertical(0x7e424242427e00), +5),
-            (Bitboards.FlipAlongVertical(0x3c3c3c3c0000), +15)
-        ]);
-
-        EndGame.SetBonus(Piece.WhiteBishop, [
-            (Bitboards.Masks.Edges, -10),
-            (0x42000066244200, +5),
-            (0x7e3c18180000, +10)
-        ]);
-        EndGame.SetBonus(Piece.BlackBishop, [
-            (Bitboards.Masks.Edges, -10),
-            (Bitboards.FlipAlongVertical(0x42000066244200), +5),
-            (Bitboards.FlipAlongVertical(0x7e3c18180000), +10)
-        ]);
-
-        EndGame.SetBonus(Piece.WhiteRook, [
-            (Bitboards.Masks.Rank_7, +25),
-            (Bitboards.Create(Squares.D1, Squares.E1), +10),
-            (Bitboards.Create(Squares.F1), +5),
-        ]);
-        EndGame.SetBonus(Piece.BlackRook, [
-            (Bitboards.Masks.Rank_2, +25),
-            (Bitboards.Create(Squares.D8, Squares.E8), +10),
-            (Bitboards.Create(Squares.F8), +5),
-        ]);
-
-        EndGame.SetBonus(Piece.WhiteQueen, [
-            (0x3c3c3c3e0400, +5),
-            (0x1800008180000018, -5),
-            (0x6681810000818166, -10),
-            (Bitboards.Masks.Corners, -20)
-        ]);
-        EndGame.SetBonus(Piece.BlackQueen, [
-            (Bitboards.FlipAlongVertical(0x3c3c3c3e0400), +5),
-            (Bitboards.FlipAlongVertical(0x1800008180000018), -5),
-            (Bitboards.FlipAlongVertical(0x6681810000818166), -10),
-            (Bitboards.Masks.Corners, -20)
-        ]);
-
-        EndGame.SetBonus(Piece.WhiteKing, [
-            (Bitboards.Masks.Corners, -50),
-            (0x81818181817e, -25),
-            (0x42427e00, -5),
-            (0x7e7e3c3c3c0000, +10)
-        ]);
-
-        EndGame.SetBonus(Piece.BlackKing, [
-            (Bitboards.Masks.Corners, -50),
-            (Bitboards.FlipAlongVertical(0x81818181817e), -25),
-            (Bitboards.FlipAlongVertical(0x42427e00), -5),
-            (Bitboards.FlipAlongVertical(0x7e7e3c3c3c0000), +10)
-        ]);
-
-        #endregion
     }
 
     public static int Mobility(Position position, Color color)
@@ -235,34 +70,142 @@ public static class Heuristics
         var pieceCount = Math.Max(Bitboards.CountOccupied(occupied), 0);
         var phase = GamePhaseInterpolation[pieceCount];
 
-        var openingBonus = Opening.GetBonus(piece, bitboard);
-        var endgameBonus = EndGame.GetBonus(piece, bitboard);
+        int eval = 0;
+        while (bitboard != 0)
+        {
+            var sq = Bitboards.PopLsb(ref bitboard);
+            var openingBonus = PieceSquareTables.GetOpeningBonus(piece, sq);
+            var endgameBonus = PieceSquareTables.GetEndgameBonus(piece, sq);
+            eval += GetPieceValue(piece) + (phase * openingBonus + (100 - phase) * endgameBonus) / 100;
+        }
 
-        var bonus = (phase * openingBonus + (100 - phase) * endgameBonus) / 100;
-
-        return Bitboards.CountOccupied(bitboard) * GetPieceValue(piece) + bonus;
+        return eval;
     }
 }
 
-public sealed class PieceSquareTables
+public static class PieceSquareTables
 {
-    (ulong bitboard, int bonus)[][] tables = new (ulong, int)[0x27][];
+    // https://www.chessprogramming.org/Simplified_Evaluation_Function
 
-    public void SetBonus(Piece piece, (ulong, int)[] squarebonus)
+    // Pawn piece-square table
+    public static readonly int[] PawnTable =
+    [
+        0,  0,  0,  0,  0,  0,  0,  0,
+        5, 10, 10,-20,-20, 10, 10,  5,
+        5, -5,-10,  0,  0,-10, -5,  5,
+        0,  0,  0, 20, 20,  0,  0,  0,
+        5,  5, 10, 25, 25, 10,  5,  5,
+        10, 10, 20, 30, 30, 20, 10, 10,
+        50, 50, 50, 50, 50, 50, 50, 50,
+        0,  0,  0,  0,  0,  0,  0,  0,
+    ];
+
+    // Knight piece-square table
+    public static readonly int[] KnightTable =
+    [
+        -50,-40,-30,-30,-30,-30,-40,-50,
+        -40,-20,  0,  5,  5,  0,-20,-40,
+        -30,  5, 10, 15, 15, 10,  5,-30,
+        -30,  0, 15, 20, 20, 15,  0,-30,
+        -30,  5, 15, 20, 20, 15,  5,-30,
+        -30,  0, 10, 15, 15, 10,  0,-30,
+        -40,-20,  0,  0,  0,  0,-20,-40,
+        -50,-40,-30,-30,-30,-30,-40,-50,
+    ];
+
+    // Bishop piece-square table
+    public static readonly int[] BishopTable =
+    [
+        -20,-10,-10,-10,-10,-10,-10,-20,
+        -10,  5,  0,  0,  0,  0,  5,-10,
+        -10, 10, 10, 10, 10, 10, 10,-10,
+        -10,  0, 10, 10, 10, 10,  0,-10,
+        -10,  5,  5, 10, 10,  5,  5,-10,
+        -10,  0,  5, 10, 10,  5,  0,-10,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -20,-10,-10,-10,-10,-10,-10,-20,
+    ];
+
+    // Rook piece-square table
+    public static readonly int[] RookTable =
+    [
+        0,  0,  0,  5,  5,  0,  0,  0,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        -5,  0,  0,  0,  0,  0,  0, -5,
+        5, 10, 10, 10, 10, 10, 10,  5,
+        0,  0,  0,  0,  0,  0,  0,  0,
+    ];
+
+    // Queen piece-square table
+    public static readonly int[] QueenTable =
+    [
+        -20,-10,-10, -5, -5,-10,-10,-20,
+        -10,  0,  5,  0,  0,  0,  0,-10,
+        -10,  5,  5,  5,  5,  5,  0,-10,
+        0,  0,  5,  5,  5,  5,  0, -5,
+        -5,  0,  5,  5,  5,  5,  0, -5,
+        -10,  0,  5,  5,  5,  5,  0,-10,
+        -10,  0,  0,  0,  0,  0,  0,-10,
+        -20,-10,-10, -5, -5,-10,-10,-20,
+    ];
+
+    // King piece-square table (middlegame)
+    public static readonly int[] KingTable =
+    [
+        20, 30, 10,  0,  0, 30, 10, 20,
+        20, 20,  0,  0,  0,  0, 20, 20,
+        -10,-20,-20,-20,-20,-20,-20,-10,
+        -20,-30,-30,-40,-40,-30,-30,-20,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+        -30,-40,-40,-50,-50,-40,-40,-30,
+    ];
+
+    public static readonly int[] KingEndgame = [
+        -50,-30,-30,-30,-30,-30,-30,-50,
+        -30,-30,  0,  0,  0,  0,-30,-30,
+        -30,-10, 20, 30, 30, 20,-10,-30,
+        -30,-10, 30, 40, 40, 30,-10,-30,
+        -30,-10, 30, 40, 40, 30,-10,-30,
+        -30,-10, 20, 30, 30, 20,-10,-30,
+        -30,-20,-10,  0,  0,-10,-20,-30,
+        -50,-40,-30,-20,-20,-30,-40,-50,
+    ];
+
+    public static readonly int[] OpeningTables = [
+        ..PawnTable,
+        ..KnightTable,
+        ..BishopTable,
+        ..RookTable,
+        ..QueenTable,
+        ..KingTable,
+    ];
+
+    public static readonly int[] EndgameTables = [
+        ..PawnTable,
+        ..KnightTable,
+        ..BishopTable,
+        ..RookTable,
+        ..QueenTable,
+        ..KingEndgame,
+    ];
+
+
+    public static int GetOpeningBonus(Piece piece, byte square)
     {
-        tables[(int)piece] = squarebonus;
+        var pieceType = (int)piece & 0xf;
+        square = piece <= Piece.WhiteKing ? square : (byte)(square ^ 56);
+        return OpeningTables[(pieceType - 1) * 64 + square];
     }
 
-    public int GetBonus(Piece piece, ulong bitboard)
+    public static int GetEndgameBonus(Piece piece, byte square)
     {
-        int bonus = 0;
-        var table = tables[(int)piece];
-
-        for (int i = 0; i < table.Length; i++)
-        {
-            var (mask, b) = table[i];
-            bonus += b * Bitboards.CountOccupied(mask & bitboard);
-        }
-        return bonus;
+        var pieceType = (int)piece & 0xf;
+        square = piece <= Piece.WhiteKing ? square : (byte)(square ^ 56);
+        return EndgameTables[(pieceType - 1) * 64 + square];
     }
 }
