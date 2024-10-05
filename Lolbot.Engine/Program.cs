@@ -5,7 +5,7 @@ using Lolbot.Core;
 // FileStream logfile = File.OpenWrite("log.txt");
 // StreamWriter log = new(logfile);
 
-int OverHead = 0;
+int OverHead = 10;
 
 string command;
 Game game = Engine.NewGame();
@@ -23,16 +23,17 @@ while (true)
     else if (command.StartsWith("position")) game = SetPosition(command);
     else if (command.StartsWith("go")) Go(command);
     else if (command.StartsWith("perft")) Perft(command);
-    else if (command.StartsWith("move")) Move(command);
+    else if (command.StartsWith("setoption")) SetOption(command);
     else Unknown(command);
 }
 
-void Move(string command)
+void SetOption(string command)
 {
     var tokens = Regex.Split(command, @"\s");
 
     for (int i = 1; i < tokens.Length; i++)
     {
+        // Dirt AF
         if (tokens[i] == "overhead") 
         {
             OverHead = int.Parse(tokens[i++]);
@@ -58,6 +59,10 @@ void Uci()
 {
     Console.WriteLine("id name Lolbot 1.5 alpha");
     Console.WriteLine("id author loldot");
+
+    Console.WriteLine();
+
+    Console.WriteLine("option name Move Overhead type spin default 10 min 0 max 5000");
 
     Console.WriteLine("uciok");
 }
