@@ -34,7 +34,7 @@ void SetOption(string command)
     for (int i = 1; i < tokens.Length; i++)
     {
         // Dirt AF
-        if (tokens[i] == "overhead") 
+        if (tokens[i] == "value") 
         {
             OverHead = int.Parse(tokens[i++]);
         }
@@ -62,6 +62,7 @@ void Uci()
 
     Console.WriteLine();
 
+    Console.WriteLine("option name Threads type spin default 1 min 1 max 1");
     Console.WriteLine("option name Move Overhead type spin default 10 min 0 max 5000");
 
     Console.WriteLine("uciok");
