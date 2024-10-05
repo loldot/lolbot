@@ -5,12 +5,15 @@ using Lolbot.Core;
 // FileStream logfile = File.OpenWrite("log.txt");
 // StreamWriter log = new(logfile);
 
+int OverHead = 0;
+
 string command;
 Game game = Engine.NewGame();
 
 while (true)
 {
     command = Console.ReadLine() ?? "quit";
+    command = command.ToLowerInvariant();
     // log.WriteLine(command);
     // log.Flush();
 
@@ -20,11 +23,25 @@ while (true)
     else if (command.StartsWith("position")) game = SetPosition(command);
     else if (command.StartsWith("go")) Go(command);
     else if (command.StartsWith("perft")) Perft(command);
+    else if (command.StartsWith("move")) Move(command);
     else Unknown(command);
 }
 
+void Move(string command)
+{
+    var tokens = Regex.Split(command, @"\s");
+
+    for (int i = 1; i < tokens.Length; i++)
+    {
+        if (tokens[i] == "overhead") 
+        {
+            OverHead = int.Parse(tokens[i++]);
+        }
+    }
+}
+
 void Perft(string command)
-{   
+{
     var tokens = Regex.Split(command, @"\s");
     int depth = 6;
 
@@ -39,7 +56,7 @@ void Perft(string command)
 
 void Uci()
 {
-    Console.WriteLine("id name Lolbot 1.0 alpha");
+    Console.WriteLine("id name Lolbot 1.5 alpha");
     Console.WriteLine("id author loldot");
 
     Console.WriteLine("uciok");
@@ -95,7 +112,7 @@ void Go(string command)
         ? (wtime, winc)
         : (btime, binc);
 
-    var timer = new CancellationTokenSource(timeleft / 20 + increment / 2);
+    var timer = new CancellationTokenSource(Math.Max(timeleft / 20 + increment / 2 - OverHead, 500));
     var move = Engine.BestMove(game, timer.Token);
 
     var from = Squares.ToCoordinate(move.Value.FromSquare);
