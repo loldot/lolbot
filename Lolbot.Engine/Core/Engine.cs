@@ -60,6 +60,9 @@ public static class Engine
         eval += Heuristics.Mobility(position, Color.White);
         eval -= Heuristics.Mobility(position, Color.Black);
 
+        eval += Heuristics.IsolatedPawns(position, Color.White);
+        eval -= Heuristics.IsolatedPawns(position, Color.Black);
+
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
             eval += Heuristics.GetPieceValue(i, position[i], position.Occupied);

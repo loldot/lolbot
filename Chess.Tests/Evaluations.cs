@@ -138,6 +138,16 @@ public class Evaluations
         bestmove = Engine.BestMove(game);
         bestmove.Should().Be(new Move('Q', "d8", "a8"));
     }
+    [Test]
+    public void Should_Eval_IsolatedPawns()
+    {
+        var position = Position.FromFen("1k6/p6p/1p1p1p2/8/2P5/5PP1/P3P2P/5K2 w - - 0 1");
+        var whiteEval = Heuristics.IsolatedPawns(position, Color.White);
+        var blackEval = Heuristics.IsolatedPawns(position, Color.Black);
+
+        whiteEval.Should().Be(-30);
+        blackEval.Should().Be(-45);
+    }
 
     [Test]
     public void Should_Win_Easy_EndGame()

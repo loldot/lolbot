@@ -1,4 +1,5 @@
 
+using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace Lolbot.Core;
@@ -34,6 +35,19 @@ public static class Heuristics
                 mmvlva[i][j] = val;
             }
         }
+    }
+
+    public static int IsolatedPawns(Position position, Color color)
+    {
+        var eval = 0;
+        ulong pawns = position[color, PieceType.Pawn];
+        while (pawns != 0)
+        {
+            var square = Bitboards.PopLsb(ref pawns);
+            if ((Bitboards.Masks.GetNeighbourFiles(square) & position[color, PieceType.Pawn]) == 0)
+                eval -= 15;  
+        }
+        return eval;
     }
 
     public static int Mobility(Position position, Color color)

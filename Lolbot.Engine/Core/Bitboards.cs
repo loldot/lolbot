@@ -16,6 +16,12 @@ public static class Bitboards
     public static class Masks
     {
         public const ulong A_File = 0x0101010101010101;
+        public const ulong B_File = 0x0202020202020202;
+        public const ulong C_File = 0x0404040404040404;
+        public const ulong D_File = 0x0808080808080808;
+        public const ulong E_File = 0x1010101010101010;
+        public const ulong F_File = 0x2020202020202020;
+        public const ulong G_File = 0x4040404040404040;
         public const ulong H_File = 0x8080808080808080;
         public const ulong Rank_1 = 0x00000000000000ff;
         public const ulong Rank_2 = 0x000000000000ff00;
@@ -35,8 +41,20 @@ public static class Bitboards
         public const ulong LightSquares = 0x55AA55AA55AA55AA;
         public const ulong DarkSquares = 0xAA55AA55AA55AA55;
 
+        private static readonly ulong[] NeighbourFiles = [
+                     B_File,
+            A_File | C_File,
+            B_File | D_File,
+            C_File | E_File,
+            D_File | F_File,
+            E_File | G_File,
+            F_File | H_File,
+            G_File
+        ];
+
         public static ulong GetRank(int sq) { return 0xfful << (sq & 56); }
         public static ulong GetFile(int sq) { return 0x0101010101010101ul << (sq & 7); }
+        public static ulong GetNeighbourFiles(int sq) => NeighbourFiles[sq & 7];
         public static ulong GetDiagonal(int sq)
         {
             const ulong maindia = 0x8040201008040201;

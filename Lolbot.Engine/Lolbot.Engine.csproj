@@ -6,6 +6,7 @@
     <Platforms>x64</Platforms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>fa56a956-ad73-4d73-9626-8f54ae9e5809</UserSecretsId>
   </PropertyGroup>
 
   <PropertyGroup>
