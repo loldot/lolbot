@@ -36,7 +36,7 @@ void SetOption(string command)
         // Dirt AF
         if (tokens[i] == "value") 
         {
-            OverHead = int.Parse(tokens[i++]);
+            OverHead = int.Parse(tokens[++i]);
         }
     }
 }
