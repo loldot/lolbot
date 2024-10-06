@@ -100,7 +100,9 @@ public static class Engine
 
     public static Move? BestMove(Game game, CancellationToken ct)
     {
-        var bestMove = default(Move?);
+        var pv = tt.Get(game.CurrentPosition.Hash);
+        Move? bestMove = pv.IsSet && pv.Type == TranspositionTable.Exact ? pv.BestMove : null;
+
         var depth = 1;
 
         while (depth <= Max_Depth && !ct.IsCancellationRequested)
@@ -131,6 +133,7 @@ public static class Engine
         moves = moves[..count];
         OrderMoves(ref moves, ref currentBest);
 
+        var nodes = 0;
         var bestEval = -999_999;
         var bestMove = currentBest;
 
@@ -146,13 +149,13 @@ public static class Engine
             history.Update(move, nextPosition.Hash);
             if (i == 0)
             {
-                eval = -EvaluateMove(history, ref nextPosition, depth, -beta, -alpha, -1);
+                eval = -EvaluateMove(history, ref nextPosition, ref nodes, depth, -beta, -alpha, -1, ct);
             }
             else
             {
-                eval = -EvaluateMove(history, ref nextPosition, depth, -alpha - 1, -alpha, -1);
+                eval = -EvaluateMove(history, ref nextPosition, ref nodes, depth, -alpha - 1, -alpha, -1, ct);
                 if (eval > alpha && beta - alpha > 1)
-                    eval = -EvaluateMove(history, ref nextPosition, depth, -beta, -alpha, -1);
+                    eval = -EvaluateMove(history, ref nextPosition, ref nodes, depth, -beta, -alpha, -1, ct);
             }
 
             history.Unwind();
@@ -164,24 +167,24 @@ public static class Engine
                 alpha = Max(alpha, eval);
             }
         }
-        Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove}");
+        Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove} nodes {nodes}");
 
         return bestMove;
     }
 
     private static void OrderMoves(ref Span<Move> legalMoves, ref Move? currentBest)
     {
-        legalMoves.Sort(MoveComparer);
-
         if (currentBest is not null && legalMoves.Length > 1)
         {
             var index = legalMoves.IndexOf(currentBest.Value);
             legalMoves[index] = legalMoves[0];
             legalMoves[0] = currentBest.Value;
         }
+
+        legalMoves[1..].Sort(MoveComparer);
     }
 
-    public static int EvaluateMove(RepetitionTable history, ref Position position, int depth, int alpha, int beta, int color)
+    public static int EvaluateMove(RepetitionTable history, ref Position position, ref int nodes, int depth, int alpha, int beta, int color, CancellationToken ct)
     {
         var eval = -999_999;
         var alphaOrig = alpha;
@@ -205,20 +208,27 @@ public static class Engine
         var count = MoveGenerator.Legal(ref position, ref moves);
 
         if (count == 0) return position.IsCheck ? (-16384 - depth) : 0;
-        if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
+        if (depth == 0 || ct.IsCancellationRequested) return QuiesenceSearch(position, alpha, beta, color);
 
         moves = moves[..count];
         moves.Sort(MoveComparer);
 
+        Move bestMove = moves[0];
         for (byte i = 0; i < count; i++)
         {
             var nextPosition = position.Move(moves[i]);
             history.Update(moves[i], nextPosition.Hash);
+            nodes++;
 
-            eval = Max(eval, -EvaluateMove(history, ref nextPosition, depth - 1, -beta, -alpha, -color));
+            eval = Max(eval, -EvaluateMove(history, ref nextPosition, ref nodes, depth - 1, -beta, -alpha, -color, ct));
 
             history.Unwind();
-            alpha = Max(eval, alpha);
+
+            if (eval > alpha)
+            {
+                bestMove = moves[i];
+                alpha = eval;
+            }
             if (alpha >= beta)
             {
                 historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
@@ -231,7 +241,7 @@ public static class Engine
         else if (eval >= beta) ttType = TranspositionTable.LowerBound;
         else ttType = TranspositionTable.Exact;
 
-        tt.Add(position.Hash, depth, eval, ttType);
+        tt.Add(position.Hash, depth, eval, ttType, bestMove);
 
         return eval;
     }
@@ -267,12 +277,12 @@ public static class Engine
     {
         int score = 0;
 
-        score -= Heuristics.GetPieceValue(x.PromotionPiece);
-        score -= Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
+        score -= 1000 * Heuristics.GetPieceValue(x.PromotionPiece);
+        score -= 1000 * Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
         score -= historyHeuristic[64 * x.FromIndex + x.ToIndex];
 
-        score += Heuristics.GetPieceValue(y.PromotionPiece);
-        score += Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
+        score += 1000 * Heuristics.GetPieceValue(y.PromotionPiece);
+        score += 1000 * Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
         score += historyHeuristic[64 * y.FromIndex + y.ToIndex];
 
         return score;

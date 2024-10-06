@@ -24,7 +24,13 @@ while (true)
     else if (command.StartsWith("go")) Go(command);
     else if (command.StartsWith("perft")) Perft(command);
     else if (command.StartsWith("setoption")) SetOption(command);
+    else if (command.StartsWith("quit")) Quit();
     else Unknown(command);
+}
+
+void Quit()
+{
+    throw new NotImplementedException();
 }
 
 void SetOption(string command)

@@ -131,11 +131,12 @@ public class Evaluations
         bestmove.Should().Be(new Move('Q', "h4", "d8"));
 
         game = Engine.Move(game, bestmove!.Value);
-        
+
         bestmove = Engine.BestMove(game);
         game = Engine.Move(game, bestmove!.Value);
 
-        bestmove = Engine.BestMove(game);
+        var ct = new CancellationTokenSource(5000);
+        bestmove = Engine.BestMove(game, ct.Token);
         bestmove.Should().Be(new Move('Q', "d8", "a8"));
     }
     [Test]
