@@ -51,7 +51,7 @@ public class TranspositionTable
         }
     }
 
-    public Entry Add(ulong hash, int depth, int eval, byte type, Move bestMove)
+    public bool Add(ulong hash, int depth, int eval, byte type, Move bestMove)
     {
         var index = (hash & 0xfffe0000) >> 16;
 
@@ -61,8 +61,10 @@ public class TranspositionTable
         if (!current.IsSet) set_count++;
         else if (hash == current.Key) rewrite_count++;
         else if (hash != current.Key) collision_count++;
+        
+        entries[(byte)(hash & BucketMask)][(ushort)index] = new Entry(hash, depth, eval, type, bestMove);
 
-        return entries[(byte)(hash & BucketMask)][(ushort)index] = new Entry(hash, depth, eval, type, bestMove);
+        return true;
     }
 
     public Entry Get(ulong hash)

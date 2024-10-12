@@ -63,7 +63,7 @@ void Perft(string command)
 
 void Uci()
 {
-    Console.WriteLine("id name Lolbot 1.5 alpha");
+    Console.WriteLine("id name Lolbot 1.5.3 alpha");
     Console.WriteLine("id author loldot");
 
     Console.WriteLine();
