@@ -1,5 +1,5 @@
-
-
+using System.Diagnostics;
+using static System.Math;
 namespace Lolbot.Core;
 
 public class RepetitionTable
@@ -11,6 +11,10 @@ public class RepetitionTable
 
     public void Update(Move m, ulong key)
     {
+        Debug.Assert(m != null);
+        Debug.Assert(key != 0);
+        Debug.Assert(moveCount >= 0);
+
         if (moveCount >= history.Length)
         {
             Array.Resize(ref history, moveCount * 2);
@@ -36,7 +40,7 @@ public class RepetitionTable
         return ((byte)m.FromPiece & 0xf) == (byte)PieceType.Pawn || m.CapturePiece != Piece.None;
     }
 
-    public void Unwind() => moveCount--;
+    public void Unwind() => moveCount = Max(0, moveCount - 1);
 
     public bool IsDrawByRepetition(ulong key)
     {
@@ -65,5 +69,9 @@ public class RepetitionTable
         return false;
     }
 
-    public void Clear() => moveCount = 0;
+    public void Clear()
+    {
+        moveCount = 0;
+        Array.Clear(irreversible);
+    }
 }

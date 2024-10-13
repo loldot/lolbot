@@ -5,7 +5,6 @@ namespace Lolbot.Core;
 
 public static class Engine
 {
-    const int Max_Depth = 64;
     private static readonly TranspositionTable tt = new TranspositionTable();
 
 
@@ -100,25 +99,7 @@ public static class Engine
 
     public static Move? BestMove(Game game, CancellationToken ct)
     {
-        // var hash = game.CurrentPosition.Hash;
-        // var pv = tt.Get(hash);
-        Move? bestMove = null;// = pv.IsSet && pv.Key == hash && pv.Type == TranspositionTable.Exact ? pv.BestMove : null;
-        int bestEval = 0;
-        var depth = 2;
         var search = new Search(tt, ct);
-
-        while (depth <= Max_Depth && !ct.IsCancellationRequested)
-        {
-            (bestEval, bestMove) = search.BestMove(game, depth);
-            depth ++;
-        }
-
-        Console.WriteLine($"info tt fill factor: {tt.FillFactor:P3}");
-        Console.WriteLine($"info tt set count: {tt.set_count}");
-        Console.WriteLine($"info tt rewrite count: {tt.rewrite_count}");
-        Console.WriteLine($"info tt collision count: {tt.collision_count}");
-
-
-        return bestMove;
+        return search.BestMove(game, ct);
     }
 }

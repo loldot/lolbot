@@ -5,10 +5,12 @@ namespace Lolbot.Core;
 
 public class Search
 {
+    const int Max_Depth = 64;
+
     private bool isValid;
     private int nodes = 0;
-    private readonly int[] pvLengths = new int[64];
-    private readonly Move[][] pv = new Move[64][];
+    private readonly int[] pvLengths = new int[Max_Depth];
+    private readonly Move[][] pv = new Move[Max_Depth][];
 
     private readonly int[] historyHeuristic = new int[4096];
     private readonly TranspositionTable tt;
@@ -19,11 +21,28 @@ public class Search
         this.tt = tt;
         this.ct = ct;
 
-        for (int i = 0; i < 64; i++)
+        for (int i = 0; i < Max_Depth; i++)
         {
-            pv[i] = new Move[64];
+            // Account for extensions
+            pv[i] = new Move[2 * Max_Depth];
             pvLengths[i] = i;
         }
+    }
+
+    public Move? BestMove(Game game, CancellationToken ct)
+    {
+        // var hash = game.CurrentPosition.Hash;
+        // var pv = tt.Get(hash);
+        Move? bestMove = null;// = pv.IsSet && pv.Key == hash && pv.Type == TranspositionTable.Exact ? pv.BestMove : null;
+        var depth = 1;
+
+        while (depth <= Max_Depth && !ct.IsCancellationRequested)
+        {
+            (_, bestMove) = BestMove(game, depth);
+            depth++;
+        }
+
+        return bestMove;
     }
 
 
@@ -36,16 +55,18 @@ public class Search
 
         nodes = 0;
         isValid = true;
-        var bestMove = default(Move?);
+        var bestMove = pv[0][0];
         var bestEval = Pvs<Pv>(history, ref position, 0, depth, -999_999, 999_999, 1);
+
         if (isValid)
         {
             bestMove = pv[0][0];
             var pvLine = string.Join(' ', pv[0][0..pvLengths[0]]);
-            // for (int i = 0; i < depth; i++)
-            //     Console.WriteLine( string.Join(' ', pv[i][0..pvLengths[i]]));
             Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove} nodes {nodes} pv {pvLine}");
         }
+
+        // for (int i = 0; i < depth; i++)
+        //     Console.WriteLine( string.Join(' ', pv[i][0..pvLengths[i]]));
 
         return (bestEval, bestMove);
     }
@@ -88,13 +109,6 @@ public class Search
         Move bestMove = moves[0];
         for (byte i = 0; i < count; i++)
         {
-            // if (ct.IsCancellationRequested)
-            // {
-            //     isValid = false;
-            //     pvLength = Max(0, ply - 1);
-
-            //     return -1337;
-            // }
 
             var nextPosition = position.Move(moves[i]);
             history.Update(moves[i], nextPosition.Hash);
@@ -129,6 +143,7 @@ public class Search
                 historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
                 break;
             }
+            // if (ct.IsCancellationRequested) return alpha;
         }
 
         byte ttType;
@@ -157,6 +172,7 @@ public class Search
         for (byte i = 0; i < count; i++)
         {
             var eval = -QuiesenceSearch(position.Move(moves[i]), -beta, -alpha, -color);
+            nodes++;
 
             if (eval >= beta) return beta;
 
