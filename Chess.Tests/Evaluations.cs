@@ -71,8 +71,7 @@ public class Evaluations
         var pgn = new PgnSerializer();
         var (game, _) = await pgn.Read(fs);
 
-        var ct = new CancellationTokenSource(20_000);
-        var bestMove = Engine.BestMove(game, ct.Token);
+        var bestMove = Engine.BestMove(game, 20_000);
     }
 
     [Test]
@@ -114,8 +113,7 @@ public class Evaluations
         var position = Position.FromFen("8/3k4/8/8/3PK3/8/8/8 w - - 0 1");
         var game = new Game(position, []);
 
-        var ct = new CancellationTokenSource(25_000);
-        var bestmove = Engine.BestMove(game, ct.Token);
+        var bestmove = Engine.BestMove(game, 25_000);
 
         bestmove.Should().Be(new Move('K', "e4", "d5"));
     }
@@ -135,8 +133,7 @@ public class Evaluations
         bestmove = Engine.BestMove(game);
         game = Engine.Move(game, bestmove!.Value);
 
-        var ct = new CancellationTokenSource(5000);
-        bestmove = Engine.BestMove(game, ct.Token);
+        bestmove = Engine.BestMove(game, 5000);
         bestmove.Should().Be(new Move('Q', "d8", "a8"));
     }
     [Test]

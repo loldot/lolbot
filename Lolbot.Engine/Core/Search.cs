@@ -7,38 +7,52 @@ public class Search
 {
     const int Max_Depth = 64;
 
+    private const int Infinity = 999_999;
+    private const int MateValue = 16_384;
+
     private bool isValid;
     private int nodes = 0;
+    private CancellationToken ct;
     private readonly int[] pvLengths = new int[Max_Depth];
     private readonly Move[][] pv = new Move[Max_Depth][];
 
-    private readonly int[] historyHeuristic = new int[4096];
+    private static int[] historyHeuristic = new int[4096];
     private readonly TranspositionTable tt;
-    private readonly CancellationToken ct;
 
-    public Search(TranspositionTable tt, CancellationToken ct)
+    public Search(TranspositionTable tt)
     {
         this.tt = tt;
-        this.ct = ct;
 
         for (int i = 0; i < Max_Depth; i++)
         {
             // Account for extensions
             pv[i] = new Move[2 * Max_Depth];
             pvLengths[i] = i;
+
+            for (int j = 0; j < historyHeuristic.Length / Max_Depth; j++)
+            {
+                historyHeuristic[i * j] /= 8;
+            }
         }
     }
 
-    public Move? BestMove(Game game, CancellationToken ct)
+    public Move? BestMove(Game game, int thinkTimeMs)
     {
-        // var hash = game.CurrentPosition.Hash;
-        // var pv = tt.Get(hash);
-        Move? bestMove = null;// = pv.IsSet && pv.Key == hash && pv.Type == TranspositionTable.Exact ? pv.BestMove : null;
-        var depth = 1;
+        using var cts = new CancellationTokenSource(thinkTimeMs);
+        ct = cts.Token;
 
-        while (depth <= Max_Depth && !ct.IsCancellationRequested)
+        int depth = 1;
+
+        double elapsed = 0.0;
+        Move? bestMove = null;
+        DateTime starttime = DateTime.Now;
+
+        // Iterative deepening
+        while (depth <= Max_Depth && !ct.IsCancellationRequested && (1.5 * elapsed) < thinkTimeMs)
         {
-            (_, bestMove) = BestMove(game, depth);
+            (_, bestMove) = DoSearch(game, depth);
+
+            elapsed = (DateTime.Now - starttime).TotalMilliseconds;
             depth++;
         }
 
@@ -46,7 +60,7 @@ public class Search
     }
 
 
-    public (int eval, Move? bestMove) BestMove(Game game, int depth)
+    private (int eval, Move? bestMove) DoSearch(Game game, int depth)
     {
         Span<Move> moves = stackalloc Move[218];
 
@@ -56,7 +70,8 @@ public class Search
         nodes = 0;
         isValid = true;
         var bestMove = pv[0][0];
-        var bestEval = Pvs<Pv>(history, ref position, 0, depth, -999_999, 999_999, 1);
+
+        var bestEval = Pvs<Pv>(history, ref position, 0, depth, -Infinity, Infinity, 1);
 
         if (isValid)
         {
@@ -78,20 +93,27 @@ public class Search
 
     public int Pvs<TNode>(RepetitionTable history, ref Position position, int ply, int depth, int alpha, int beta, int color) where TNode : NodeType
     {
-        var eval = -999_999;
+        var eval = -Infinity;
         var alphaOrig = alpha;
 
         if (history.IsDrawByRepetition(position.Hash)) return 0;
         if (tt.TryGet(position.Hash, depth, out var ttEntry))
         {
             if (ttEntry.Type == TranspositionTable.Exact)
+            {
+                // pv[ply][ply] = ttEntry.BestMove;
+                // for (int nextPly = ply + 1; nextPly < pvLengths[ply + 1]; nextPly++)
+                // {
+                //     pv[ply][nextPly] = pv[ply + 1][nextPly];
+                // }
                 return ttEntry.Evaluation;
+            }
             else if (ttEntry.Type == TranspositionTable.LowerBound)
                 alpha = Max(alpha, ttEntry.Evaluation);
             else if (ttEntry.Type == TranspositionTable.UpperBound)
                 beta = Min(beta, ttEntry.Evaluation);
 
-            if (alpha >= beta)
+            if (typeof(TNode) != typeof(Pv) && alpha >= beta)
                 return ttEntry.Evaluation;
         }
         else if (depth > 3) depth--;
@@ -99,7 +121,7 @@ public class Search
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(ref position, ref moves);
 
-        if (count == 0) return position.IsCheck ? (ply - 999_999) : 0;
+        if (count == 0) return position.IsCheck ? (ply - MateValue) : 0;
         if (position.IsCheck) depth++;
         if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
 
@@ -109,6 +131,11 @@ public class Search
         Move bestMove = moves[0];
         for (byte i = 0; i < count; i++)
         {
+            if (ct.IsCancellationRequested)
+            {
+                isValid = false;
+                return alpha;
+            }
 
             var nextPosition = position.Move(moves[i]);
             history.Update(moves[i], nextPosition.Hash);
@@ -143,7 +170,6 @@ public class Search
                 historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
                 break;
             }
-            // if (ct.IsCancellationRequested) return alpha;
         }
 
         byte ttType;

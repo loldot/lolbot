@@ -124,8 +124,8 @@ void Go(string command)
         ? (wtime, winc)
         : (btime, binc);
 
-    var timer = new CancellationTokenSource(Math.Max(timeleft / 20 + increment / 2 - OverHead, 500));
-    var move = Engine.BestMove(game, timer.Token);
+    var thinkTimeMs = Math.Max(timeleft / 20 + increment / 2 - OverHead, 500);
+    var move = Engine.BestMove(game, thinkTimeMs);
 
     var from = Squares.ToCoordinate(move.Value.FromSquare);
     var to = Squares.ToCoordinate(move.Value.ToSquare);

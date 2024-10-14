@@ -92,14 +92,12 @@ public static class Engine
 
     public static Move? BestMove(Game game)
     {
-        var timer = new CancellationTokenSource(2_000);
-
-        return BestMove(game, timer.Token);
+        return BestMove(game, 2_000);
     }
 
-    public static Move? BestMove(Game game, CancellationToken ct)
+    public static Move? BestMove(Game game, int timoutMs)
     {
-        var search = new Search(tt, ct);
-        return search.BestMove(game, ct);
+        var search = new Search(tt);
+        return search.BestMove(game, timoutMs);
     }
 }
