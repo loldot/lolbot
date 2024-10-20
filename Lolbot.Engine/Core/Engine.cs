@@ -108,12 +108,12 @@ public static class Engine
             bestMove = BestMove(game, depth, bestMove, ct);
             depth++;
         }
-
+#if DEBUG
         Console.WriteLine($"info tt fill factor: {tt.FillFactor:P3}");
         Console.WriteLine($"info tt set count: {tt.set_count}");
         Console.WriteLine($"info tt rewrite count: {tt.rewrite_count}");
         Console.WriteLine($"info tt collision count: {tt.collision_count}");
-
+#endif
 
         return bestMove;
     }

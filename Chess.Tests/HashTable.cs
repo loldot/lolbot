@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Lolbot.Core;
 namespace Lolbot.Tests;
 
@@ -78,5 +79,52 @@ public class HashTable
 
         var found = tt.TryGet(y, 1, out var _);
         found.Should().BeFalse();
+    }
+
+
+    [Test]
+    public void Should_Always_Replace()
+    {
+        ulong x = 0x1337_d3ad_b33f_0f13;
+
+        tt.Add(x, 1, 199, TranspositionTable.Exact);
+        tt.Add(x, 11, 15, TranspositionTable.Exact);
+
+
+        tt.TryGet(x, 1, out var entry);
+        entry.Should().BeEquivalentTo(new TranspositionTable.Entry(x, 11, 15, TranspositionTable.Exact));
+    }
+
+    [Test]
+    public void Should_Be_Fast()
+    {
+        Random r = new Random();
+        ulong[] keys = new ulong[ushort.MaxValue];
+        for (int i = 0; i < ushort.MaxValue; i++)
+        {
+            keys[i] = (ulong)r.NextInt64();
+        }
+
+        var sw = Stopwatch.StartNew();
+        for (int i = 0; i < ushort.MaxValue; i++)
+        {
+            tt.Add(keys[i], 11, 1337, TranspositionTable.Exact);
+        }
+        sw.Stop();
+        Console.WriteLine($"ttwrite {ushort.MaxValue} entries {sw.ElapsedMilliseconds} ms");
+        sw.ElapsedMilliseconds.Should().BeLessThan(50);
+
+        for (int i = 0; i < ushort.MaxValue; i++)
+        {
+            keys[i] = (ulong)r.NextInt64();
+        }
+
+        sw.Restart();
+        for (int i = 0; i < ushort.MaxValue; i++)
+        {
+            tt.TryGet(keys[i], 5, out var _);
+        }
+        Console.WriteLine($"ttread {ushort.MaxValue} entries {sw.ElapsedMilliseconds} ms");
+        sw.ElapsedMilliseconds.Should().BeLessThan(50);
     }
 }

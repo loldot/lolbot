@@ -12,6 +12,10 @@
   <PropertyGroup>
     <PublishAot>true</PublishAot>
     <IlcInstructionSet>avx2,bmi2,fma,pclmul,popcnt,aes</IlcInstructionSet>
+    <OptimizationPreference>Speed</OptimizationPreference>
+    <DebuggerSupport>false</DebuggerSupport>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <StackTraceSupport>false</StackTraceSupport>
   </PropertyGroup>
 
 </Project>

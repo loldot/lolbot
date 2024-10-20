@@ -10,12 +10,13 @@ public class TranspositionTable
     public static readonly byte Exact = 3;
 
     public static readonly ulong BucketMask = 0xff;
-
+#if DEBUG
     public int set_count = 0;
     public int collision_count = 0;
     public int rewrite_count = 0;
 
     public double FillFactor => set_count / (256.0 * ushort.MaxValue);
+#endif
 
 
     public readonly struct Entry
@@ -56,9 +57,11 @@ public class TranspositionTable
         Debug.Assert(index <= ushort.MaxValue);
 
         var current = entries[(byte)(hash & BucketMask)][(ushort)index];
+#if DEBUG
         if (!current.IsSet) set_count++;
         else if (hash == current.Key) rewrite_count++;
         else if (hash != current.Key) collision_count++;
+#endif
 
         return entries[(byte)(hash & BucketMask)][(ushort)index] = new Entry(hash, depth, eval, type);
     }
@@ -87,9 +90,10 @@ public class TranspositionTable
         {
             entries[i] = new Entry[ushort.MaxValue];
         }
-
+#if DEBUG
         set_count = 0;
         collision_count = 0;
         rewrite_count = 0;
+#endif
     }
 }
