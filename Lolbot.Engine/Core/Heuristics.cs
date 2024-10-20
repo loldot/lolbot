@@ -30,9 +30,7 @@ public static class Heuristics
                 int capture = PieceValues[i];
                 int attacker = PieceValues[j];
 
-                int val = capture * capture / (1 + attacker);
-
-                mmvlva[i][j] = val;
+                mmvlva[i][j] = 10 * capture - attacker;
             }
         }
     }
@@ -45,7 +43,7 @@ public static class Heuristics
         {
             var square = Bitboards.PopLsb(ref pawns);
             if ((Bitboards.Masks.GetNeighbourFiles(square) & position[color, PieceType.Pawn]) == 0)
-                eval -= 15;  
+                eval -= 15;
         }
         return eval;
     }
@@ -69,7 +67,7 @@ public static class Heuristics
             movecount += Bitboards.CountOccupied(MovePatterns.BishopAttacks(sq, ref occ));
         }
 
-        return (int)Math.Sqrt(movecount);
+        return 10 * (int)Math.Sqrt(movecount);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

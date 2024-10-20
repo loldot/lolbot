@@ -8,6 +8,7 @@ public static class Engine
     const int Max_Depth = 64;
     private static readonly TranspositionTable tt = new TranspositionTable();
     private static readonly int[] historyHeuristic = new int[4096];
+    private static int nodes = 0;
 
     public static void Init()
     {
@@ -100,6 +101,10 @@ public static class Engine
 
     public static Move? BestMove(Game game, CancellationToken ct)
     {
+        // Age history heuristic
+        for (int i = 0; i < historyHeuristic.Length; i++)
+            historyHeuristic[i] /= 8;
+
         var bestMove = default(Move?);
         var depth = 1;
 
@@ -120,6 +125,8 @@ public static class Engine
 
     public static Move? BestMove(Game game, int depth, Move? currentBest, CancellationToken ct)
     {
+        nodes = 0;
+
         Span<Move> moves = stackalloc Move[218];
 
         var history = game.RepetitionTable;
@@ -135,7 +142,8 @@ public static class Engine
         var bestMove = currentBest;
 
         var (alpha, beta) = (-999_999, 999_999);
-        for (int i = 0; i < count; i++)
+        int i = 0;
+        for (; i < count; i++)
         {
             if (ct.IsCancellationRequested) break;
 
@@ -164,7 +172,8 @@ public static class Engine
                 alpha = Max(alpha, eval);
             }
         }
-        Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove}");
+        nodes += i;
+        Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove} nodes {nodes}");
 
         return bestMove;
     }
@@ -210,7 +219,8 @@ public static class Engine
         moves = moves[..count];
         moves.Sort(MoveComparer);
 
-        for (byte i = 0; i < count; i++)
+        byte i = 0;
+        for (; i < count; i++)
         {
             var nextPosition = position.Move(moves[i]);
             history.Update(moves[i], nextPosition.Hash);
@@ -221,10 +231,11 @@ public static class Engine
             alpha = Max(eval, alpha);
             if (alpha >= beta)
             {
-                historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
+                if (moves[i].CapturePiece == Piece.None) historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
                 break;
             }
         }
+        nodes += i;
 
         byte ttType;
         if (eval <= alphaOrig) ttType = TranspositionTable.UpperBound;
@@ -278,7 +289,8 @@ public static class Engine
         return score;
     }
 
-
-
-    internal static void ClearTT() => tt.Clear();
+    internal static void Reset()
+    {
+        Array.Clear(historyHeuristic);
+    }
 }

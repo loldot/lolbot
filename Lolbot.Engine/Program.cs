@@ -20,7 +20,13 @@ while (true)
     else if (command.StartsWith("position")) game = SetPosition(command);
     else if (command.StartsWith("go")) Go(command);
     else if (command.StartsWith("perft")) Perft(command);
+    else if (command.StartsWith("ucinewgame")) Reset();
     else Unknown(command);
+}
+
+void Reset()
+{
+    Engine.Reset();
 }
 
 void Perft(string command)
