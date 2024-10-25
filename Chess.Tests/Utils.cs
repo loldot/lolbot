@@ -39,4 +39,10 @@ public class Utilities
     {
         Bmi2.IsSupported.Should().BeTrue();
     }
+
+    [Test]
+    public unsafe void MoveSize()
+    {
+        sizeof(Move).Should().Be(4);
+    }
 }
