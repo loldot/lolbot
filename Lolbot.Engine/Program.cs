@@ -104,12 +104,12 @@ void Go(string command)
     var timer = new CancellationTokenSource(timeleft / 20 + increment / 2);
     var move = Engine.BestMove(game, timer.Token);
 
-    var from = Squares.ToCoordinate(move.Value.FromSquare);
-    var to = Squares.ToCoordinate(move.Value.ToSquare);
+    var from = Squares.ToCoordinate(move.FromSquare);
+    var to = Squares.ToCoordinate(move.ToSquare);
 
-    if (move.Value.PromotionPiece != Piece.None)
+    if (move.PromotionPiece != Piece.None)
     {
-        var promotion = Utils.PieceName(move.Value.PromotionPiece);
+        var promotion = Utils.PieceName(move.PromotionPiece);
         Console.WriteLine($"bestmove {from}{to}{promotion}");
     }
 

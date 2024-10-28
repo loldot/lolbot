@@ -99,7 +99,7 @@ public static class Engine
         return BestMove(game, timer.Token);
     }
 
-    public static Move? BestMove(Game game, CancellationToken ct)
+    public static Move BestMove(Game game, CancellationToken ct)
     {
         // Age history heuristic
         for (int i = 0; i < historyHeuristic.Length; i++)
@@ -108,11 +108,12 @@ public static class Engine
         var bestMove = default(Move?);
         var depth = 1;
 
-        while (depth <= Max_Depth && !ct.IsCancellationRequested)
+        while (bestMove is null || depth <= Max_Depth && !ct.IsCancellationRequested)
         {
             bestMove = BestMove(game, depth, bestMove, ct);
             depth++;
         }
+
 #if DEBUG
         Console.WriteLine($"info tt fill factor: {tt.FillFactor:P3}");
         Console.WriteLine($"info tt set count: {tt.set_count}");
@@ -120,10 +121,10 @@ public static class Engine
         Console.WriteLine($"info tt collision count: {tt.collision_count}");
 #endif
 
-        return bestMove;
+        return bestMove.Value;
     }
 
-    public static Move? BestMove(Game game, int depth, Move? currentBest, CancellationToken ct)
+    public static Move BestMove(Game game, int depth, Move? currentBest, CancellationToken ct)
     {
         nodes = 0;
 
@@ -139,7 +140,7 @@ public static class Engine
         OrderMoves(ref moves, ref currentBest);
 
         var bestEval = -999_999;
-        var bestMove = currentBest;
+        var bestMove = currentBest ?? moves[0];
 
         var (alpha, beta) = (-999_999, 999_999);
         int i = 0;
@@ -180,30 +181,41 @@ public static class Engine
 
     private static void OrderMoves(ref Span<Move> legalMoves, ref Move? currentBest)
     {
-        legalMoves.Sort(MoveComparer);
-
+        int offset = 0;
         if (currentBest is not null && legalMoves.Length > 1)
         {
             var index = legalMoves.IndexOf(currentBest.Value);
-            legalMoves[index] = legalMoves[0];
-            legalMoves[0] = currentBest.Value;
+            if (index >= 0)
+            {
+                legalMoves[index] = legalMoves[0];
+                legalMoves[0] = currentBest.Value;
+                offset = 1;
+            }
         }
+
+        legalMoves[offset..].Sort(MoveComparer);
     }
 
     public static int EvaluateMove(RepetitionTable history, ref Position position, int depth, int alpha, int beta, int color)
     {
         var eval = -999_999;
         var alphaOrig = alpha;
+        var ttEntry = tt.Get(position.Hash);
+        Move? ttMove = ttEntry.IsSet && ttEntry.Key == position.Hash ? ttEntry.Move : null;
 
         if (history.IsDrawByRepetition(position.Hash)) return 0;
-        if (tt.TryGet(position.Hash, depth, out var ttEntry))
+        if (tt.TryGet(position.Hash, depth, out ttEntry))
         {
             if (ttEntry.Type == TranspositionTable.Exact)
                 return ttEntry.Evaluation;
             else if (ttEntry.Type == TranspositionTable.LowerBound)
+            {
                 alpha = Max(alpha, ttEntry.Evaluation);
+            }
             else if (ttEntry.Type == TranspositionTable.UpperBound)
+            {
                 beta = Min(beta, ttEntry.Evaluation);
+            }
 
             if (alpha >= beta)
                 return ttEntry.Evaluation;
@@ -217,9 +229,11 @@ public static class Engine
         if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
 
         moves = moves[..count];
-        moves.Sort(MoveComparer);
+        OrderMoves(ref moves, ref ttMove);
 
         byte i = 0;
+        int bestMove = 0;
+
         for (; i < count; i++)
         {
             var nextPosition = position.Move(moves[i]);
@@ -228,7 +242,13 @@ public static class Engine
             eval = Max(eval, -EvaluateMove(history, ref nextPosition, depth - 1, -beta, -alpha, -color));
 
             history.Unwind();
-            alpha = Max(eval, alpha);
+
+            if (eval > alpha)
+            {
+                alpha = eval;
+                bestMove = i;
+            }
+
             if (alpha >= beta)
             {
                 if (moves[i].CapturePiece == Piece.None) historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
@@ -242,7 +262,7 @@ public static class Engine
         else if (eval >= beta) ttType = TranspositionTable.LowerBound;
         else ttType = TranspositionTable.Exact;
 
-        tt.Add(position.Hash, depth, eval, ttType);
+        tt.Add(position.Hash, depth, eval, ttType, moves[bestMove]);
 
         return eval;
     }

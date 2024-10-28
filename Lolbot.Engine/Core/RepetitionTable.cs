@@ -1,5 +1,3 @@
-
-
 namespace Lolbot.Core;
 
 public class RepetitionTable
@@ -48,7 +46,7 @@ public class RepetitionTable
         // Console.WriteLine($"Irrev: [{string.Join(',', irreversible[..moveCount])}]");
 
         // Console.WriteLine($"History:");
-
+        if (moveCount - irreversible[moveCount - 1] >= 50) return true;
         for (int i = moveCount - 1; i >= irreversible[moveCount - 1]; i--)
         {
             // Console.Write(history[i]);

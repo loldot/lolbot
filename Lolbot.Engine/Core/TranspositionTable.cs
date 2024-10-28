@@ -25,13 +25,15 @@ public class TranspositionTable
         public readonly bool IsSet;
         public readonly int Depth, Evaluation;
         public readonly ulong Key;
+        public readonly Move Move;
 
-        public Entry(ulong key, int depth, int eval, byte type)
+        public Entry(ulong key, int depth, int eval, byte type, Move move)
         {
             Key = key;
             Depth = depth;
             Evaluation = eval;
             Type = type;
+            Move = move;
             IsSet = true;
         }
 
@@ -50,7 +52,7 @@ public class TranspositionTable
         }
     }
 
-    public Entry Add(ulong hash, int depth, int eval, byte type)
+    public Entry Add(ulong hash, int depth, int eval, byte type, Move move)
     {
         var index = (hash & 0xfffe0000) >> 16;
 
@@ -63,7 +65,7 @@ public class TranspositionTable
         else if (hash != current.Key) collision_count++;
 #endif
 
-        return entries[(byte)(hash & BucketMask)][(ushort)index] = new Entry(hash, depth, eval, type);
+        return entries[(byte)(hash & BucketMask)][(ushort)index] = new Entry(hash, depth, eval, type, move);
     }
 
     public Entry Get(ulong hash)

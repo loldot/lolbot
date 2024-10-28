@@ -39,12 +39,18 @@ public static class Heuristics
     {
         var eval = 0;
         ulong pawns = position[color, PieceType.Pawn];
-        while (pawns != 0)
+
+        var file = Bitboards.Masks.A_File;
+        for (int i = 0; i < 8; i++)
         {
-            var square = Bitboards.PopLsb(ref pawns);
-            if ((Bitboards.Masks.GetNeighbourFiles(square) & position[color, PieceType.Pawn]) == 0)
-                eval -= 15;
+            var pawnsOnFile = file & pawns;
+
+            var neighbours = Bitboards.Masks.GetNeighbourFiles(i);
+            if ((neighbours & pawns) == 0) eval -= Bitboards.CountOccupied(pawnsOnFile) * 15;
+
+            file <<= 1;
         }
+
         return eval;
     }
 
