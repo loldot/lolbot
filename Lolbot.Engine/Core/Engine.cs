@@ -128,16 +128,16 @@ public static class Engine
     {
         nodes = 0;
 
-        Span<Move> moves = stackalloc Move[218];
-
         var history = game.RepetitionTable;
         var position = game.CurrentPosition;
 
         if (position.IsCheck) depth++;
 
+        Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(ref position, ref moves);
         moves = moves[..count];
-        OrderMoves(ref moves, ref currentBest);
+
+        // OrderMoves(ref moves, ref currentBest);
 
         var bestEval = -999_999;
         var bestMove = currentBest ?? moves[0];
@@ -148,7 +148,7 @@ public static class Engine
         {
             if (ct.IsCancellationRequested) break;
 
-            var move = moves[i];
+            var move = SelectMove(ref moves, ref currentBest, ref i);
             var nextPosition = position.Move(move);
 
             int eval;
@@ -177,6 +177,36 @@ public static class Engine
         Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove} nodes {nodes}");
 
         return bestMove;
+    }
+
+    private static ref Move SelectMove(ref Span<Move> moves, ref Move? currentBest, ref int k)
+    {
+        var n = moves.Length;
+
+        if (k == 0)
+        {
+            if (currentBest is not null)
+            {
+                var index = moves.IndexOf(currentBest.Value);
+                if (index >= 0)
+                {
+                    moves[index] = moves[0];
+                    moves[0] = currentBest.Value;
+
+                    return ref moves[0];
+                }
+            }
+        }
+
+        int bestIndex = k;
+        for (var i = k; i < n; i++)
+        {
+            if (MoveComparer(moves[i], moves[bestIndex]) < 0) bestIndex = i;
+        }
+
+        (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
+
+        return ref moves[k];
     }
 
     private static void OrderMoves(ref Span<Move> legalMoves, ref Move? currentBest)
@@ -229,13 +259,14 @@ public static class Engine
         if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
 
         moves = moves[..count];
-        OrderMoves(ref moves, ref ttMove);
+        // OrderMoves(ref moves, ref ttMove);
 
-        byte i = 0;
+        int i = 0;
         int bestMove = 0;
 
         for (; i < count; i++)
         {
+            var move = SelectMove(ref moves, ref ttMove, ref i);
             var nextPosition = position.Move(moves[i]);
             history.Update(moves[i], nextPosition.Hash);
 
@@ -311,6 +342,7 @@ public static class Engine
 
     internal static void Reset()
     {
+        // tt.Clear();
         Array.Clear(historyHeuristic);
     }
 }

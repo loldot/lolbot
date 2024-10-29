@@ -20,6 +20,29 @@ public sealed partial class PgnSerializer
         return (game, metadata);
     }
 
+    public static Move ParseMove(Game game, string token)
+    {
+        Move move;
+        if (token == "O-O" || token == "0-0") move = Move.Castle(game.CurrentPlayer);
+        else if (token == "O-O-O" || token == "0-0-0") move = Move.QueenSideCastle(game.CurrentPlayer);
+        else
+        {
+            var match = PgnScanners.SanToken().Match(token);
+
+            var piece = match.Groups["piece"].Success
+                ? match.Groups["piece"].ValueSpan
+                : "P";
+
+            var disambiguation = match.Groups["disambiguation"].ValueSpan;
+            var coords = match.Groups["square"].ValueSpan;
+
+            var to = Squares.FromCoordinates(coords);
+
+            move = Disambiguate(game, to, piece, disambiguation);
+        }
+        return move;
+    }
+
     private static Game ReadMoves(GameMetadata meta, TextReader reader)
     {
         var position = meta.GetInitialPosition();
@@ -35,24 +58,7 @@ public sealed partial class PgnSerializer
                 if (PgnScanners.Comment().IsMatch(token)) continue;
                 if (PgnScanners.Result().IsMatch(token)) continue;
 
-                Move move;
-                if (token == "O-O" || token == "0-0") move = Move.Castle(game.CurrentPlayer);
-                else if (token == "O-O-O" || token == "0-0-0") move = Move.QueenSideCastle(game.CurrentPlayer);
-                else
-                {
-                    var match = PgnScanners.SanToken().Match(token);
-
-                    var piece = match.Groups["piece"].Success
-                        ? match.Groups["piece"].ValueSpan
-                        : "P";
-
-                    var disambiguation = match.Groups["disambiguation"].ValueSpan;
-                    var coords = match.Groups["square"].ValueSpan;
-
-                    var to = Squares.FromCoordinates(coords);
-
-                    move = Disambiguate(game, to, piece, disambiguation);
-                }
+                var move = ParseMove(game, token);
 
                 game = Engine.Move(game, move);
             }
@@ -67,8 +73,8 @@ public sealed partial class PgnSerializer
         ReadOnlySpan<char> pieceName,
         ReadOnlySpan<char> disambiguation)
     {
-        
-        var piece = (game.CurrentPlayer == Color.White) 
+
+        var piece = (game.CurrentPlayer == Color.White)
             ? Utils.FromName(pieceName[0])
             : Utils.FromName(char.ToLower(pieceName[0]));
         var legalMoves = game.CurrentPosition.GenerateLegalMoves(piece);
