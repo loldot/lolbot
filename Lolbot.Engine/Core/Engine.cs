@@ -6,6 +6,9 @@ namespace Lolbot.Core;
 public static class Engine
 {
     const int Max_Depth = 64;
+    const int Inf = 999_999;
+    const int Mate = ushort.MaxValue;
+
     private static readonly TranspositionTable tt = new TranspositionTable();
     private static readonly int[] historyHeuristic = new int[4096];
     private static int nodes = 0;
@@ -137,12 +140,10 @@ public static class Engine
         var count = MoveGenerator.Legal(ref position, ref moves);
         moves = moves[..count];
 
-        // OrderMoves(ref moves, ref currentBest);
-
-        var bestEval = -999_999;
+        var bestEval = -Inf;
         var bestMove = currentBest ?? moves[0];
 
-        var (alpha, beta) = (-999_999, 999_999);
+        var (alpha, beta) = (-Inf, Inf);
         int i = 0;
         for (; i < count; i++)
         {
@@ -183,52 +184,35 @@ public static class Engine
     {
         var n = moves.Length;
 
-        if (k == 0)
+        if (k == 0 && currentBest is not null)
         {
-            if (currentBest is not null)
+            var index = moves.IndexOf(currentBest.Value);
+            if (index >= 0)
             {
-                var index = moves.IndexOf(currentBest.Value);
-                if (index >= 0)
-                {
-                    moves[index] = moves[0];
-                    moves[0] = currentBest.Value;
+                moves[index] = moves[0];
+                moves[0] = currentBest.Value;
 
-                    return ref moves[0];
-                }
+                return ref moves[0];
             }
         }
 
-        int bestIndex = k;
-        for (var i = k; i < n; i++)
+        if (k <= 8)
         {
-            if (MoveComparer(moves[i], moves[bestIndex]) < 0) bestIndex = i;
-        }
+            int bestIndex = k;
+            for (var i = k; i < n; i++)
+            {
+                if (MoveComparer(moves[i], moves[bestIndex]) < 0) bestIndex = i;
+            }
 
-        (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
+            (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
+        }
 
         return ref moves[k];
     }
 
-    private static void OrderMoves(ref Span<Move> legalMoves, ref Move? currentBest)
-    {
-        int offset = 0;
-        if (currentBest is not null && legalMoves.Length > 1)
-        {
-            var index = legalMoves.IndexOf(currentBest.Value);
-            if (index >= 0)
-            {
-                legalMoves[index] = legalMoves[0];
-                legalMoves[0] = currentBest.Value;
-                offset = 1;
-            }
-        }
-
-        legalMoves[offset..].Sort(MoveComparer);
-    }
-
     public static int EvaluateMove(RepetitionTable history, ref Position position, int depth, int alpha, int beta, int color)
     {
-        var eval = -999_999;
+        var eval = -Inf;
         var alphaOrig = alpha;
         var ttEntry = tt.Get(position.Hash);
         Move? ttMove = ttEntry.IsSet && ttEntry.Key == position.Hash ? ttEntry.Move : null;
@@ -255,11 +239,10 @@ public static class Engine
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(ref position, ref moves);
 
-        if (count == 0) return position.IsCheck ? (-16384 - depth) : 0;
+        if (count == 0) return position.IsCheck ? (-Mate - depth) : 0;
         if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
 
         moves = moves[..count];
-        // OrderMoves(ref moves, ref ttMove);
 
         int i = 0;
         int bestMove = 0;
