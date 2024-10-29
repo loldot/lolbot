@@ -106,7 +106,7 @@ public static class PieceSquareTables
     // https://www.chessprogramming.org/Simplified_Evaluation_Function
 
     // Pawn piece-square table
-    public static readonly int[] PawnTable =
+    public static readonly int[] Pawns =
     [
         0,  0,  0,  0,  0,  0,  0,  0,
         5, 10, 10,-20,-20, 10, 10,  5,
@@ -118,8 +118,20 @@ public static class PieceSquareTables
         0,  0,  0,  0,  0,  0,  0,  0,
     ];
 
+
+    public static readonly int[] PawnsEndgame = [
+          0,   0,   0,   0,   0,   0,   0,   0,
+          0,   0,   0,   0,   0,   0,   0,   0,
+          0,   0,   0,   0,   0,   0,   0,   0,
+          0,   0,   0,   0,   0,   0,   0,   0,
+         10,  10,  10,  10,  10,  10,  10,  10,
+         90,  90,  90,  90,  90,  90,  90,  90,
+        180, 165, 130, 130, 130, 155, 170, 170,
+          0,   0,   0,   0,   0,   0,   0,   0
+    ];
+
     // Knight piece-square table
-    public static readonly int[] KnightTable =
+    public static readonly int[] Knights =
     [
         -50,-40,-30,-30,-30,-30,-40,-50,
         -40,-20,  0,  5,  5,  0,-20,-40,
@@ -132,7 +144,7 @@ public static class PieceSquareTables
     ];
 
     // Bishop piece-square table
-    public static readonly int[] BishopTable =
+    public static readonly int[] Bishops =
     [
         -20,-10,-10,-10,-10,-10,-10,-20,
         -10,  5,  0,  0,  0,  0,  5,-10,
@@ -145,7 +157,7 @@ public static class PieceSquareTables
     ];
 
     // Rook piece-square table
-    public static readonly int[] RookTable =
+    public static readonly int[] Rooks =
     [
         0,  0,  0,  5,  5,  0,  0,  0,
         -5,  0,  0,  0,  0,  0,  0, -5,
@@ -158,7 +170,7 @@ public static class PieceSquareTables
     ];
 
     // Queen piece-square table
-    public static readonly int[] QueenTable =
+    public static readonly int[] Queens =
     [
         -20,-10,-10, -5, -5,-10,-10,-20,
         -10,  0,  5,  0,  0,  0,  0,-10,
@@ -171,7 +183,7 @@ public static class PieceSquareTables
     ];
 
     // King piece-square table (middlegame)
-    public static readonly int[] KingTable =
+    public static readonly int[] King =
     [
         20, 30, 10,  0,  0, 30, 10, 20,
         20, 20,  0,  0,  0,  0, 20, 20,
@@ -195,20 +207,20 @@ public static class PieceSquareTables
     ];
 
     public static readonly int[] OpeningTables = [
-        ..PawnTable,
-        ..KnightTable,
-        ..BishopTable,
-        ..RookTable,
-        ..QueenTable,
-        ..KingTable,
+        ..Pawns,
+        ..Knights,
+        ..Bishops,
+        ..Rooks,
+        ..Queens,
+        ..King,
     ];
 
     public static readonly int[] EndgameTables = [
-        ..PawnTable,
-        ..KnightTable,
-        ..BishopTable,
-        ..RookTable,
-        ..QueenTable,
+        ..PawnsEndgame,
+        ..Knights,
+        ..Bishops,
+        ..Rooks,
+        ..Queens,
         ..KingEndgame,
     ];
 
