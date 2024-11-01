@@ -5,11 +5,12 @@ namespace Lolbot.Core;
 
 public class TranspositionTable
 {
-    public static readonly byte UpperBound = 1;
-    public static readonly byte LowerBound = 2;
-    public static readonly byte Exact = 3;
+    public const byte UpperBound = 1;
+    public const byte LowerBound = 2;
+    public const byte Exact = 3;
 
-    public static readonly ulong BucketMask = 0xff;
+    public const ulong BucketMask = 0xff;
+
 #if DEBUG
     public int set_count = 0;
     public int collision_count = 0;
@@ -21,25 +22,21 @@ public class TranspositionTable
 
     public readonly struct Entry
     {
-        public readonly byte Type;
-        public readonly bool IsSet;
-        public readonly int Depth, Evaluation;
         public readonly ulong Key;
+        public readonly byte Type;
+        public readonly byte Depth;
+        public readonly short Evaluation;
+        public readonly bool IsSet => Key != 0;
+        
         public readonly Move Move;
 
         public Entry(ulong key, int depth, int eval, byte type, Move move)
         {
             Key = key;
-            Depth = depth;
-            Evaluation = eval;
+            Depth = unchecked((byte)depth);
+            Evaluation = unchecked((short)eval);
             Type = type;
             Move = move;
-            IsSet = true;
-        }
-
-        override public string ToString()
-        {
-            return $"d:{Depth}, alpha: {Evaluation}, beta: {LowerBound}";
         }
     }
 
