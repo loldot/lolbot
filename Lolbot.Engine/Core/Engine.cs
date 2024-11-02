@@ -64,6 +64,9 @@ public static class Engine
         eval += Heuristics.Mobility(position, Color.White);
         eval -= Heuristics.Mobility(position, Color.Black);
 
+        eval += Heuristics.KingSafety(position, Color.White);
+        eval -= Heuristics.KingSafety(position, Color.Black);
+
         eval += Heuristics.IsolatedPawns(position, Color.White);
         eval -= Heuristics.IsolatedPawns(position, Color.Black);
 
@@ -149,7 +152,7 @@ public static class Engine
         {
             if (ct.IsCancellationRequested) break;
 
-            var move = PickMove(ref moves, ref i, ref currentBest);
+            var move = SelectMove(ref moves, ref currentBest, ref i);
             var nextPosition = position.Move(move);
 
             int eval;
@@ -180,8 +183,10 @@ public static class Engine
         return bestMove;
     }
 
-    private static ref Move PickMove(ref Span<Move> moves, ref int k, ref Move? currentBest)
+    private static ref Move SelectMove(ref Span<Move> moves, ref Move? currentBest, ref int k)
     {
+        var n = moves.Length;
+
         if (k == 0 && currentBest is not null)
         {
             var index = moves.IndexOf(currentBest.Value);
@@ -194,27 +199,12 @@ public static class Engine
             }
         }
 
-        return ref PickMove(ref moves, ref k);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Move PickMove(ref Span<Move> moves, ref int k)
-    {
-        var n = moves.Length;
-
         if (k <= 8)
         {
-            (int bestIndex, int bestScore) = (k, 0);
-
+            int bestIndex = k;
             for (var i = k; i < n; i++)
             {
-                var score = ScoreMove(moves[i]);
-
-                if (score > bestScore)
-                {
-                    bestIndex = i;
-                    bestScore = score;
-                }
+                if (MoveComparer(moves[i], moves[bestIndex]) < 0) bestIndex = i;
             }
 
             (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
@@ -262,7 +252,7 @@ public static class Engine
 
         for (; i < count; i++)
         {
-            var move = PickMove(ref moves, ref i, ref ttMove);
+            var move = SelectMove(ref moves, ref ttMove, ref i);
             var nextPosition = position.Move(moves[i]);
             history.Update(moves[i], nextPosition.Hash);
 
@@ -300,35 +290,38 @@ public static class Engine
 
         var count = MoveGenerator.Captures(in position, ref moves);
         moves = moves[..count];
+        moves.Sort(MoveComparer);
 
         var standPat = Evaluate(position);
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;
 
-        int i = 0;
-        for (; i < count; i++)
+        for (byte i = 0; i < count; i++)
         {
-            var move = PickMove(ref moves, ref i);
-            var eval = -QuiesenceSearch(position.Move(move), -beta, -alpha, -color);
+            var eval = -QuiesenceSearch(position.Move(moves[i]), -beta, -alpha, -color);
 
             if (eval >= beta) return beta;
 
             alpha = Max(eval, alpha);
         }
-        nodes += i;
 
         return alpha;
     }
 
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ScoreMove(Move x)
+    private static int MoveComparer(Move x, Move y)
     {
         int score = 0;
 
-        score += Heuristics.GetPieceValue(x.PromotionPiece);
-        score += Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
-        score += historyHeuristic[64 * x.FromIndex + x.ToIndex];
+        score -= Heuristics.GetPieceValue(x.PromotionPiece);
+        score -= Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
+        score -= historyHeuristic[64 * x.FromIndex + x.ToIndex];
+
+        score += Heuristics.GetPieceValue(y.PromotionPiece);
+        score += Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
+        score += historyHeuristic[64 * y.FromIndex + y.ToIndex];
 
         return score;
     }

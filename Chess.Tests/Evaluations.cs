@@ -70,4 +70,11 @@ public class Evaluations
         var fen = "2krb3/3p2P1/2p5/8/5P2/4P3/3PK3/8 w - - 0 1";
         Engine.Evaluate(Position.FromFen(fen)).Should().BePositive();
     }
+
+    [Test]
+    public void KingSafety()
+    {
+        var fen = "rb1qkr2/ppp2p1p/2np2p1/8/8/2NP2P1/PPP2P1P/RB1Q1RK1 w - - 0 1";
+        Engine.Evaluate(Position.FromFen(fen)).Should().BePositive();
+    }
 }

@@ -54,6 +54,21 @@ public static class Heuristics
         return eval;
     }
 
+    public static int KingSafety(Position position, Color color)
+    {
+        var occupied = position.Occupied;
+        var king = position[color, PieceType.King];
+        var sq = Squares.ToIndex(king);
+
+        var pieceCount = Math.Max(Bitboards.CountOccupied(occupied), 0);
+        var phase = GamePhaseInterpolation[pieceCount];
+
+        var opensquares = Bitboards.CountOccupied(MovePatterns.RookAttacks(sq, ref occupied))
+            + Bitboards.CountOccupied(MovePatterns.BishopAttacks(sq, ref occupied));
+
+        return -(phase * opensquares) / 100; ;
+    }
+
     public static int Mobility(Position position, Color color)
     {
         int movecount = 0;
