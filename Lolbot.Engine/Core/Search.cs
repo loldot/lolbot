@@ -70,7 +70,7 @@ public sealed class Search(Game game)
         return bestMove;
     }
 
-    public int EvaluateMove(ref Position position, int depth, int alpha, int beta)
+    public int EvaluateMove(ref readonly Position position, int depth, int alpha, int beta)
     {
         // if depth = 0 or node is a terminal node then
         //         return color × the heuristic value of node
@@ -79,37 +79,38 @@ public sealed class Search(Game game)
         //         value := max(value, −negamax(child, depth − 1, −color))
         //     return value
 
-        if (depth == 0) return StaticEvaluation();
+        if (depth == 0) return StaticEvaluation(in position);
 
         Span<Move> moves = stackalloc Move[218];
-        var count = MoveGenerator.Legal(ref position, ref moves);
+        var count = MoveGenerator.Legal(in position, ref moves);
         if (count == 0) return position.IsCheck ? (Mate - depth) : 0;
 
         var value = -Inf;
         int i = 0;
         for (; i < count; i++)
         {
-            value = Max(value, -EvaluateMove(ref position, depth - 1, -beta, -alpha));
+            var nextPosition = position.Move(moves[i]);
+            value = Max(value, -EvaluateMove(in position, depth - 1, -beta, -alpha));
         }
         nodes += i;
-        
+
         return value;
     }
 
-    public int StaticEvaluation()
+    public static int StaticEvaluation(ref readonly Position position)
     {
         var eval = 0;
 
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
-            eval += Heuristics.GetPieceValue(i, rootPosition[i], rootPosition.Occupied);
+            eval += Heuristics.GetPieceValue(i, position[i], position.Occupied);
         }
 
         for (Piece i = Piece.BlackPawn; i < Piece.BlackKing; i++)
         {
-            eval -= Heuristics.GetPieceValue(i, rootPosition[i], rootPosition.Occupied);
+            eval -= Heuristics.GetPieceValue(i, position[i], position.Occupied);
         }
 
-        return rootPosition.CurrentPlayer == Color.White ? eval : -eval;
+        return position.CurrentPlayer == Color.White ? eval : -eval;
     }
 }
