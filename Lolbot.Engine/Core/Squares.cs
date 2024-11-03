@@ -28,7 +28,7 @@ public static class Squares
      => FileNames[BitOperations.Log2(square) & 7];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Square FromIndex(ref readonly byte index) => 1ul << index;
+    public static Square FromIndex(byte index) => 1ul << index;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Square FromCoordinates(ReadOnlySpan<char> coords)
@@ -55,5 +55,5 @@ public static class Squares
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string? CoordinateFromIndex(ref byte index) => ToCoordinate(FromIndex(in index));
+    public static string? CoordinateFromIndex(ref byte index) => ToCoordinate(FromIndex(index));
 }

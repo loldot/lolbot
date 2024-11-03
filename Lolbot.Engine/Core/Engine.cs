@@ -100,33 +100,35 @@ public static class Engine
     public static Move? BestMove(Game game)
     {
         var timer = new CancellationTokenSource(2_000);
-
         return BestMove(game, timer.Token);
     }
 
-    public static Move BestMove(Game game, CancellationToken ct)
+    public static Move? BestMove(Game game, CancellationToken ct)
     {
-        // Age history heuristic
-        for (int i = 0; i < historyHeuristic.Length; i++)
-            historyHeuristic[i] /= 8;
+        var search = new Search(game);
+        return search.BestMove();
 
-        var bestMove = default(Move?);
-        var depth = 1;
+        //         // Age history heuristic
+        //         for (int i = 0; i < historyHeuristic.Length; i++)
+        //             historyHeuristic[i] /= 8;
 
-        while (bestMove is null || depth <= Max_Depth && !ct.IsCancellationRequested)
-        {
-            bestMove = BestMove(game, depth, bestMove, ct);
-            depth++;
-        }
+        //         var bestMove = default(Move?);
+        //         var depth = 1;
 
-#if DEBUG
-        Console.WriteLine($"info tt fill factor: {tt.FillFactor:P3}");
-        Console.WriteLine($"info tt set count: {tt.set_count}");
-        Console.WriteLine($"info tt rewrite count: {tt.rewrite_count}");
-        Console.WriteLine($"info tt collision count: {tt.collision_count}");
-#endif
+        //         while (bestMove is null || depth <= Max_Depth && !ct.IsCancellationRequested)
+        //         {
+        //             bestMove = BestMove(game, depth, bestMove, ct);
+        //             depth++;
+        //         }
 
-        return bestMove.Value;
+        // #if DEBUG
+        //         Console.WriteLine($"info tt fill factor: {tt.FillFactor:P3}");
+        //         Console.WriteLine($"info tt set count: {tt.set_count}");
+        //         Console.WriteLine($"info tt rewrite count: {tt.rewrite_count}");
+        //         Console.WriteLine($"info tt collision count: {tt.collision_count}");
+        // #endif
+
+        //         return bestMove.Value;
     }
 
     public static Move BestMove(Game game, int depth, Move? currentBest, CancellationToken ct)
@@ -281,7 +283,7 @@ public static class Engine
         return alpha;
     }
 
-    
+
     private static ref Move SelectMove(ref Span<Move> moves, ref Move? currentBest, ref int k)
     {
         var n = moves.Length;

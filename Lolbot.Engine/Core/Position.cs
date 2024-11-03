@@ -332,7 +332,7 @@ public readonly struct Position
             while (pieceBitboard != 0)
             {
                 var piece = Bitboards.PopLsb(ref pieceBitboard);
-                var checker = Squares.FromIndex(in piece);
+                var checker = Squares.FromIndex(piece);
 
                 var squares = MovePatterns.SquaresBetween[piece][king];
                 var attacks = MovePatterns.GetAttack(pieceType, checker, Empty);
@@ -355,7 +355,7 @@ public readonly struct Position
     {
         if (!IsPinned) return ulong.MaxValue;
 
-        var sq = Squares.FromIndex(in fromIndex);
+        var sq = Squares.FromIndex(fromIndex);
         for (var i = 0; i < 4; i++)
         {
             if ((Pinmasks[i] & sq) != 0) return Pinmasks[i];
@@ -405,12 +405,12 @@ public readonly struct Position
         return enemyAttacks;
     }
 
-    public Piece GetOccupant(ref byte attack)
+    public Piece GetOccupant(ref readonly byte attack)
     {
         Piece piece = Piece.None;
         byte colorOffset;
 
-        var square = Squares.FromIndex(in attack);
+        var square = Squares.FromIndex(attack);
 
         if ((White & square) != 0) colorOffset = 0x10;
         else if ((Black & square) != 0) colorOffset = 0x20;

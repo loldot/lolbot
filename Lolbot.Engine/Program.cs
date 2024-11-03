@@ -30,7 +30,7 @@ void Reset()
 }
 
 void Perft(string command)
-{   
+{
     var tokens = Regex.Split(command, @"\s");
     int depth = 6;
 
@@ -104,12 +104,18 @@ void Go(string command)
     var timer = new CancellationTokenSource(timeleft / 20 + increment / 2);
     var move = Engine.BestMove(game, timer.Token);
 
-    var from = Squares.ToCoordinate(move.FromSquare);
-    var to = Squares.ToCoordinate(move.ToSquare);
-
-    if (move.PromotionPiece != Piece.None)
+    if (move is null)
     {
-        var promotion = Utils.PieceName(move.PromotionPiece);
+        Console.Error.WriteLine("No valid moves found");
+        return;
+    }
+
+    var from = Squares.ToCoordinate(move.Value.FromSquare);
+    var to = Squares.ToCoordinate(move.Value.ToSquare);
+
+    if (move.Value.PromotionPiece != Piece.None)
+    {
+        var promotion = Utils.PieceName(move.Value.PromotionPiece);
         Console.WriteLine($"bestmove {from}{to}{promotion}");
     }
 

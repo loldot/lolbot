@@ -39,7 +39,7 @@ public static class MovePatterns
     {
         for (byte i = 0; i < 64; i++)
         {
-            var square = Squares.FromIndex(in i);
+            var square = Squares.FromIndex(i);
             WhitePawnPushes[i] = GetPawnPushes(square);
             WhitePawnAttacks[i] = CalculateAllPawnAttacksWhite(square);
             Knights[i] = PseudoKnightMoves(i);
@@ -81,7 +81,7 @@ public static class MovePatterns
 
         for (byte i = 8; i < 56; i++)
         {
-            ulong pawn = Squares.FromIndex(in i);
+            ulong pawn = Squares.FromIndex(i);
 
             ulong white_mask = pawn | WhitePawnAttacks[i];
             ulong black_mask = pawn | BlackPawnAttacks[i];
@@ -99,7 +99,7 @@ public static class MovePatterns
         uint currentIndex = 0;
         for (byte i = 0; i < 64; i++)
         {
-            var sq = Squares.FromIndex(in i);
+            var sq = Squares.FromIndex(i);
 
             RookPextIndex[i] = currentIndex;
             RookPextMask[i] = Rooks[i] & GetEdgeFilter(i);
@@ -116,7 +116,7 @@ public static class MovePatterns
 
         for (byte i = 0; i < 64; i++)
         {
-            var sq = Squares.FromIndex(in i);
+            var sq = Squares.FromIndex(i);
 
             BishopPextIndex[i] = currentIndex;
             BishopPextMask[i] = Bishops[i] & GetEdgeFilter(i);
@@ -226,7 +226,7 @@ public static class MovePatterns
     }
     private static int Distance(byte x, byte y)
     {
-        var (sx, sy) = (Squares.FromIndex(in x), Squares.FromIndex(y));
+        var (sx, sy) = (Squares.FromIndex(x), Squares.FromIndex(y));
         var (r1, r2) = (Squares.GetRank(sx), Squares.GetRank(sy));
         var (f1, f2) = (Squares.GetFile(sx), Squares.GetFile(sy));
 

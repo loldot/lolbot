@@ -14,9 +14,6 @@ public readonly struct Move : IEquatable<Move>
     public static readonly BitVector32.Section promotionPiece = BitVector32.CreateSection(6, capturePiece);
     public static readonly BitVector32.Section castling = BitVector32.CreateSection(8, promotionPiece);
 
-
-
-
     public readonly BitVector32 value;
 
     public readonly Piece FromPiece => Utils.GetPiece(value[color] == 1 ? Color.White : Color.Black, (PieceType)value[fromPiece]);

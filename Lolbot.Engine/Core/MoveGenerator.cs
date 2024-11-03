@@ -371,7 +371,7 @@ public class MoveGenerator
         var epCapture = (byte)(position.EnPassant + captureOffset);
         var ep = new Move(piece, sq, attack, position.GetOccupant(ref epCapture), epCapture);
 
-        var occupiedAfter = position.Occupied ^ (Squares.FromIndex(in epCapture) | Squares.FromIndex(in sq) | (1ul << attack));
+        var occupiedAfter = position.Occupied ^ (Squares.FromIndex(epCapture) | Squares.FromIndex(sq) | (1ul << attack));
 
         var kingindex = Squares.ToIndex(king);
         var kingRook = MovePatterns.RookAttacks(kingindex, ref occupiedAfter);
