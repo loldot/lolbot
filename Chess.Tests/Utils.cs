@@ -31,7 +31,20 @@ public class Utilities
         var fromBlack = Bitboards.FlipAlongVertical(position.BlackPawns);
 
         fromBlack.Should().Be(position.WhitePawns);
+    }
 
+    [TestCase(Color.White, 27, ExpectedResult = 0x1c1c1c1c08000000ul)]
+    [TestCase(Color.White, 15, ExpectedResult = 0xc0c0c0c0c0c08000ul)]
+    [TestCase(Color.Black, 15, ExpectedResult = 0x80c0ul)]
+    [TestCase(Color.Black, 0, ExpectedResult = 0ul)]
+    [TestCase(Color.Black, 7, ExpectedResult = 0ul)]
+    [TestCase(Color.White, 56, ExpectedResult = 0ul)]
+    [TestCase(Color.White, 63, ExpectedResult = 0ul)]
+    [TestCase(Color.White, 30, ExpectedResult = 0xe0e0e0e040000000ul)]
+    [TestCase(Color.White, 33, ExpectedResult = 0x707070200000000ul)]
+    public ulong PassedPawnMasks(Color color, byte index)
+    {
+        return MovePatterns.PassedPawnMasks[(int)color][index];
     }
 
     [Test]

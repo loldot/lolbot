@@ -1,11 +1,14 @@
 
-using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace Lolbot.Core;
 
 public static class Heuristics
 {
+    public static readonly int[] DoubledPawnPenalties = [0, 0, -17, -29, -200, -300];
+    public const int IsolatedPawnPenalty = -15;
+    public const int PassedPawnBonus = 27;
+
     private static readonly int[] GamePhaseInterpolation = [
          0,  0,  0,  0,  0,  0,  0,  0,
          4,  8, 16, 20, 24, 28, 32, 36,
@@ -35,20 +38,36 @@ public static class Heuristics
         }
     }
 
-    public static int IsolatedPawns(Position position, Color color)
+    public static int PawnStructure(Position position, Color color)
     {
         var eval = 0;
+        var opponent = color == Color.White ? Color.Black : Color.White;
+
         ulong pawns = position[color, PieceType.Pawn];
+        ulong oponentPawns = position[opponent, PieceType.Pawn];
 
         var file = Bitboards.Masks.A_File;
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 8; i++, file <<= 1)
         {
             var pawnsOnFile = file & pawns;
+            if (pawnsOnFile == 0) continue;
 
             var neighbours = Bitboards.Masks.GetNeighbourFiles(i);
-            if ((neighbours & pawns) == 0) eval -= Bitboards.CountOccupied(pawnsOnFile) * 15;
+            var opposingPawns = (neighbours | file) & oponentPawns;
 
-            file <<= 1;
+            // Doubled pawns
+            eval += DoubledPawnPenalties[Bitboards.CountOccupied(pawnsOnFile)];
+
+            // Isolated pawns
+            if ((neighbours & pawns) == 0) eval += Bitboards.CountOccupied(pawnsOnFile) * IsolatedPawnPenalty;
+
+            // Passed pawns
+            var frontPawn = color == Color.White
+                ? 63 - Bitboards.Msb(pawnsOnFile)
+                : Bitboards.Lsb(pawnsOnFile);
+
+            var passedPawnMask = MovePatterns.PassedPawnMasks[(int)color][frontPawn];
+            eval += (passedPawnMask & opposingPawns) == 0 ? PassedPawnBonus : 0;            
         }
 
         return eval;

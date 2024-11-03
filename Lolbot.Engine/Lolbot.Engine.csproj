@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <PublishAot>true</PublishAot>
-    <IlcInstructionSet>avx2,bmi2,fma,pclmul,popcnt,aes</IlcInstructionSet>
+    <IlcInstructionSet>avx2,bmi2,fma,pclmul,popcnt,aes,lzcnt</IlcInstructionSet>
     <OptimizationPreference>Speed</OptimizationPreference>
     <DebuggerSupport>false</DebuggerSupport>
     <InvariantGlobalization>true</InvariantGlobalization>

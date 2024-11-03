@@ -11,19 +11,20 @@ public static class MovePatterns
     public const int SW = -9, S = -8, SE = -7;
     public static readonly int[] Directions = [NW, N, NE, W, E, SW, S, SE];
 
-    public static ulong[] WhitePawnPushes = new ulong[64];
-    public static ulong[] WhitePawnAttacks = new ulong[64];
+    public static readonly ulong[] WhitePawnPushes = new ulong[64];
+    public static readonly ulong[] WhitePawnAttacks = new ulong[64];
 
-    public static ulong[] BlackPawnPushes = new ulong[64];
-    public static ulong[] BlackPawnAttacks = new ulong[64];
+    public static readonly ulong[] BlackPawnPushes = new ulong[64];
+    public static readonly ulong[] BlackPawnAttacks = new ulong[64];
+    public static readonly ulong[][] PassedPawnMasks = new ulong[3][];
 
-    public static ulong[] Knights = new ulong[64];
-    public static ulong[] Bishops = new ulong[64];
-    public static ulong[] Rooks = new ulong[64];
+    public static readonly ulong[] Knights = new ulong[64];
+    public static readonly ulong[] Bishops = new ulong[64];
+    public static readonly ulong[] Rooks = new ulong[64];
 
-    public static ulong[] Kings = new ulong[64];
+    public static readonly ulong[] Kings = new ulong[64];
 
-    public static ulong[][] SquaresBetween = new ulong[64][];
+    public static readonly ulong[][] SquaresBetween = new ulong[64][];
 
     public static Piece[][] PromotionPieces = new Piece[64][];
 
@@ -38,7 +39,7 @@ public static class MovePatterns
     {
         for (byte i = 0; i < 64; i++)
         {
-            var square = Squares.FromIndex(i);
+            var square = Squares.FromIndex(in i);
             WhitePawnPushes[i] = GetPawnPushes(square);
             WhitePawnAttacks[i] = CalculateAllPawnAttacksWhite(square);
             Knights[i] = PseudoKnightMoves(i);
@@ -75,6 +76,20 @@ public static class MovePatterns
             }
         }
 
+        PassedPawnMasks[(int)Color.White] = new ulong[64];
+        PassedPawnMasks[(int)Color.Black] = new ulong[64];
+
+        for (byte i = 8; i < 56; i++)
+        {
+            ulong pawn = Squares.FromIndex(in i);
+
+            ulong white_mask = pawn | WhitePawnAttacks[i];
+            ulong black_mask = pawn | BlackPawnAttacks[i];
+
+            PassedPawnMasks[(int)Color.White][i] = OccludedFill(white_mask, ulong.MaxValue, N);
+            PassedPawnMasks[(int)Color.Black][i] = OccludedFill(black_mask, ulong.MaxValue, S);
+        }
+
         InitPextTable();
     }
 
@@ -84,7 +99,7 @@ public static class MovePatterns
         uint currentIndex = 0;
         for (byte i = 0; i < 64; i++)
         {
-            var sq = Squares.FromIndex(i);
+            var sq = Squares.FromIndex(in i);
 
             RookPextIndex[i] = currentIndex;
             RookPextMask[i] = Rooks[i] & GetEdgeFilter(i);
@@ -101,7 +116,7 @@ public static class MovePatterns
 
         for (byte i = 0; i < 64; i++)
         {
-            var sq = Squares.FromIndex(i);
+            var sq = Squares.FromIndex(in i);
 
             BishopPextIndex[i] = currentIndex;
             BishopPextMask[i] = Bishops[i] & GetEdgeFilter(i);
@@ -211,7 +226,7 @@ public static class MovePatterns
     }
     private static int Distance(byte x, byte y)
     {
-        var (sx, sy) = (Squares.FromIndex(x), Squares.FromIndex(y));
+        var (sx, sy) = (Squares.FromIndex(in x), Squares.FromIndex(y));
         var (r1, r2) = (Squares.GetRank(sx), Squares.GetRank(sy));
         var (f1, f2) = (Squares.GetFile(sx), Squares.GetFile(sy));
 
@@ -255,7 +270,7 @@ public static class MovePatterns
         return BitOperations.RotateLeft(b, dir8) & AvoidWrap(dir8);
     }
 
-    private static ulong SlidingAttacks(ulong sliders, ulong empty, int dir8)
+    public static ulong SlidingAttacks(ulong sliders, ulong empty, int dir8)
     {
         ulong fill = OccludedFill(sliders, empty, dir8);
         return ShiftOne(fill, dir8);

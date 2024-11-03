@@ -40,12 +40,26 @@ public class Evaluations
     public void Should_Eval_IsolatedPawns()
     {
         var position = Position.FromFen("1k6/p6p/1p1p1p2/8/2P5/5PP1/P3P2P/5K2 w - - 0 1");
-        var whiteEval = Heuristics.IsolatedPawns(position, Color.White);
-        var blackEval = Heuristics.IsolatedPawns(position, Color.Black);
+        var whiteEval = Heuristics.PawnStructure(position, Color.White);
+        var blackEval = Heuristics.PawnStructure(position, Color.Black);
 
-        whiteEval.Should().Be(-30);
-        blackEval.Should().Be(-45);
+        whiteEval.Should().Be(2 * Heuristics.IsolatedPawnPenalty);
+        blackEval.Should().Be(3 * Heuristics.IsolatedPawnPenalty);
     }
+
+    [TestCase("8/8/3k4/1Pp1p3/2PpPpp1/3P4/5K2/8 w - - 0 1", Heuristics.PassedPawnBonus, 2 * Heuristics.PassedPawnBonus)]
+    [TestCase("8/8/3k4/2p2p2/3p2p1/1PP1PP2/5K2/8 w - - 0 1", 0, 0)]
+    public void Should_Eval_PassedPawns(string fen, int white, int black)
+    {
+        var position = Position.FromFen(fen);
+
+        var whiteEval = Heuristics.PawnStructure(position, Color.White);
+        var blackEval = Heuristics.PawnStructure(position, Color.Black);
+
+        whiteEval.Should().Be(white);
+        blackEval.Should().Be(black);
+    }
+
 
     [TestCase("3k4/2p1q3/3p2n1/4p3/4P3/3P2N1/2P1Q3/3K4 w - - 0 1", "3k4/2p1q3/3p2n1/4p3/4P3/3P2N1/2P1Q3/3K4 b - - 0 1")]
     [TestCase("3k4/2p5/3p2n1/4p3/4P3/3P2N1/2P1Q3/q2K4 w - - 0 1", "Q2k4/2p1q3/3p2n1/4p3/4P3/3P2N1/2P5/3K4 b - - 0 1")]
@@ -72,9 +86,18 @@ public class Evaluations
     }
 
     [Test]
-    public void KingSafety()
+    public void KingSafety_Should_Be_Favorable()
     {
         var fen = "rb1qkr2/ppp2p1p/2np2p1/8/8/2NP2P1/PPP2P1P/RB1Q1RK1 w - - 0 1";
         Engine.Evaluate(Position.FromFen(fen)).Should().BePositive();
+    }
+
+    [Test]
+    public void DoubledPawns()
+    {
+        var fen = "8/8/2k5/2p2p2/5P2/2K2P2/8/8 w - - 0 1";
+        var eval = Engine.Evaluate(Position.FromFen(fen));
+        Console.WriteLine(eval.ToString());
+        eval.Should().BeNegative();
     }
 }

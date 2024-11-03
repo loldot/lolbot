@@ -50,7 +50,6 @@ public static class Engine
         return new Game(game.InitialPosition, [.. game.Moves, move]);
     }
 
-
     public static int Evaluate(Position position)
     {
         var eval = 0;
@@ -67,8 +66,8 @@ public static class Engine
         eval += Heuristics.KingSafety(position, Color.White);
         eval -= Heuristics.KingSafety(position, Color.Black);
 
-        eval += Heuristics.IsolatedPawns(position, Color.White);
-        eval -= Heuristics.IsolatedPawns(position, Color.Black);
+        eval += Heuristics.PawnStructure(position, Color.White);
+        eval -= Heuristics.PawnStructure(position, Color.Black);
 
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
@@ -183,45 +182,18 @@ public static class Engine
         return bestMove;
     }
 
-    private static ref Move SelectMove(ref Span<Move> moves, ref Move? currentBest, ref int k)
-    {
-        var n = moves.Length;
-
-        if (k == 0 && currentBest is not null)
-        {
-            var index = moves.IndexOf(currentBest.Value);
-            if (index >= 0)
-            {
-                moves[index] = moves[0];
-                moves[0] = currentBest.Value;
-
-                return ref moves[0];
-            }
-        }
-
-        if (k <= 8)
-        {
-            int bestIndex = k;
-            for (var i = k; i < n; i++)
-            {
-                if (MoveComparer(moves[i], moves[bestIndex]) < 0) bestIndex = i;
-            }
-
-            (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
-        }
-
-        return ref moves[k];
-    }
 
     public static int EvaluateMove(RepetitionTable history, ref Position position, int depth, int alpha, int beta, int color)
     {
         var eval = -Inf;
         var alphaOrig = alpha;
+
         var ttEntry = tt.Get(position.Hash);
-        Move? ttMove = ttEntry.IsSet && ttEntry.Key == position.Hash ? ttEntry.Move : null;
+        var isValidTt = ttEntry.IsSet && ttEntry.Key == position.Hash;
+        Move? ttMove = isValidTt ? ttEntry.Move : null;
 
         if (history.IsDrawByRepetition(position.Hash)) return 0;
-        if (tt.TryGet(position.Hash, depth, out ttEntry))
+        if (isValidTt && ttEntry.Depth >= depth)
         {
             if (ttEntry.Type == TranspositionTable.Exact)
                 return ttEntry.Evaluation;
@@ -307,6 +279,37 @@ public static class Engine
         }
 
         return alpha;
+    }
+
+    
+    private static ref Move SelectMove(ref Span<Move> moves, ref Move? currentBest, ref int k)
+    {
+        var n = moves.Length;
+
+        if (k == 0 && currentBest is not null)
+        {
+            var index = moves.IndexOf(currentBest.Value);
+            if (index >= 0)
+            {
+                moves[index] = moves[0];
+                moves[0] = currentBest.Value;
+
+                return ref moves[0];
+            }
+        }
+
+        if (k <= 8)
+        {
+            int bestIndex = k;
+            for (var i = k; i < n; i++)
+            {
+                if (MoveComparer(moves[i], moves[bestIndex]) < 0) bestIndex = i;
+            }
+
+            (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
+        }
+
+        return ref moves[k];
     }
 
 
