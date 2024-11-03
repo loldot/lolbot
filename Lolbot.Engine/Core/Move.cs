@@ -16,6 +16,8 @@ public readonly struct Move : IEquatable<Move>
 
     public readonly BitVector32 value;
 
+    public static readonly Move Null = new(0);
+
     public readonly Piece FromPiece => Utils.GetPiece(value[color] == 1 ? Color.White : Color.Black, (PieceType)value[fromPiece]);
     public readonly byte FromIndex => (byte)value[from];
     public readonly byte ToIndex => (byte)value[to];
@@ -76,7 +78,10 @@ public readonly struct Move : IEquatable<Move>
         );
     }
 
-
+    private Move(int raw)
+    {
+        value = new BitVector32(raw);
+    }
     public Move(char fromPiece, string fromCoordinate, string toCoordinate) : this()
     {
         value[color] = Utils.GetColor(Utils.FromName(fromPiece)) == Color.White ? 1 : 0;
@@ -162,7 +167,6 @@ public readonly struct Move : IEquatable<Move>
         Piece.BlackRook, Squares.A8,
         CastlingRights.BlackQueen
     );
-
 
     // TODO: Fisher castling rules :cry:
     public static Move Castle(Color color)

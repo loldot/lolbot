@@ -2,9 +2,9 @@ using static System.Math;
 
 namespace Lolbot.Core;
 
-public sealed class Search(Game game)
+public sealed class Search(Game game, TranspositionTable tt)
 {
-    const int Inf = 1_000_000;   
+    const int Inf = 1_000_000;
     const int Max_Depth = 64;
 
     private readonly Position rootPosition = game.CurrentPosition;
@@ -30,8 +30,10 @@ public sealed class Search(Game game)
 
         while (bestMove is null || searchDepth <= Max_Depth && !ct.IsCancellationRequested)
         {
+            nodes = 0;
+
             var temp = SearchRoot(searchDepth, bestMove);
-            if (!isAborted) bestMove = temp;
+            if (!isAborted || nodes > 0) bestMove = temp;
 
             searchDepth++;
         }
@@ -41,8 +43,6 @@ public sealed class Search(Game game)
 
     public Move SearchRoot(int depth, Move? currentBest)
     {
-        nodes = 0;
-
         if (rootPosition.IsCheck) depth++;
 
         Span<Move> moves = stackalloc Move[218];
@@ -90,40 +90,107 @@ public sealed class Search(Game game)
 
     public int EvaluateMove(ref readonly Position position, int remainingDepth, int ply, int alpha, int beta)
     {
-        if (remainingDepth == 0) return StaticEvaluation(in position);
+        if (remainingDepth == 0) return QuiesenceSearch(in position, alpha, beta);
 
         var mateValue = Inf - ply;
+        var originalAlpha = alpha;
+
         if (alpha > mateValue) alpha = -mateValue;
         if (beta > mateValue - 1) beta = mateValue - 1;
-        // if (history.IsDrawByRepetition(position.Hash)) return 0;
+        if (history.IsDrawByRepetition(position.Hash)) return 0;
 
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(in position, ref moves);
+
+        // Checkmate or stalemate
         if (count == 0) return position.IsCheck ? -mateValue : 0;
+
         if ((nodes & 0xf) == 0 && ct.IsCancellationRequested)
         {
             isAborted = true;
-            return -Inf;
+            return QuiesenceSearch(in position, alpha, beta);
         }
+
+        // var ttMove = default(Move?);
+        // if (tt.TryGet(position.Hash, out var ttEntry))
+        // {
+        //     if (ttEntry.Depth >= remainingDepth)
+        //     {
+        //         if (ttEntry.Type == TranspositionTable.Exact)
+        //         {
+        //             return ttEntry.Evaluation;
+        //         }
+        //         else if (ttEntry.Type == TranspositionTable.LowerBound)
+        //         {
+        //             alpha = Max(alpha, ttEntry.Evaluation);
+        //         }
+        //         else if (ttEntry.Type == TranspositionTable.UpperBound)
+        //         {
+        //             beta = Min(beta, ttEntry.Evaluation);
+        //         }
+
+        //         if (alpha >= beta) return ttEntry.Evaluation;
+        //     }
+        //     ttMove = ttEntry.Move;
+        // }
 
         var value = -Inf;
 
         int i = 0;
         for (; i < count; i++)
         {
-            var nextPosition = position.Move(moves[i]);
+            var move = moves[i];//SelectMove(ref moves, ttMove, in i);
+            var nextPosition = position.Move(move);
             value = Max(value, -EvaluateMove(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha));
-            alpha = Max(value, alpha);
 
-            if (alpha >= beta) break;
+            if (value > alpha)
+            {
+                alpha = value;
+                // ttMove = moves[i];
+            }
+            if (alpha >= beta)
+            {
+                break;
+            }
         }
         nodes += i;
 
+        // var flag = TranspositionTable.Exact;
+        // if (value <= originalAlpha) flag = TranspositionTable.UpperBound;
+        // else if (value >= beta) flag = TranspositionTable.LowerBound;
+
+        // tt.Add(position.Hash, remainingDepth, value, flag, ttMove ?? Move.Null);
 
         return value;
     }
 
-    public int StaticEvaluation(ref readonly Position position)
+    private int QuiesenceSearch(in Position position, int alpha, int beta)
+    {
+        Span<Move> moves = stackalloc Move[218];
+
+        var count = MoveGenerator.Captures(in position, ref moves);
+        moves = moves[..count];
+
+        var standPat = StaticEvaluation(in position);
+
+        if (standPat >= beta) return beta;
+        if (alpha < standPat) alpha = standPat;
+
+        int i = 0;
+        for (; i < count; i++)
+        {
+            var eval = -QuiesenceSearch(position.Move(moves[i]), -beta, -alpha);
+
+            if (eval >= beta) return beta;
+
+            alpha = Max(eval, alpha);
+        }
+        nodes += i;
+
+        return alpha;
+    }
+
+    public static int StaticEvaluation(ref readonly Position position)
     {
         var eval = 0;
 

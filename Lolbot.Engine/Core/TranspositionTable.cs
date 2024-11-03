@@ -27,7 +27,7 @@ public class TranspositionTable
         public readonly byte Depth;
         public readonly short Evaluation;
         public readonly bool IsSet => Key != 0;
-        
+
         public readonly Move Move;
 
         public Entry(ulong key, int depth, int eval, byte type, Move move)
@@ -73,6 +73,13 @@ public class TranspositionTable
 
         return entries[(byte)(hash & BucketMask)][(ushort)index];
     }
+
+    public bool TryGet(ulong hash, out Entry entry)
+    {
+        entry = Get(hash);
+        return entry.IsSet && hash == entry.Key;
+    }
+
 
     public bool TryGet(ulong hash, int depth, out Entry entry)
     {

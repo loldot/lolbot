@@ -105,7 +105,7 @@ public static class Engine
 
     public static Move? BestMove(Game game, CancellationToken ct)
     {
-        var search = new Search(game);
+        var search = new Search(game, tt);
         return search.BestMove(ct);
 
         //         // Age history heuristic
