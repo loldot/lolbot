@@ -34,6 +34,8 @@ Push-Location "C:\Program Files (x86)\Cute Chess"
     -each proto=uci tc=40/5 `
     -rounds 50 `
     -games 2 `
+    -repeat 2 `
+    -recover `
     -debug
 
 Pop-Location

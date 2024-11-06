@@ -9,15 +9,13 @@ public class TranspositionTable
     public const byte LowerBound = 2;
     public const byte Exact = 3;
 
-    public const ulong BucketMask = 0xff;
-
-#if DEBUG
+// #if DEBUG
     public int set_count = 0;
     public int collision_count = 0;
     public int rewrite_count = 0;
 
-    public double FillFactor => set_count / (256.0 * ushort.MaxValue);
-#endif
+    public double FillFactor => set_count / (128.0 * ushort.MaxValue);
+// #endif
 
 
     public readonly struct Entry
@@ -33,45 +31,37 @@ public class TranspositionTable
         public Entry(ulong key, int depth, int eval, byte type, Move move)
         {
             Key = key;
-            Depth = unchecked((byte)depth);
-            Evaluation = unchecked((short)eval);
+            Depth = (byte)depth;
+            Evaluation = (short)eval;
             Type = type;
             Move = move;
         }
     }
 
-    private readonly Entry[][] entries = new Entry[256][];
-    public TranspositionTable()
-    {
-        for (int i = 0; i < entries.Length; i++)
-        {
-            entries[i] = new Entry[ushort.MaxValue];
-        }
-    }
+    private readonly Entry[] entries = new Entry[128 * ushort.MaxValue];
+
 
     public Entry Add(ulong hash, int depth, int eval, byte type, Move move)
     {
-        var index = (hash & 0xfffe0000) >> 16;
+        var index = hash & 0xf_fffe;
 
-        Debug.Assert(index <= ushort.MaxValue);
+        Debug.Assert(eval < short.MaxValue);
 
-        var current = entries[(byte)(hash & BucketMask)][(ushort)index];
-#if DEBUG
+        var current = entries[index];
+// #if DEBUG
         if (!current.IsSet) set_count++;
         else if (hash == current.Key) rewrite_count++;
         else if (hash != current.Key) collision_count++;
-#endif
+// #endif
 
-        return entries[(byte)(hash & BucketMask)][(ushort)index] = new Entry(hash, depth, eval, type, move);
+        return entries[index] = new Entry(hash, depth, eval, type, move);
     }
 
     public Entry Get(ulong hash)
     {
-        var index = (hash & 0xfffe0000) >> 16;
+        var index = hash & 0xf_fffe;
 
-        Debug.Assert(index <= ushort.MaxValue);
-
-        return entries[(byte)(hash & BucketMask)][(ushort)index];
+        return entries[index];
     }
 
     public bool TryGet(ulong hash, out Entry entry)
@@ -94,12 +84,12 @@ public class TranspositionTable
     {
         for (int i = 0; i < entries.Length; i++)
         {
-            entries[i] = new Entry[ushort.MaxValue];
+            entries[i] = new Entry();
         }
-#if DEBUG
+// #if DEBUG
         set_count = 0;
         collision_count = 0;
         rewrite_count = 0;
-#endif
+// #endif
     }
 }

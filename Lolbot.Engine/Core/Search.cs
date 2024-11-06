@@ -1,10 +1,12 @@
+using System.Buffers;
 using static System.Math;
 
 namespace Lolbot.Core;
 
 public sealed class Search(Game game, TranspositionTable tt)
 {
-    const int Inf = 1_000_000;
+    public const int Inf = short.MaxValue;
+    public const int Mate = short.MaxValue / 2;
     const int Max_Depth = 64;
 
     private readonly Position rootPosition = game.CurrentPosition;
@@ -33,7 +35,7 @@ public sealed class Search(Game game, TranspositionTable tt)
             nodes = 0;
 
             var temp = SearchRoot(searchDepth, bestMove);
-            if (!isAborted || nodes > 0) bestMove = temp;
+            if (!isAborted) bestMove = temp;
 
             searchDepth++;
         }
@@ -45,7 +47,7 @@ public sealed class Search(Game game, TranspositionTable tt)
     {
         if (rootPosition.IsCheck) depth++;
 
-        Span<Move> moves = stackalloc Move[218];
+        Span<Move> moves = stackalloc Move[256];
         var count = MoveGenerator.Legal(in rootPosition, ref moves);
         moves = moves[..count];
 
@@ -92,7 +94,7 @@ public sealed class Search(Game game, TranspositionTable tt)
     {
         if (remainingDepth == 0) return QuiesenceSearch(in position, alpha, beta);
 
-        var mateValue = Inf - ply;
+        var mateValue = Mate - ply;
         var originalAlpha = alpha;
 
         if (alpha > mateValue) alpha = -mateValue;
@@ -101,6 +103,7 @@ public sealed class Search(Game game, TranspositionTable tt)
 
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(in position, ref moves);
+        moves = moves[..count];
 
         // Checkmate or stalemate
         if (count == 0) return position.IsCheck ? -mateValue : 0;
@@ -111,42 +114,42 @@ public sealed class Search(Game game, TranspositionTable tt)
             return QuiesenceSearch(in position, alpha, beta);
         }
 
-        // var ttMove = default(Move?);
-        // if (tt.TryGet(position.Hash, out var ttEntry))
-        // {
-        //     if (ttEntry.Depth >= remainingDepth)
-        //     {
-        //         if (ttEntry.Type == TranspositionTable.Exact)
-        //         {
-        //             return ttEntry.Evaluation;
-        //         }
-        //         else if (ttEntry.Type == TranspositionTable.LowerBound)
-        //         {
-        //             alpha = Max(alpha, ttEntry.Evaluation);
-        //         }
-        //         else if (ttEntry.Type == TranspositionTable.UpperBound)
-        //         {
-        //             beta = Min(beta, ttEntry.Evaluation);
-        //         }
+        var ttMove = default(Move?);
+        if (tt.TryGet(position.Hash, out var ttEntry))
+        {
+            if (ttEntry.Depth >= remainingDepth)
+            {
+                if (ttEntry.Type == TranspositionTable.Exact)
+                {
+                    return ttEntry.Evaluation;
+                }
+                else if (ttEntry.Type == TranspositionTable.LowerBound)
+                {
+                    alpha = Max(alpha, ttEntry.Evaluation);
+                }
+                else if (ttEntry.Type == TranspositionTable.UpperBound)
+                {
+                    beta = Min(beta, ttEntry.Evaluation);
+                }
 
-        //         if (alpha >= beta) return ttEntry.Evaluation;
-        //     }
-        //     ttMove = ttEntry.Move;
-        // }
+                if (alpha >= beta) return ttEntry.Evaluation;
+            }
+            ttMove = ttEntry.Move;
+        }
 
         var value = -Inf;
 
         int i = 0;
         for (; i < count; i++)
         {
-            var move = moves[i];//SelectMove(ref moves, ttMove, in i);
+            var move = SelectMove(ref moves, ttMove, in i);
             var nextPosition = position.Move(move);
             value = Max(value, -EvaluateMove(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha));
 
             if (value > alpha)
             {
                 alpha = value;
-                // ttMove = moves[i];
+                ttMove = moves[i];
             }
             if (alpha >= beta)
             {
@@ -155,11 +158,11 @@ public sealed class Search(Game game, TranspositionTable tt)
         }
         nodes += i;
 
-        // var flag = TranspositionTable.Exact;
-        // if (value <= originalAlpha) flag = TranspositionTable.UpperBound;
-        // else if (value >= beta) flag = TranspositionTable.LowerBound;
+        var flag = TranspositionTable.Exact;
+        if (value <= originalAlpha) flag = TranspositionTable.UpperBound;
+        else if (value >= beta) flag = TranspositionTable.LowerBound;
 
-        // tt.Add(position.Hash, remainingDepth, value, flag, ttMove ?? Move.Null);
+        tt.Add(position.Hash, remainingDepth, value, flag, ttMove ?? Move.Null);
 
         return value;
     }
@@ -179,7 +182,8 @@ public sealed class Search(Game game, TranspositionTable tt)
         int i = 0;
         for (; i < count; i++)
         {
-            var eval = -QuiesenceSearch(position.Move(moves[i]), -beta, -alpha);
+            var nextPosition = position.Move(moves[i]);
+            var eval = -QuiesenceSearch(in nextPosition, -beta, -alpha);
 
             if (eval >= beta) return beta;
 
