@@ -34,8 +34,8 @@ public class Searching
         var game = new Game(pos, []);
         var search = new Search(game, tt);
 
-        var d1Eval = search.EvaluateMove(in pos, 1, 1, -9999, 9999);
-        var d2Eval = search.EvaluateMove(in pos, 2, 1, -9999, 9999);
+        var d1Eval = search.EvaluateMove<PvNode>(in pos, 1, 1, -9999, 9999);
+        var d2Eval = search.EvaluateMove<PvNode>(in pos, 2, 1, -9999, 9999);
 
         d1Eval.Should().Be(d2Eval);
     }

@@ -1,7 +1,19 @@
-using System.Buffers;
 using static System.Math;
 
 namespace Lolbot.Core;
+
+public interface NodeType
+{
+    static abstract bool IsPv { get; }
+}
+public readonly struct PvNode : NodeType
+{
+    public static bool IsPv => true;
+}
+public readonly struct NonPvNode : NodeType
+{
+    public static bool IsPv => false;
+}
 
 public sealed class Search(Game game, TranspositionTable tt)
 {
@@ -52,6 +64,7 @@ public sealed class Search(Game game, TranspositionTable tt)
         moves = moves[..count];
 
         var bestMove = currentBest ?? moves[0];
+        var start = DateTime.Now;
 
         var (alpha, beta) = (-Inf, Inf);
 
@@ -63,34 +76,37 @@ public sealed class Search(Game game, TranspositionTable tt)
             var move = SelectMove(ref moves, currentBest, in i);
             var nextPosition = rootPosition.Move(move);
 
-            int eval = -Inf;
+            int value = -Inf;
             history.Update(move, nextPosition.Hash);
-            // if (i == 0)
-            // {
-            eval = -EvaluateMove(ref nextPosition, depth - 1, 1, -beta, -alpha);
-            // }
-            // else
-            // {
-            //     eval = -EvaluateMove(ref nextPosition, depth, -alpha - 1, -alpha);
-            //     if (eval > alpha && beta - alpha > 1)
-            //         eval = -EvaluateMove(ref nextPosition, depth, -beta, -alpha);
-            // }
+            if (i == 0)
+            {
+                value = -EvaluateMove<PvNode>(in nextPosition, depth - 1, 1, -beta, -alpha);
+            }
+            else
+            {
+                value = -EvaluateMove<NonPvNode>(in nextPosition, depth - 1, 1, -alpha - 1, -alpha);
+                if (value > alpha)
+                    value = -EvaluateMove<PvNode>(in nextPosition, depth - 1, 1, -beta, -alpha); // re-search
+            }
 
             history.Unwind();
 
-            if (eval > alpha)
+            if (value > alpha)
             {
-                alpha = eval;
+                alpha = value;
                 bestMove = move;
             }
         }
         nodes += i;
-        Console.WriteLine($"info score cp {alpha} depth {depth} bm {bestMove} nodes {nodes}");
+        var ms = (DateTime.Now - start).TotalMilliseconds;
+        var nps = (int)(nodes * 1000 / ms);
+        Console.WriteLine($"info score cp {alpha} depth {depth} bm {bestMove} nodes {nodes} nps {nps}");
 
         return bestMove;
     }
 
-    public int EvaluateMove(ref readonly Position position, int remainingDepth, int ply, int alpha, int beta)
+    public int EvaluateMove<TNode>(ref readonly Position position, int remainingDepth, int ply, int alpha, int beta)
+        where TNode : struct, NodeType
     {
         if (remainingDepth == 0) return QuiesenceSearch(in position, alpha, beta);
 
@@ -144,16 +160,27 @@ public sealed class Search(Game game, TranspositionTable tt)
         {
             var move = SelectMove(ref moves, ttMove, in i);
             var nextPosition = position.Move(move);
-            value = Max(value, -EvaluateMove(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha));
+
+            if (i == 0)
+            {
+                value = -EvaluateMove<TNode>(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha);
+            }
+            else
+            {
+                value = -EvaluateMove<NonPvNode>(in nextPosition, remainingDepth - 1, ply + 1, -alpha - 1, -alpha);
+                if (value > alpha && TNode.IsPv)
+                    value = -EvaluateMove<PvNode>(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha); // re-search
+            }
+            value = Max(value, alpha);
 
             if (value > alpha)
             {
                 alpha = value;
                 ttMove = moves[i];
-            }
-            if (alpha >= beta)
-            {
-                break;
+                if (alpha >= beta)
+                {
+                    break;
+                }
             }
         }
         nodes += i;
