@@ -182,7 +182,8 @@ public sealed class Search(Game game, TranspositionTable tt)
         int i = 0;
         for (; i < count; i++)
         {
-            var nextPosition = position.Move(moves[i]);
+            var move = SelectMove(ref moves, null, i);
+            var nextPosition = position.Move(move);
             var eval = -QuiesenceSearch(in nextPosition, -beta, -alpha);
 
             if (eval >= beta) return beta;
@@ -211,9 +212,9 @@ public sealed class Search(Game game, TranspositionTable tt)
         return position.CurrentPlayer == Color.White ? eval : -eval;
     }
 
-    private static ref readonly Move SelectMove(ref Span<Move> moves, Move? currentBest, in int i)
+    private static ref readonly Move SelectMove(ref Span<Move> moves, Move? currentBest, in int k)
     {
-        if (i == 0 && currentBest is not null)
+        if (k == 0 && currentBest is not null)
         {
             var index = moves.IndexOf(currentBest.Value);
             if (index >= 0)
@@ -223,6 +224,31 @@ public sealed class Search(Game game, TranspositionTable tt)
             }
         }
 
-        return ref moves[i];
+        var n = moves.Length;
+        if (k <= 8)
+        {
+            int bestIndex = k;
+            for (var i = k; i < n; i++)
+            {
+                if (MoveComparer(moves[i], moves[bestIndex]) < 0) bestIndex = i;
+            }
+
+            (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
+        }
+
+        return ref moves[k];
+    }
+
+    private static int MoveComparer(Move x, Move y)
+    {
+        int score = 0;
+
+        score -= Heuristics.GetPieceValue(x.PromotionPiece);
+        score -= Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
+
+        score += Heuristics.GetPieceValue(y.PromotionPiece);
+        score += Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
+
+        return score;
     }
 }
