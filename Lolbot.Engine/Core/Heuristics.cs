@@ -67,7 +67,38 @@ public static class Heuristics
                 : Bitboards.Lsb(pawnsOnFile);
 
             var passedPawnMask = MovePatterns.PassedPawnMasks[(int)color][frontPawn];
-            eval += (passedPawnMask & opposingPawns) == 0 ? PassedPawnBonus : 0;            
+            eval += (passedPawnMask & opposingPawns) == 0 ? PassedPawnBonus : 0;
+        }
+
+        return eval;
+    }
+
+    public static int PawnStructure(ulong pawns, ulong oponentPawns, Color color)
+    {
+        var eval = 0;
+
+        var file = Bitboards.Masks.A_File;
+        for (int i = 0; i < 8; i++, file <<= 1)
+        {
+            var pawnsOnFile = file & pawns;
+            if (pawnsOnFile == 0) continue;
+
+            var neighbours = Bitboards.Masks.GetNeighbourFiles(i);
+            var opposingPawns = (neighbours | file) & oponentPawns;
+
+            // Doubled pawns
+            eval += DoubledPawnPenalties[Bitboards.CountOccupied(pawnsOnFile)];
+
+            // // Isolated pawns
+            if ((neighbours & pawns) == 0) eval += Bitboards.CountOccupied(pawnsOnFile) * IsolatedPawnPenalty;
+
+            // Passed pawns
+            var frontPawn = color == Color.White
+                ? 63 - Bitboards.Msb(pawnsOnFile)
+                : Bitboards.Lsb(pawnsOnFile);
+
+            var passedPawnMask = MovePatterns.PassedPawnMasks[(int)color][frontPawn];
+            eval += (passedPawnMask & opposingPawns) == 0 ? PassedPawnBonus : 0;
         }
 
         return eval;

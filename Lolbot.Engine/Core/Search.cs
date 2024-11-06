@@ -236,6 +236,9 @@ public sealed class Search(Game game, TranspositionTable tt)
             eval -= Heuristics.GetPieceValue(i, position[i], position.Occupied);
         }
 
+        eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
+        eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Color.Black);
+
         return position.CurrentPlayer == Color.White ? eval : -eval;
     }
 

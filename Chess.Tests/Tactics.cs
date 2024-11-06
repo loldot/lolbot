@@ -139,8 +139,9 @@ public class Tactics
         bm.Should().BeOneOf([
             new Move('p', "f5", "f4"),
             new Move('k', "e5", "d4"),
+            new Move('k', "e5", "d6"),
             new Move('k', "e5", "e4"),
-            new Move('k', "e5", "f4")
+            new Move('k', "e5", "f4"),
         ]);
     }
 
