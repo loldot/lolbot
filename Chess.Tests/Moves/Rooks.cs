@@ -104,7 +104,7 @@ public class Rooks
     [Test]
     public void BlackCastle()
     {
-        var g = new Game(new Position(), [
+        var g = new Game(new MutablePosition(), [
             new Move('P', "e2", "e4"),
             new Move('p', "e7", "e5"),
             new Move('P', "d2", "d4"),

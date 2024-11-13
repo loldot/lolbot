@@ -243,6 +243,25 @@ public partial class Hashes
         return zobrist;
     }
 
+    public static void Update(
+        ref ulong hash, 
+        in Move m, 
+        in CastlingRights oldCastling,
+        in CastlingRights newCastling,
+        in byte oldEnPassant, 
+        in byte newEnPassant)
+    {
+        hash ^= GetValue(m.FromPiece, m.FromIndex);
+        hash ^= GetValue(m.FromPiece, m.ToIndex);
+        hash ^= GetValue(m.CapturePiece, m.CaptureIndex);
+        hash ^= GetValue(m.PromotionPiece, m.ToIndex);
+        hash ^= GetValue(oldCastling);
+        hash ^= GetValue(newCastling);
+        hash ^= GetValue(oldEnPassant);
+        hash ^= GetValue(newEnPassant);
+        hash ^= GetValue(Colors.White);
+    }
+
     public static ulong GetValue(CastlingRights castlingRights)
     {
         ulong value = 0;

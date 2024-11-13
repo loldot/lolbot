@@ -6,7 +6,7 @@ public class Tactics
     [Test]
     public void Should_Find_Easy_Tactic()
     {
-        var position = Position.FromFen("3rr1k1/pp3ppp/8/2p1Q3/2P1P3/1P3PPq/P6P/3R1RK1 b - - 0 21");
+        var position = MutablePosition.FromFen("3rr1k1/pp3ppp/8/2p1Q3/2P1P3/1P3PPq/P6P/3R1RK1 b - - 0 21");
         var game = new Game(position, []);
         var bestMove = Engine.BestMove(game);
         bestMove.Should().Be(new Move('q', "h3", "f1", 'R'));
@@ -68,7 +68,7 @@ public class Tactics
     [Test]
     public void Should_Find_Long_Pawn_Promotion()
     {
-        var position = Position.FromFen("8/3k4/8/8/3PK3/8/8/8 w - - 0 1");
+        var position = MutablePosition.FromFen("8/3k4/8/8/3PK3/8/8/8 w - - 0 1");
         var game = new Game(position, []);
 
         var ct = new CancellationTokenSource(25_000);
@@ -80,7 +80,7 @@ public class Tactics
     [Test]
     public void Should_Find_Zugzwang()
     {
-        var position = Position.FromFen("6k1/1rp2b2/1p1p2p1/3P1p1p/2P1p2Q/7R/5PPP/2q2BK1 w - - 0 1");
+        var position = MutablePosition.FromFen("6k1/1rp2b2/1p1p2p1/3P1p1p/2P1p2Q/7R/5PPP/2q2BK1 w - - 0 1");
         var game = new Game(position, []);
 
 
@@ -112,7 +112,7 @@ public class Tactics
     {
         var timer = new CancellationTokenSource(1 * 6_000);
 
-        var position = Position.FromFen(fen);
+        var position = MutablePosition.FromFen(fen);
         var game = new Game(position, []);
         var bestmove = Engine.BestMove(game, timer.Token);
 
@@ -124,7 +124,7 @@ public class Tactics
     {
         var timer = new CancellationTokenSource(5000);
 
-        var position = Position.FromFen(fen);
+        var position = MutablePosition.FromFen(fen);
         var game = new Game(position, []);
         var bestmove = Engine.BestMove(game, timer.Token);
 
@@ -148,7 +148,7 @@ public class Tactics
     [Test]
     public void Should_Not_Get_Mated()
     {
-        var position = Position.FromFen("1k6/1pp5/1Q6/8/8/8/8/KR6 b - - 0 1");
+        var position = MutablePosition.FromFen("1k6/1pp5/1Q6/8/8/8/8/KR6 b - - 0 1");
         var game = new Game(position, []);
         var bestMove = Engine.BestMove(game);
         bestMove.Should().Be(new Move('p', "c7", "b6", 'Q'));
@@ -157,7 +157,7 @@ public class Tactics
 
     private static Move? GetBestMove(string fen)
     {
-        var position = Position.FromFen(fen);
+        var position = MutablePosition.FromFen(fen);
         var game = new Game(position, []);
         return Engine.BestMove(game);
     }

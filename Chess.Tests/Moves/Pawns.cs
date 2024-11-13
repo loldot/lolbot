@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -7,13 +6,13 @@ public class Pawns
     [Test]
     public void Should_Be_Blocked_By_Opponent()
     {
-        var position = Position.FromFen("8/8/6p1/6p1/1p4P1/1P3P2/8/8 w - - 0 1");
+        var position = MutablePosition.FromFen("8/8/6p1/6p1/1p4P1/1P3P2/8/8 w - - 0 1");
 
         var whiteMoves = position.GenerateLegalMoves(Piece.WhitePawn);
 
         whiteMoves.ToArray().Should().BeEquivalentTo([new Move('P', "f3", "f4")]);
 
-        position = position with { CurrentPlayer = Colors.Black };
+        position.SkipTurn();
         var blackMoves = position.GenerateLegalMoves('p');
         blackMoves.ToArray().Should().BeEmpty();
     }
@@ -36,7 +35,7 @@ public class Pawns
     [Test]
     public void Should_Not_Jump()
     {
-        var position = Position.FromFen("r2k1nr1/5p2/2ppp3/8/8/3q4/PP1PNPPP/R1RQK3 w - - 0 1");
+        var position = MutablePosition.FromFen("r2k1nr1/5p2/2ppp3/8/8/3q4/PP1PNPPP/R1RQK3 w - - 0 1");
         var moves = position.GenerateLegalMoves('P').ToArray();
         moves.Should().NotContain(x => x == new Move('P', "d2", "d4"));
     }
@@ -44,7 +43,7 @@ public class Pawns
     [Test]
     public void Should_Promote()
     {
-        var position = Position.FromFen("3n3k/P7/8/8/8/8/8/K7 w - - 0 1");
+        var position = MutablePosition.FromFen("3n3k/P7/8/8/8/8/8/K7 w - - 0 1");
         var moves = position.GenerateLegalMoves().ToArray();
 
         moves.Should().Contain(x => x.PromotionPiece == Piece.WhiteBishop);
@@ -56,26 +55,27 @@ public class Pawns
     [Test]
     public void Promoting_Should_Update_Both_Pieces()
     {
-        var position = Position.FromFen("1k6/4P3/8/8/8/8/8/1K6 w - - 0 1");
-        var next = position.Move(Move.Promote('P', "e7", "e8", 'Q'));
+        var position = MutablePosition.FromFen("1k6/4P3/8/8/8/8/8/1K6 w - - 0 1");
+        position.Move(Move.Promote('P', "e7", "e8", 'Q'));
 
-        (next.WhitePawns & Squares.FromCoordinates("e7")).Should().Be(0);
-        (next.WhiteQueens & Squares.FromCoordinates("e8")).Should().NotBe(0);
+        (position.WhitePawns & Squares.FromCoordinates("e7")).Should().Be(0);
+        (position.WhiteQueens & Squares.FromCoordinates("e8")).Should().NotBe(0);
     }
 
     [Test]
     public void Promoting_Should_Not_Change_Oponent_Bitboard()
     {
-        var position = Position.FromFen("1k6/4P3/8/8/8/8/8/1K6 w - - 0 1");
-        var next = position.Move(Move.Promote('P', "e7", "e8", 'Q'));
+        var position = MutablePosition.FromFen("1k6/4P3/8/8/8/8/8/1K6 w - - 0 1");
+        var promotingMove = Move.Promote('P', "e7", "e8", 'Q');
+        position.Move(in promotingMove);
 
-        next.BlackPawns.Should().Be(0);
+        position.BlackPawns.Should().Be(0);
     }
 
     [Test]
     public void Pushing_Pawn_To_Last_Rank_Without_Promoting_Should_Not_Be_Allowed()
     {
-        var position = Position.FromFen("8/7P/8/8/8/1rkr4/8/2K5 w - - 0 1");
+        var position = MutablePosition.FromFen("8/7P/8/8/8/1rkr4/8/2K5 w - - 0 1");
         var moves = position.GenerateLegalMoves().ToArray();
 
         moves.Should().BeEquivalentTo([
@@ -89,7 +89,7 @@ public class Pawns
     [Test]
     public void EnPassant_Should_Set_Biboards_Correctly()
     {
-        var position = Position.FromFen("2k5/8/1pp2p2/3pPp2/3P1P2/1PP5/8/7K w - d6 0 1");
+        var position = MutablePosition.FromFen("2k5/8/1pp2p2/3pPp2/3P1P2/1PP5/8/7K w - d6 0 1");
         var game = new Game(position, []);
 
         game = Engine.Move(game, "e5", "d6");
@@ -112,7 +112,7 @@ public class Pawns
     [Test]
     public void EnPassant_Should_Not_Count_As_Regular_Attack()
     {
-        var position = Position.FromFen("2k5/8/1pp2p2/3pPp2/3P1P2/1PP5/8/7K w - d6 0 1");
+        var position = MutablePosition.FromFen("2k5/8/1pp2p2/3pPp2/3P1P2/1PP5/8/7K w - d6 0 1");
         position.GenerateLegalMoves('P').ToArray()
             .Where(m => m.CaptureIndex == Squares.D5)
             .Should().HaveCount(1);
@@ -121,7 +121,7 @@ public class Pawns
     [Test]
     public void Should_Not_EnPassant_On_Square_0()
     {
-        var position = Position.FromFen("5k2/8/8/8/8/8/1p6/R5K1 b - - 0 1");
+        var position = MutablePosition.FromFen("5k2/8/8/8/8/8/1p6/R5K1 b - - 0 1");
         var movesTo0 = position.GenerateLegalMoves('p').ToArray()
             .Where(m => m.ToIndex == Squares.A1).ToArray();
 
@@ -133,8 +133,8 @@ public class Pawns
     [Test]
     public void Promotion_Should_Set_Bitboards_Correctly()
     {
-        var pos = Position.FromFen("1k6/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
-        pos = pos.Move(Move.Promote('P', "d7", "d8", 'Q'));
+        var pos = MutablePosition.FromFen("1k6/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
+        pos.Move(Move.Promote('P', "d7", "d8", 'Q'));
 
         var w_pawns = Bitboards.Create("a2", "b2", "c2", "e2", "f2", "g2", "h2");
         pos.WhitePawns.Should().Be(w_pawns);
@@ -154,8 +154,8 @@ public class Pawns
     [Test]
     public void Promotion_Capture_Should_Set_Bitboards_Correctly()
     {
-        var pos = Position.FromFen("1k2b3/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
-        pos = pos.Move(Move.PromoteWithCapture('P', "d7", "e8", 'b', 'Q'));
+        var pos = MutablePosition.FromFen("1k2b3/pppPpppp/8/8/8/8/PPP1PPPP/1K6 w - - 0 1");
+        pos.Move(Move.PromoteWithCapture('P', "d7", "e8", 'b', 'Q'));
 
         var w_pawns = Bitboards.Create("a2", "b2", "c2", "e2", "f2", "g2", "h2");
         pos.WhitePawns.Should().Be(w_pawns);
@@ -175,7 +175,7 @@ public class Pawns
     [Test]
     public void EnPassant_Is_Not_Allowed_When_Checking()
     {
-        var pos = Position.FromFen("4k3/8/8/KpP4q/8/8/8/8 w - b6 0 1");
+        var pos = MutablePosition.FromFen("4k3/8/8/KpP4q/8/8/8/8 w - b6 0 1");
         pos.GenerateLegalMoves('P').ToArray()
             .Should().Equal([new Move('P', "c5", "c6")]);
     }
@@ -184,7 +184,7 @@ public class Pawns
     [Test]
     public void EnPassant_Is_Not_Allowed_When_Pinned_By_Bishop()
     {
-        var pos = Position.FromFen("2k5/8/b7/1Pp5/8/8/8/5K2 w - c6 0 1");
+        var pos = MutablePosition.FromFen("2k5/8/b7/1Pp5/8/8/8/5K2 w - c6 0 1");
         pos.GenerateLegalMoves('P').ToArray()
             .Should().Equal([new Move('P', "b5", "a6", 'b')]);
     }

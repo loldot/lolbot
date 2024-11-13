@@ -1,5 +1,3 @@
-using System.Buffers;
-using System.Diagnostics;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -53,9 +51,38 @@ public class Perft
     [TestCase(pos7, 3, 81_066)]
     [TestCase(pos8, 1, 46)]
     [TestCase(pos8, 2, 1_908)]
-    public void PerftCounts(string fen, int depth, int expectedCount)
+    public void PerftCountsOld(string fen, int depth, int expectedCount)
     {
-        var perft = Engine.Perft(Position.FromFen(fen), depth);
+        var pos1 = Position.FromFen(fen);
+        var pos2 = MutablePosition.FromFen(fen);
+        var perft = Engine.PerftDiff(in pos1, pos2, depth);
+        perft.Should().Be(expectedCount);
+    }
+
+    // [TestCase(1, 20)]
+    [TestCase(2, 400)]
+    [TestCase(3, 8_902)]
+    [TestCase(4, 197_281)]
+    [TestCase(5, 4_865_609)]
+    [TestCase(6, 119_060_324)]
+    public void PerftCounts2(int depth, int expectedCount)
+    {
+        var pos = new MutablePosition();
+        var perft = Engine.Perft2(pos, depth);
+        perft.Should().Be(expectedCount);
+        Console.WriteLine(pos);
+    }
+
+    [TestCase(2, 400)]
+    [TestCase(3, 8_902)]
+    [TestCase(4, 197_281)]
+    [TestCase(5, 4_865_609)]
+    // [TestCase(6, 119_060_324)]
+    public void PerftDiff(int depth, int expectedCount)
+    {
+        var pos1 = new Position();
+        var pos2 = new MutablePosition();
+        var perft = Engine.PerftDiff(in pos1, pos2, depth);
         perft.Should().Be(expectedCount);
     }
 }

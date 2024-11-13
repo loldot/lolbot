@@ -37,7 +37,7 @@ void Perft(string command)
     if (tokens.Length > 1) depth = int.Parse(tokens[1]);
 
     var start = DateTime.Now;
-    var count = Engine.Perft(game.CurrentPosition, depth);
+    var count = Engine.Perft2(new MutablePosition(), depth);
     var ms = (DateTime.Now - start).TotalMilliseconds;
     var mNodesPerSec = count / (1_000 * ms);
     Console.WriteLine($"Total nodes: {count}, Elapsed: {ms:N0}ms, ({mNodesPerSec:N0} mnodes/s)");

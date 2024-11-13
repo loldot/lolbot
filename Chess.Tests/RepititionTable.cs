@@ -33,7 +33,7 @@ public class RepetitionTables
         var pgn = new PgnSerializer();
         var (game, _) = await pgn.Read(File.OpenRead("./TestData/Berlin-Draw.pgn"));
 
-        var nextPosition = game.CurrentPosition.Move(new Move(Piece.BlackQueen, Squares.E6, Squares.D6));
-        game.RepetitionTable.IsDrawByRepetition(nextPosition.Hash).Should().BeTrue();
+        game.CurrentPosition.Move(new Move(Piece.BlackQueen, Squares.E6, Squares.D6));
+        game.RepetitionTable.IsDrawByRepetition(game.CurrentPosition.Hash).Should().BeTrue();
     }
 }

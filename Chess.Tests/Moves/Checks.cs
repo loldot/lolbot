@@ -82,7 +82,7 @@ public class Checks
     [Test]
     public void Should_Update_Mask_After_Move()
     {
-        var position = Position.FromFen("4k1nr/6p1/8/2bNNp2/5Q2/1P6/5P2/R5K1 w - - 0 1");
+        var position = MutablePosition.FromFen("4k1nr/6p1/8/2bNNp2/5Q2/1P6/5P2/R5K1 w - - 0 1");
         var game = new Game(position, []);
         game = Engine.Move(game, "a1", "a8");
         var legalMoves = game.CurrentPosition.GenerateLegalMoves().ToArray();
@@ -109,7 +109,7 @@ public class Checks
 
     private Move[] GetLegalMoves(string fen)
     {
-        var position = Position.FromFen(fen);
+        var position = MutablePosition.FromFen(fen);
         return position
             .GenerateLegalMoves()
             .ToArray();
@@ -117,7 +117,7 @@ public class Checks
 
     private Move[] GetLegalMoves(string fen, char piece)
     {
-        var position = Position.FromFen(fen);
+        var position = MutablePosition.FromFen(fen);
         return position
             .GenerateLegalMoves(piece)
             .ToArray();

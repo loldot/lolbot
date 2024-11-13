@@ -8,7 +8,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     public const int Mate = short.MaxValue / 2;
     const int Max_Depth = 64;
 
-    private readonly Position rootPosition = game.CurrentPosition;
+    private readonly MutablePosition rootPosition = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
 
     private Move[] Killers = new Move[Max_Depth + 32];
@@ -98,7 +98,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         
         Span<Move> moves = stackalloc Move[256];
-        var count = MoveGenerator.Legal(in rootPosition, ref moves);
+        var count = MoveGenerator2.Legal(rootPosition, ref moves);
         moves = moves[..count];
 
         currentBest = currentBest.IsNull ? ttMove : currentBest;
@@ -109,21 +109,21 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         {
 
             var move = SelectMove(ref moves, currentBest, in i, 0);
-            var nextPosition = rootPosition.Move(move);
+            rootPosition.Move(in move);
 
             int value = -Inf;
-            history.Update(move, nextPosition.Hash);
+            history.Update(move, rootPosition.Hash);
             if (i == 0)
             {
-                value = -EvaluateMove<PvNode>(in nextPosition, depth - 1, 1, -beta, -alpha);
+                value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha);
             }
             else
             {
-                value = -EvaluateMove<NonPvNode>(in nextPosition, depth - 1, 1, -alpha - 1, -alpha);
+                value = -EvaluateMove<NonPvNode>(rootPosition, depth - 1, 1, -alpha - 1, -alpha);
                 if (value > alpha)
-                    value = -EvaluateMove<PvNode>(in nextPosition, depth - 1, 1, -beta, -alpha); // re-search
+                    value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha); // re-search
             }
-
+            rootPosition.Undo(in move);
             history.Unwind();
 
             if (value > alpha)
@@ -145,10 +145,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return (bestMove, alpha);
     }
 
-    public int EvaluateMove<TNode>(ref readonly Position position, int remainingDepth, int ply, int alpha, int beta)
+    public int EvaluateMove<TNode>(MutablePosition position, int remainingDepth, int ply, int alpha, int beta)
         where TNode : struct, NodeType
     {
-        if (remainingDepth == 0) return QuiesenceSearch(in position, alpha, beta);
+        if (remainingDepth == 0) return QuiesenceSearch(position, alpha, beta);
 
         var mateValue = Mate - ply;
         var originalAlpha = alpha;
@@ -158,7 +158,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (history.IsRepeated(position.Hash)) return 0;
 
         Span<Move> moves = stackalloc Move[218];
-        var count = MoveGenerator.Legal(in position, ref moves);
+        var count = MoveGenerator2.Legal(position, ref moves);
         moves = moves[..count];
 
         // Checkmate or stalemate
@@ -194,20 +194,21 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         for (; i < count; i++)
         {
             var move = SelectMove(ref moves, ttMove, in i, ply);
-            var nextPosition = position.Move(move);
 
-            history.Update(move, nextPosition.Hash);
+            position.Move(in move);
+            history.Update(move, position.Hash);
             if (TNode.IsPv)
             {
-                value = -EvaluateMove<TNode>(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha);
+                value = -EvaluateMove<TNode>(position, remainingDepth - 1, ply + 1, -beta, -alpha);
             }
             else
             {
-                value = -EvaluateMove<NonPvNode>(in nextPosition, remainingDepth - 1, ply + 1, -alpha - 1, -alpha);
+                value = -EvaluateMove<NonPvNode>(position, remainingDepth - 1, ply + 1, -alpha - 1, -alpha);
                 if (value > alpha && TNode.IsPv)
-                    value = -EvaluateMove<PvNode>(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha); // re-search
+                    value = -EvaluateMove<PvNode>(position, remainingDepth - 1, ply + 1, -beta, -alpha); // re-search
             }
             history.Unwind();
+            position.Undo(in move);
 
             value = Max(value, alpha);
 
@@ -245,14 +246,14 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return value;
     }
 
-    private int QuiesenceSearch(in Position position, int alpha, int beta)
+    private int QuiesenceSearch(MutablePosition position, int alpha, int beta)
     {
         Span<Move> moves = stackalloc Move[218];
 
-        var count = MoveGenerator.Captures(in position, ref moves);
+        var count = MoveGenerator2.Captures(position, ref moves);
         moves = moves[..count];
 
-        var standPat = StaticEvaluation(in position);
+        var standPat = StaticEvaluation(position);
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;
@@ -261,9 +262,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         for (; i < count; i++)
         {
             var move = SelectMove(ref moves, Move.Null, i, 0);
-            var nextPosition = position.Move(move);
-            var eval = -QuiesenceSearch(in nextPosition, -beta, -alpha);
-
+       
+            position.Move(in move);
+            var eval = -QuiesenceSearch(position, -beta, -alpha);
+            position.Undo(in move);
             if (eval >= beta) return beta;
 
             alpha = Max(eval, alpha);
@@ -273,14 +275,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return alpha;
     }
 
-    private static readonly float[] GamePhaseInterpolation = [
-        0,  0,  0,  0,  0,  0,  0,  0,
-        0.04f, 0.08f, 0.16f, 0.20f, 0.24f, 0.28f, 0.32f, 0.36f,
-        0.40f, 0.44f, 0.48f, 0.52f, 0.56f, 0.60f, 0.64f, 0.68f,
-        0.72f, 0.76f, 0.80f, 0.84f, 0.88f, 0.92f, 0.96f, 1f, 1f
-    ];
-
-    public static int StaticEvaluation(ref readonly Position position)
+    public static int StaticEvaluation(MutablePosition position)
     {
         var whitePawns = Bitboards.CountOccupied(position.WhitePawns);
         var whiteKnigts = Bitboards.CountOccupied(position.WhiteKnights);
@@ -329,8 +324,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             end -= egb;
         }
 
-        middle += Heuristics.KingSafety(in position, Colors.White);
-        middle -= Heuristics.KingSafety(in position, Colors.Black);
+        middle += Heuristics.KingSafety(position, Colors.White);
+        middle -= Heuristics.KingSafety(position, Colors.Black);
 
         var color = position.CurrentPlayer == Colors.White ? 1 : -1;
         eval = (int)float.Lerp(eval + middle, eval + end, phase);
@@ -340,8 +335,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Colors.White);
         eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Colors.Black);
 
-        eval += Heuristics.Mobility(in position, Colors.White);
-        eval -= Heuristics.Mobility(in position, Colors.Black);
+        eval += Heuristics.Mobility(position, Colors.White);
+        eval -= Heuristics.Mobility(position, Colors.Black);
 
         return color * eval;
     }

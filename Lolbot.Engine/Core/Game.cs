@@ -1,26 +1,27 @@
 namespace Lolbot.Core;
 
-public sealed record Game(Position InitialPosition, Move[] Moves)
+public sealed record Game(MutablePosition InitialPosition, Move[] Moves)
 {
-    public Game() : this(new Position(), []) { }
+    public Game() : this(new MutablePosition(), []) { }
 
-    public Game(string fen) : this(Position.FromFen(fen), [])
+    public Game(string fen) : this(MutablePosition.FromFen(fen), [])
     {
+        
     }
 
     public int PlyCount => Moves.Length;
     public Colors CurrentPlayer => CurrentPosition.CurrentPlayer;
-    public Position CurrentPosition => GetPosition(InitialPosition, Moves);
+    public MutablePosition CurrentPosition { get; set; } = InitialPosition;
     public readonly RepetitionTable RepetitionTable = new RepetitionTable();
 
-    public Position GetPosition(Position position, Move[] moves)
+    public MutablePosition GetPosition(MutablePosition position, Move[] moves)
     {
         RepetitionTable.Clear();
         foreach (var m in moves)
         {
-            position = position.Move(m);
+            position.Move(in m);
             RepetitionTable.Update(m, position.Hash);
-        } 
+        }
 
         return position;
     }

@@ -8,7 +8,7 @@ public class Moves
     [Test]
     public void LegalPawnMovesAtStart()
     {
-        var startMoves = new Position().GenerateLegalMoves(Piece.WhitePawn);
+        var startMoves = new MutablePosition().GenerateLegalMoves(Piece.WhitePawn);
         startMoves.ToArray().Should().BeEquivalentTo([
             new Move('P', "a2", "a3"), new Move('P', "a2", "a4"),
             new Move('P', "b2", "b3"), new Move('P', "b2", "b4"),
@@ -24,12 +24,12 @@ public class Moves
     [Test]
     public void Each_Player_Should_Have_20_Legal_Moves_From_Start_Position()
     {
-        var position = new Position();
+        var position = new MutablePosition();
         var sw = Stopwatch.StartNew();
         var whiteMoves = position
             .GenerateLegalMoves();
 
-        position = position with { CurrentPlayer = Colors.Black };
+        position.SkipTurn();
         var blackMoves = position
             .GenerateLegalMoves();
 
@@ -42,7 +42,8 @@ public class Moves
     [Test]
     public void LegalBlackPawnMovesAtStart()
     {
-        var position = new Position() with { CurrentPlayer = Colors.Black };
+        var position = new MutablePosition();
+        position.SkipTurn();
         var startMoves = position.GenerateLegalMoves(Piece.BlackPawn);
 
         startMoves.ToArray().Should().BeEquivalentTo([
@@ -60,7 +61,7 @@ public class Moves
     [Test]
     public void LegalKnightMovesAtStart()
     {
-        var startMoves = new Position().GenerateLegalMoves(Piece.WhiteKnight);
+        var startMoves = new MutablePosition().GenerateLegalMoves(Piece.WhiteKnight);
         startMoves.ToArray().Should().BeEquivalentTo([
             new Move('N', "b1", "a3"),
             new Move('N', "b1", "c3"),
@@ -134,7 +135,7 @@ public class Moves
     [Test]
     public void Capture_Should_Update_Boards()
     {
-        var pos = Position.FromFen("4r1k1/1b3rp1/1n3q1p/2p1N3/1p6/7P/PP3PP1/R2QR1K1 w - - 0 25");
+        var pos = MutablePosition.FromFen("4r1k1/1b3rp1/1n3q1p/2p1N3/1p6/7P/PP3PP1/R2QR1K1 w - - 0 25");
         var game = new Game(pos, []);
         game = Engine.Move(game, "e5", "f7");
         game = Engine.Move(game, "e8", "e1");

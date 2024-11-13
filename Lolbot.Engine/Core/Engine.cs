@@ -22,7 +22,7 @@ public static class Engine
 
     public static Game FromPosition(string fenstring)
     {
-        return new Game(Position.FromFen(fenstring), []);
+        return new Game(MutablePosition.FromFen(fenstring), []);
     }
 
     public static Game Move(Game game, string from, string to)
@@ -50,7 +50,7 @@ public static class Engine
         return new Game(game.InitialPosition, [.. game.Moves, move]);
     }
 
-    public static int Evaluate(Position position)
+    public static int Evaluate(MutablePosition position)
     {
         var eval = 0;
         int color = position.CurrentPlayer == Colors.White ? 1 : -1;
@@ -97,6 +97,87 @@ public static class Engine
         return count;
     }
 
+
+
+    public static int PerftDiff(in Position position, MutablePosition position2, int remainingDepth = 4, int split = 0)
+    {
+        Span<Move> moves1 = stackalloc Move[218];
+        Span<Move> moves2 = stackalloc Move[218];
+
+        var currentCount = MoveGenerator.Legal(in position, ref moves1);
+        var currentCount2 = MoveGenerator2.Legal(position2, ref moves2);
+
+        var count = 0;
+        if (currentCount != currentCount2)
+        {
+            var diff1 = moves1.ToArray().Except(moves2.ToArray());
+            var diff2 = moves2.ToArray().Except(moves1.ToArray());
+
+            Console.WriteLine("Err: pos1");
+            Console.WriteLine(position);
+            Console.WriteLine(position.EnPassant);
+            Console.WriteLine(position.CastlingRights);
+            Console.WriteLine(position.IsCheck);
+            Console.WriteLine(position.IsPinned);
+
+            Console.WriteLine();
+            Console.WriteLine("Err: pos2");
+            Console.WriteLine();
+            Console.WriteLine(position2);
+            Console.WriteLine(position2.EnPassant);
+            Console.WriteLine(position2.CastlingRights);
+            Console.WriteLine(position2.IsCheck);
+            Console.WriteLine(position2.IsPinned);
+
+            foreach (var m in diff1)
+            {
+                Console.WriteLine(m);
+            }
+            Console.WriteLine();
+            foreach (var m in diff2)
+            {
+                Console.WriteLine(m);
+            }
+
+            throw new Exception("err in pos");
+        }
+
+        if (remainingDepth == 1) return currentCount2;
+
+        for (int i = 0; i < currentCount; i++)
+        {
+            position2.Move(in moves1[i]);
+            var posCount = PerftDiff(position.Move(moves1[i]), position2, remainingDepth - 1);
+            position2.Undo(in moves1[i]);
+            count += posCount;
+        }
+        return count;
+    }
+    public static int Perft2(MutablePosition position, int remainingDepth = 4, int split = 0)
+    {
+        Span<Move> moves = stackalloc Move[218];
+        var currentCount = MoveGenerator2.Legal(position, ref moves);
+        var count = 0;
+
+        // Bitboards.Debug(position.WhitePawns);
+
+        // for (int i = 0; i < currentCount; i++)
+        //     Console.WriteLine(moves[i].ToString());
+
+        if (remainingDepth == 1) return currentCount;
+
+        for (int i = 0; i < currentCount; i++)
+        {
+            position.Move(ref moves[i]);
+
+            var posCount = Perft2(position, remainingDepth - 1);
+            position.Undo(ref moves[i]);
+            if (remainingDepth == split) Console.WriteLine($"{moves[i]}: {posCount}");
+            count += posCount;
+        }
+        return count;
+    }
+
     public static Move? BestMove(Game game)
     {
         var timer = new CancellationTokenSource(2_000);
@@ -136,61 +217,61 @@ public static class Engine
         //         return bestMove.Value;
     }
 
-    public static Move BestMove(Game game, int depth, Move? currentBest, CancellationToken ct)
-    {
-        nodes = 0;
+    // public static Move BestMove(Game game, int depth, Move? currentBest, CancellationToken ct)
+    // {
+    //     nodes = 0;
 
-        var history = game.RepetitionTable;
-        var position = game.CurrentPosition;
+    //     var history = game.RepetitionTable;
+    //     var position = game.CurrentPosition;
 
-        if (position.IsCheck) depth++;
+    //     if (position.IsCheck) depth++;
 
-        Span<Move> moves = stackalloc Move[218];
-        var count = MoveGenerator.Legal(ref position, ref moves);
-        moves = moves[..count];
+    //     Span<Move> moves = stackalloc Move[218];
+    //     var count = MoveGenerator.Legal(ref position, ref moves);
+    //     moves = moves[..count];
 
-        var bestEval = -Inf;
-        var bestMove = currentBest ?? moves[0];
+    //     var bestEval = -Inf;
+    //     var bestMove = currentBest ?? moves[0];
 
-        var (alpha, beta) = (-Inf, Inf);
-        int i = 0;
-        for (; i < count; i++)
-        {
-            if (ct.IsCancellationRequested) break;
+    //     var (alpha, beta) = (-Inf, Inf);
+    //     int i = 0;
+    //     for (; i < count; i++)
+    //     {
+    //         if (ct.IsCancellationRequested) break;
 
-            var move = SelectMove(ref moves, ref currentBest, ref i);
-            var nextPosition = position.Move(move);
+    //         var move = SelectMove(ref moves, ref currentBest, ref i);
+    //         position.Move(in move);
 
-            int eval;
-            history.Update(move, nextPosition.Hash);
-            if (i == 0)
-            {
-                eval = -EvaluateMove(history, ref nextPosition, depth, -beta, -alpha, -1);
-            }
-            else
-            {
-                eval = -EvaluateMove(history, ref nextPosition, depth, -alpha - 1, -alpha, -1);
-                if (eval > alpha && beta - alpha > 1)
-                    eval = -EvaluateMove(history, ref nextPosition, depth, -beta, -alpha, -1);
-            }
+    //         int eval;
+    //         history.Update(move, position.Hash);
+    //         if (i == 0)
+    //         {
+    //             eval = -EvaluateMove(history, position, depth, -beta, -alpha, -1);
+    //         }
+    //         else
+    //         {
+    //             eval = -EvaluateMove(history, position, depth, -alpha - 1, -alpha, -1);
+    //             if (eval > alpha && beta - alpha > 1)
+    //                 eval = -EvaluateMove(history, position, depth, -beta, -alpha, -1);
+    //         }
+    //         position.Undo(in move);
+    //         history.Unwind();
 
-            history.Unwind();
+    //         if (eval > bestEval)
+    //         {
+    //             bestEval = eval;
+    //             bestMove = move;
+    //             alpha = Max(alpha, eval);
+    //         }
+    //     }
+    //     nodes += i;
+    //     Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove} nodes {nodes}");
 
-            if (eval > bestEval)
-            {
-                bestEval = eval;
-                bestMove = move;
-                alpha = Max(alpha, eval);
-            }
-        }
-        nodes += i;
-        Console.WriteLine($"info score cp {bestEval} depth {depth} bm {bestMove} nodes {nodes}");
-
-        return bestMove;
-    }
+    //     return bestMove;
+    // }
 
 
-    public static int EvaluateMove(RepetitionTable history, ref Position position, int depth, int alpha, int beta, int color)
+    public static int EvaluateMove(RepetitionTable history, MutablePosition position, int depth, int alpha, int beta, int color)
     {
         var eval = -Inf;
         var alphaOrig = alpha;
@@ -219,7 +300,7 @@ public static class Engine
         else if (depth > 3) depth--;
 
         Span<Move> moves = stackalloc Move[218];
-        var count = MoveGenerator.Legal(ref position, ref moves);
+        var count = MoveGenerator2.Legal(position, ref moves);
 
         if (count == 0) return position.IsCheck ? (-Mate - depth) : 0;
         if (depth == 0) return QuiesenceSearch(position, alpha, beta, color);
@@ -232,11 +313,11 @@ public static class Engine
         for (; i < count; i++)
         {
             var move = SelectMove(ref moves, ref ttMove, ref i);
-            var nextPosition = position.Move(moves[i]);
-            history.Update(moves[i], nextPosition.Hash);
+            position.Move(in moves[i]);
+            history.Update(moves[i], position.Hash);
 
-            eval = Max(eval, -EvaluateMove(history, ref nextPosition, depth - 1, -beta, -alpha, -color));
-
+            eval = Max(eval, -EvaluateMove(history, position, depth - 1, -beta, -alpha, -color));
+            position.Undo(in move);
             history.Unwind();
 
             if (eval > alpha)
@@ -264,11 +345,11 @@ public static class Engine
         return eval;
     }
 
-    private static int QuiesenceSearch(in Position position, int alpha, int beta, int color)
+    private static int QuiesenceSearch(MutablePosition position, int alpha, int beta, int color)
     {
         Span<Move> moves = stackalloc Move[218];
 
-        var count = MoveGenerator.Captures(in position, ref moves);
+        var count = MoveGenerator2.Captures(position, ref moves);
         moves = moves[..count];
         moves.Sort(MoveComparer);
 
@@ -279,7 +360,9 @@ public static class Engine
 
         for (byte i = 0; i < count; i++)
         {
-            var eval = -QuiesenceSearch(position.Move(moves[i]), -beta, -alpha, -color);
+            position.Move(in moves[i]);
+            var eval = -QuiesenceSearch(position, -beta, -alpha, -color);
+            position.Undo(in moves[i]);
 
             if (eval >= beta) return beta;
 

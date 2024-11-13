@@ -9,16 +9,8 @@ public static class Heuristics
     public const int IsolatedPawnPenalty = -15;
     public const int PassedPawnBonus = 27;
 
-    private static readonly int[] GamePhaseInterpolation = [
-         0,  0,  0,  0,  0,  0,  0,  0,
-         4,  8, 16, 20, 24, 28, 32, 36,
-        40, 44, 48, 52, 56, 60, 64, 68,
-        72, 76, 80, 84, 88, 92, 96, 100, 100
-    ];
-
     // https://lichess.org/@/ubdip/blog/finding-the-value-of-pieces/PByOBlNB
     // https://lichess.org/@/ubdip/blog/comments-on-piece-values/Ps9kghhO
-
     public const int PawnValue = 100;
     public const int KnightValue = 316;
     public const int BishopValue = 328;
@@ -56,7 +48,7 @@ public static class Heuristics
         }
     }
 
-    public static int PawnStructure(Position position, Colors color)
+    public static int PawnStructure(MutablePosition position, Colors color)
     {
         var eval = 0;
         var opponent = color == Colors.White ? Colors.Black : Colors.White;
@@ -122,7 +114,7 @@ public static class Heuristics
         return eval;
     }
 
-    public static int KingSafety(in Position position, Colors color)
+    public static int KingSafety(MutablePosition position, Colors color)
     {
         var occupied = position.Occupied;
         var king = position[color, PieceType.King];
@@ -138,7 +130,7 @@ public static class Heuristics
         return 8 * (3 - opensquares);
     }
 
-    public static int Mobility(ref readonly Position position, Colors color)
+    public static int Mobility(MutablePosition position, Colors color)
     {
         int movecount = 0;
 

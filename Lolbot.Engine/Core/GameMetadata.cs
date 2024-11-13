@@ -7,10 +7,10 @@ public class GameMetadata : Dictionary<string, string>
     public const string WhitePlayerTagName = "White";
     public const string BlackPlayerTagName = "Black";
 
-    internal Position GetInitialPosition()
+    internal MutablePosition GetInitialPosition()
     {
         return (ContainsKey(SetupTagName) && this[SetupTagName] == "1")
             ? throw new NotImplementedException()
-            : new Position();
+            : new MutablePosition();
     }
 }
