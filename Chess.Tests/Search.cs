@@ -11,7 +11,7 @@ public class Searching
     {
         var pos = Position.FromFen(fen);
         var game = new Game(pos, []);
-        var search = new Search(game, tt);
+        var search = new Search(game, tt, new int[4096]);
         search.BestMove().Should().BeOneOf([
             new Move('Q', "A1", "a8"),
             new Move('q', "a8", "a1")
@@ -23,7 +23,7 @@ public class Searching
     {
         var pos = Position.FromFen(fen);
         var game = new Game(pos, []);
-        var search = new Search(game, tt);
+        var search = new Search(game, tt, new int[4096]);
         search.BestMove().Should().Be(PgnSerializer.ParseMove(game, bm));
     }
 
@@ -32,7 +32,7 @@ public class Searching
     {
         var pos = Position.FromFen("k7/6p1/8/8/8/8/6PP/6K1 w - - 0 1");
         var game = new Game(pos, []);
-        var search = new Search(game, tt);
+        var search = new Search(game, tt, new int[4096]);
 
         var d1Eval = search.EvaluateMove<PvNode>(in pos, 1, 1, -9999, 9999);
         var d2Eval = search.EvaluateMove<PvNode>(in pos, 2, 1, -9999, 9999);

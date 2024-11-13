@@ -15,7 +15,7 @@ public readonly struct NonPvNode : NodeType
     public static bool IsPv => false;
 }
 
-public sealed class Search(Game game, TranspositionTable tt)
+public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuristic)
 {
     public const int Inf = short.MaxValue;
     public const int Mate = short.MaxValue / 2;
@@ -179,6 +179,10 @@ public sealed class Search(Game game, TranspositionTable tt)
                 ttMove = moves[i];
                 if (alpha >= beta)
                 {
+                    if (moves[i].CapturePiece == Piece.None)
+                    {
+                        historyHeuristic[moves[i].FromIndex * 64 + moves[i].ToIndex] = remainingDepth * remainingDepth;
+                    }
                     break;
                 }
             }
@@ -242,7 +246,7 @@ public sealed class Search(Game game, TranspositionTable tt)
         return position.CurrentPlayer == Color.White ? eval : -eval;
     }
 
-    private static ref readonly Move SelectMove(ref Span<Move> moves, Move? currentBest, in int k)
+    private ref readonly Move SelectMove(ref Span<Move> moves, Move? currentBest, in int k)
     {
         if (k == 0 && currentBest is not null)
         {
@@ -269,15 +273,17 @@ public sealed class Search(Game game, TranspositionTable tt)
         return ref moves[k];
     }
 
-    private static int MoveComparer(Move x, Move y)
+    private int MoveComparer(Move x, Move y)
     {
         int score = 0;
 
         score -= Heuristics.GetPieceValue(x.PromotionPiece);
         score -= Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
+        score -= historyHeuristic[64 * x.FromIndex + x.ToIndex];
 
         score += Heuristics.GetPieceValue(y.PromotionPiece);
         score += Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
+        score += historyHeuristic[64 * y.FromIndex + y.ToIndex];
 
         return score;
     }
