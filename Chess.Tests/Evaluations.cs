@@ -7,7 +7,7 @@ public class Evaluations
     [Test]
     public void New_Game_Should_Have_EqualPosition()
     {
-        var eval = Engine.Evaluate(new MutablePosition());
+        var eval = Search.StaticEvaluation(new MutablePosition());
         eval.Should().Be(0);
     }
 
@@ -66,8 +66,8 @@ public class Evaluations
     [TestCase("3k4/2p5/3p2n1/4p3/4P3/3P2N1/2P1Q3/q2K4 w - - 0 1", "Q2k4/2p1q3/3p2n1/4p3/4P3/3P2N1/2P5/3K4 b - - 0 1")]
     public void Symmetric_Position_Should_Be_Equal(string white, string black)
     {
-        var w = Engine.Evaluate(MutablePosition.FromFen(white));
-        var b = Engine.Evaluate(MutablePosition.FromFen(black));
+        var w = Search.StaticEvaluation(MutablePosition.FromFen(white));
+        var b = Search.StaticEvaluation(MutablePosition.FromFen(black));
 
         w.Should().Be(b);
     }
@@ -76,28 +76,28 @@ public class Evaluations
     [TestCase("Q2k4/2p1q3/3p2n1/4p3/4P3/3P2N1/2P5/3K4 b - - 0 1")]
     public void Equal_Material_Check_Should_Be_Negative(string fen)
     {
-        Engine.Evaluate(MutablePosition.FromFen(fen)).Should().BeNegative();
+        Search.StaticEvaluation(MutablePosition.FromFen(fen)).Should().BeNegative();
     }
 
     [Test]
     public void Promotion_Should_Be_Winning()
     {
         var fen = "2krb3/3p2P1/2p5/8/5P2/4P3/3PK3/8 w - - 0 1";
-        Engine.Evaluate(MutablePosition.FromFen(fen)).Should().BePositive();
+        Search.StaticEvaluation(MutablePosition.FromFen(fen)).Should().BePositive();
     }
 
     [Test]
     public void KingSafety_Should_Be_Favorable()
     {
         var fen = "rb1qkr2/ppp2p1p/2np2p1/8/8/2NP2P1/PPP2P1P/RB1Q1RK1 w - - 0 1";
-        Engine.Evaluate(MutablePosition.FromFen(fen)).Should().BePositive();
+        Search.StaticEvaluation(MutablePosition.FromFen(fen)).Should().BePositive();
     }
 
     [Test]
     public void DoubledPawns()
     {
         var fen = "8/8/2k5/2p2p2/5P2/2K2P2/8/8 w - - 0 1";
-        var eval = Engine.Evaluate(MutablePosition.FromFen(fen));
+        var eval = Search.StaticEvaluation(MutablePosition.FromFen(fen));
         Console.WriteLine(eval.ToString());
         eval.Should().BeNegative();
     }

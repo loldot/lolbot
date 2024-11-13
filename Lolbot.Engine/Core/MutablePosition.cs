@@ -201,26 +201,6 @@ public sealed class MutablePosition
         CurrentPlayer = CurrentPlayer == Colors.White ? Colors.Black : Colors.White;
     }
 
-    public override string ToString()
-    {
-        var sb = new StringBuilder(72);
-        for (char rank = '8'; rank > '0'; rank--)
-        {
-            for (char file = 'a'; file <= 'h'; file++)
-            {
-                var sq = Squares.FromCoordinates("" + file + rank);
-                foreach (var p in Enum.GetValues<Piece>())
-                {
-                    if ((sq & this[p]) != 0) sb.Append(Utils.PieceName(p));
-                }
-            }
-            sb.AppendLine();
-        }
-        return sb.ToString();
-    }
-
-
-
     private CastlingRights ApplyCastlingRights(ref readonly Move m)
     {
         var removedCastling = m.FromIndex switch
@@ -267,26 +247,7 @@ public sealed class MutablePosition
 
     public static MutablePosition FromFen(string fen)
     {
-        var pos = Position.FromFen(fen);
-        var pos2 = new MutablePosition();
-
-        pos2.bb[Pawns] = pos.WhitePawns | pos.BlackPawns;
-        pos2.bb[Knights] = pos.WhiteKnights | pos.BlackKnights;
-        pos2.bb[Bishops] = pos.WhiteBishops | pos.BlackBishops;
-        pos2.bb[Rooks] = pos.WhiteRooks | pos.BlackRooks;
-        pos2.bb[Queens] = pos.WhiteQueens | pos.BlackQueens;
-        pos2.bb[Kings] = pos.WhiteKing | pos.BlackKing;
-        pos2.bb[WhiteIndex] = pos.White;
-        pos2.bb[BlackIndex] = pos.Black;
-        pos2.CastlingRights = pos.CastlingRights;
-        pos2.EnPassant = pos.EnPassant;
-        pos2.CurrentPlayer = pos.CurrentPlayer;
-        pos2.CheckerCount = pos.CheckerCount;
-        pos2.Checkmask = pos.Checkmask;
-        pos2.Pinmasks = pos.Pinmasks;
-        pos2.IsPinned = pos.IsPinned;
-        return pos2;
-
+        return FromReadOnly(Position.FromFen(fen));
     }
 
     internal (bool, Vector256<ulong>) CreatePinmasks(Colors color)
@@ -471,6 +432,79 @@ public sealed class MutablePosition
         Piece piece = Utils.FromName(pieceType);
 
         return GenerateLegalMoves(piece);
+    }
+
+    public Position AsReadOnly()
+    {
+        return new Position() with
+        {
+            WhitePawns = WhitePawns,
+            WhiteKnights = WhiteKnights,
+            WhiteBishops = WhiteBishops,
+            WhiteRooks = WhiteRooks,
+            WhiteQueens = WhiteQueens,
+            WhiteKing = WhiteKing,
+            White = White,
+
+            BlackPawns = BlackPawns,
+            BlackKnights = BlackKnights,
+            BlackBishops = BlackBishops,
+            BlackRooks = BlackRooks,
+            BlackQueens = BlackQueens,
+            BlackKing = BlackKing,
+            Black = Black,
+
+            CastlingRights = CastlingRights,
+            EnPassant = EnPassant,
+
+            Empty = Empty,
+            Occupied = Occupied,
+
+            CheckerCount = CheckerCount,
+            Checkmask = Checkmask,
+            Pinmasks = Pinmasks,
+            IsPinned = IsPinned,
+            CurrentPlayer = CurrentPlayer,
+        };
+    }
+
+    public static MutablePosition FromReadOnly(Position pos)
+    {
+        var mutable = new MutablePosition();
+
+        mutable.bb[Pawns] = pos.WhitePawns | pos.BlackPawns;
+        mutable.bb[Knights] = pos.WhiteKnights | pos.BlackKnights;
+        mutable.bb[Bishops] = pos.WhiteBishops | pos.BlackBishops;
+        mutable.bb[Rooks] = pos.WhiteRooks | pos.BlackRooks;
+        mutable.bb[Queens] = pos.WhiteQueens | pos.BlackQueens;
+        mutable.bb[Kings] = pos.WhiteKing | pos.BlackKing;
+        mutable.bb[WhiteIndex] = pos.White;
+        mutable.bb[BlackIndex] = pos.Black;
+        mutable.CastlingRights = pos.CastlingRights;
+        mutable.EnPassant = pos.EnPassant;
+        mutable.CurrentPlayer = pos.CurrentPlayer;
+        mutable.CheckerCount = pos.CheckerCount;
+        mutable.Checkmask = pos.Checkmask;
+        mutable.Pinmasks = pos.Pinmasks;
+        mutable.IsPinned = pos.IsPinned;
+        return mutable;
+    }
+    public override string ToString()
+    {
+        var sb = new StringBuilder(72);
+        for (char rank = '8'; rank > '0'; rank--)
+        {
+            for (char file = 'a'; file <= 'h'; file++)
+            {
+                var sq = Squares.FromCoordinates("" + file + rank);
+                foreach (var p in Enum.GetValues<Piece>())
+                {
+                    if ((sq & this[p]) != 0) sb.Append(Utils.PieceName(p));
+                }
+            }
+            sb.AppendLine();
+        }
+        return sb.ToString();
     }
 
     private readonly struct DiffData(ulong hash, CastlingRights castle, byte ep)

@@ -38,7 +38,7 @@ public static class ApiMove
 public class ApiGame
 {
     public ApiGame(Game game)
-    : this(game.InitialPosition, game.Moves) { }
+    : this(new Position(), game.Moves) { }
 
     public ApiGame(Position position, Move[] moves)
     {

@@ -266,6 +266,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             position.Move(in move);
             var eval = -QuiesenceSearch(position, -beta, -alpha);
             position.Undo(in move);
+            
             if (eval >= beta) return beta;
 
             alpha = Max(eval, alpha);

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Diagnostics;
 using static System.Math;
 
 namespace Lolbot.Core;
@@ -149,6 +150,8 @@ public static class Engine
             position2.Move(in moves1[i]);
             var posCount = PerftDiff(position.Move(moves1[i]), position2, remainingDepth - 1);
             position2.Undo(in moves1[i]);
+
+            Debug.Assert(position.Hash == position2.Hash);
             count += posCount;
         }
         return count;
@@ -328,7 +331,7 @@ public static class Engine
 
             if (alpha >= beta)
             {
-                if (moves[i].CapturePiece == Piece.None) 
+                if (moves[i].CapturePiece == Piece.None)
                     historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
                 break;
             }
