@@ -115,7 +115,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         if (alpha > mateValue) alpha = -mateValue;
         if (beta > mateValue - 1) beta = mateValue - 1;
-        if (history.IsDrawByRepetition(position.Hash)) return 0;
+        if (history.IsRepeated(position.Hash)) return 0;
 
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator.Legal(in position, ref moves);
@@ -197,7 +197,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (value <= originalAlpha) flag = TranspositionTable.UpperBound;
         else if (value >= beta) flag = TranspositionTable.LowerBound;
 
-        tt.Add(position.Hash, remainingDepth, value, flag, ttMove ?? Move.Null);
+        if (value != 0)
+            tt.Add(position.Hash, remainingDepth, value, flag, ttMove ?? Move.Null);
 
         return value;
     }
@@ -236,6 +237,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         0.40f, 0.44f, 0.48f, 0.52f, 0.56f, 0.60f, 0.64f, 0.68f,
         0.72f, 0.76f, 0.80f, 0.84f, 0.88f, 0.92f, 0.96f, 1f, 1f
     ];
+    
     public static int StaticEvaluation(ref readonly Position position)
     {
         var pieceCount = Max(Bitboards.CountOccupied(position.Occupied), 0);
@@ -257,11 +259,16 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             middle -= mgb;
             end -= egb;
         }
+        
+        middle += Heuristics.KingSafety(in position, Color.White);
+        middle -= Heuristics.KingSafety(in position, Color.Black);
 
         var eval = (int)float.Lerp(middle, end, phase);
 
         eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
         eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Color.Black);
+
+
 
         // eval += Heuristics.Mobility(in position, Color.White);
         // eval -= Heuristics.Mobility(in position, Color.Black);

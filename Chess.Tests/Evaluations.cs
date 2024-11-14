@@ -20,8 +20,9 @@ public class Evaluations
         game = Engine.Move(game, "D7", "D5");
         game = Engine.Move(game, "E4", "D5");
 
-        var eval = Engine.Evaluate(game.CurrentPosition);
-        eval.Should().BeLessThanOrEqualTo(-100);
+        var pos = game.CurrentPosition;
+        var eval = Search.StaticEvaluation(in pos);
+        eval.Should().BeCloseTo(-100, 10    );
     }
 
     [Test]
@@ -89,15 +90,16 @@ public class Evaluations
     public void KingSafety_Should_Be_Favorable()
     {
         var fen = "rb1qkr2/ppp2p1p/2np2p1/8/8/2NP2P1/PPP2P1P/RB1Q1RK1 w - - 0 1";
-        Engine.Evaluate(Position.FromFen(fen)).Should().BePositive();
+        var eval = Heuristics.KingSafety(Position.FromFen(fen), Color.White);
+        eval.Should().BePositive();
     }
 
     [Test]
     public void DoubledPawns()
     {
         var fen = "8/8/2k5/2p2p2/5P2/2K2P2/8/8 w - - 0 1";
-        var eval = Engine.Evaluate(Position.FromFen(fen));
-        Console.WriteLine(eval.ToString());
+        var position = Position.FromFen(fen);
+        var eval = Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
         eval.Should().BeNegative();
     }
 }

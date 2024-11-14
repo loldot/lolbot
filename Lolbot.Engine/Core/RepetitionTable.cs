@@ -36,6 +36,15 @@ public class RepetitionTable
 
     public void Unwind() => moveCount--;
 
+    public bool IsRepeated(ulong key)
+    {
+        for (int i = moveCount - 2; i > 0 && i >= irreversible[moveCount - 1]; i--)
+        {
+            if (history[i] == key) return true;
+        }
+        return false;
+    }
+
     public bool IsDrawByRepetition(ulong key)
     {
         ulong posCount = 0;
