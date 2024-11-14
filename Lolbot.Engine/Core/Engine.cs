@@ -55,28 +55,28 @@ public static class Engine
         var eval = 0;
         int color = position.CurrentPlayer == Color.White ? 1 : -1;
 
-        if (position.IsCheck)
-        {
-            eval -= color * 50;
-        }
+        // if (position.IsCheck)
+        // {
+        //     eval -= color * 50;
+        // }
 
-        eval += Heuristics.Mobility(position, Color.White);
-        eval -= Heuristics.Mobility(position, Color.Black);
+        // eval += Heuristics.Mobility(position, Color.White);
+        // eval -= Heuristics.Mobility(position, Color.Black);
 
-        eval += Heuristics.KingSafety(position, Color.White);
-        eval -= Heuristics.KingSafety(position, Color.Black);
+        // eval += Heuristics.KingSafety(position, Color.White);
+        // eval -= Heuristics.KingSafety(position, Color.Black);
 
-        eval += Heuristics.PawnStructure(position, Color.White);
-        eval -= Heuristics.PawnStructure(position, Color.Black);
+        // eval += Heuristics.PawnStructure(position, Color.White);
+        // eval -= Heuristics.PawnStructure(position, Color.Black);
 
-        for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
-        {
-            eval += Heuristics.GetPieceValue(i, position[i], position.Occupied);
-        }
-        for (Piece i = Piece.BlackPawn; i < Piece.BlackKing; i++)
-        {
-            eval -= Heuristics.GetPieceValue(i, position[i], position.Occupied);
-        }
+        // for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
+        // {
+        //     eval += Heuristics.GetPieceValue(i, position[i], position.Occupied);
+        // }
+        // for (Piece i = Piece.BlackPawn; i < Piece.BlackKing; i++)
+        // {
+        //     eval -= Heuristics.GetPieceValue(i, position[i], position.Occupied);
+        // }
         return color * eval;
     }
 

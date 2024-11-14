@@ -230,25 +230,42 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return alpha;
     }
 
+    private static readonly float[] GamePhaseInterpolation = [
+        0,  0,  0,  0,  0,  0,  0,  0,
+        0.04f, 0.08f, 0.16f, 0.20f, 0.24f, 0.28f, 0.32f, 0.36f,
+        0.40f, 0.44f, 0.48f, 0.52f, 0.56f, 0.60f, 0.64f, 0.68f,
+        0.72f, 0.76f, 0.80f, 0.84f, 0.88f, 0.92f, 0.96f, 1f, 1f
+    ];
     public static int StaticEvaluation(ref readonly Position position)
     {
-        var eval = 0;
+        var pieceCount = Max(Bitboards.CountOccupied(position.Occupied), 0);
+        var phase = GamePhaseInterpolation[pieceCount];
+
+        int middle = 0, end = 0;
 
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
-            eval += Heuristics.GetPieceValue(i, position[i], position.Occupied);
+            var (mgw, egw) = Heuristics.GetPieceValue(i, position[i]);
+
+            middle += mgw;
+            end += egw;
         }
 
         for (Piece i = Piece.BlackPawn; i < Piece.BlackKing; i++)
         {
-            eval -= Heuristics.GetPieceValue(i, position[i], position.Occupied);
+            var (mgb, egb) = Heuristics.GetPieceValue(i, position[i]);
+            middle -= mgb;
+            end -= egb;
         }
+
+        var eval = (int)float.Lerp(middle, end, phase);
 
         eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
         eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Color.Black);
 
         // eval += Heuristics.Mobility(in position, Color.White);
         // eval -= Heuristics.Mobility(in position, Color.Black);
+
 
         return position.CurrentPlayer == Color.White ? eval : -eval;
     }

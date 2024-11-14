@@ -148,21 +148,22 @@ public static class Heuristics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetPieceValue(Piece piece) => PieceValues[0xf & (byte)piece];
 
-    public static int GetPieceValue(Piece piece, ulong bitboard, ulong occupied)
+    public static (int, int) GetPieceValue(Piece piece, ulong bitboard)
     {
-        var pieceCount = Math.Max(Bitboards.CountOccupied(occupied), 0);
-        var phase = GamePhaseInterpolation[pieceCount];
-
-        int eval = 0;
+        int mg = 0, eg = 0;
         while (bitboard != 0)
         {
             var sq = Bitboards.PopLsb(ref bitboard);
+            var value = GetPieceValue(piece);
+
             var openingBonus = PieceSquareTables.GetOpeningBonus(piece, sq);
             var endgameBonus = PieceSquareTables.GetEndgameBonus(piece, sq);
-            eval += GetPieceValue(piece) + (phase * openingBonus + (100 - phase) * endgameBonus) / 100;
+            
+            mg += value + openingBonus;
+            eg += value + endgameBonus;// GetPieceValue(piece) + (phase * openingBonus + (100 - phase) * endgameBonus) / 100;
         }
 
-        return eval;
+        return (mg, eg);
     }
 }
 
