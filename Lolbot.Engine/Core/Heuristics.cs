@@ -119,7 +119,7 @@ public static class Heuristics
         return -(phase * opensquares) / 100; ;
     }
 
-    public static int Mobility(Position position, Color color)
+    public static int Mobility(ref readonly Position position, Color color)
     {
         int movecount = 0;
 

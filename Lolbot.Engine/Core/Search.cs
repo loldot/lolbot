@@ -152,6 +152,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             }
             ttMove = ttEntry.Move;
         }
+        // else if (remainingDepth > 3) remainingDepth--;
 
         var value = -Inf;
 
@@ -161,6 +162,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             var move = SelectMove(ref moves, ttMove, in i);
             var nextPosition = position.Move(move);
 
+            history.Update(move, nextPosition.Hash);
             if (i == 0)
             {
                 value = -EvaluateMove<TNode>(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha);
@@ -171,6 +173,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                 if (value > alpha && TNode.IsPv)
                     value = -EvaluateMove<PvNode>(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha); // re-search
             }
+            history.Unwind();
+
             value = Max(value, alpha);
 
             if (value > alpha)
@@ -242,6 +246,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
         eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Color.Black);
+
+        // eval += Heuristics.Mobility(in position, Color.White);
+        // eval -= Heuristics.Mobility(in position, Color.Black);
 
         return position.CurrentPlayer == Color.White ? eval : -eval;
     }

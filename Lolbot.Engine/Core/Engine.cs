@@ -247,7 +247,8 @@ public static class Engine
 
             if (alpha >= beta)
             {
-                if (moves[i].CapturePiece == Piece.None) historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
+                if (moves[i].CapturePiece == Piece.None) 
+                    historyHeuristic[64 * moves[i].FromIndex + moves[i].ToIndex] = depth * depth;
                 break;
             }
         }
