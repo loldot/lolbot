@@ -66,8 +66,8 @@ public class Evaluations
     [TestCase("3k4/2p5/3p2n1/4p3/4P3/3P2N1/2P1Q3/q2K4 w - - 0 1", "Q2k4/2p1q3/3p2n1/4p3/4P3/3P2N1/2P5/3K4 b - - 0 1")]
     public void Symmetric_Position_Should_Be_Equal(string white, string black)
     {
-        var w = Engine.Evaluate(Position.FromFen(white));
-        var b = Engine.Evaluate(Position.FromFen(black));
+        var w = Search.StaticEvaluation(Position.FromFen(white));
+        var b = Search.StaticEvaluation(Position.FromFen(black));
 
         w.Should().Be(b);
     }
@@ -76,7 +76,10 @@ public class Evaluations
     [TestCase("Q2k4/2p1q3/3p2n1/4p3/4P3/3P2N1/2P5/3K4 b - - 0 1")]
     public void Equal_Material_Check_Should_Be_Negative(string fen)
     {
-        Engine.Evaluate(Position.FromFen(fen)).Should().BeNegative();
+        var position = Position.FromFen(fen);
+        
+        Search.StaticEvaluation(in position)
+            .Should().BeNegative();
     }
 
     [Test]

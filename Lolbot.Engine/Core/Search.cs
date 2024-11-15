@@ -259,22 +259,22 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             middle -= mgb;
             end -= egb;
         }
-        
+
         middle += Heuristics.KingSafety(in position, Color.White);
         middle -= Heuristics.KingSafety(in position, Color.Black);
 
+        var color = position.CurrentPlayer == Color.White ? 1 : -1;
         var eval = (int)float.Lerp(middle, end, phase);
 
+        if (position.IsCheck) eval -= color * 50;
+        
         eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
         eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Color.Black);
-
-
 
         // eval += Heuristics.Mobility(in position, Color.White);
         // eval -= Heuristics.Mobility(in position, Color.Black);
 
-
-        return position.CurrentPlayer == Color.White ? eval : -eval;
+        return color * eval;
     }
 
     private ref readonly Move SelectMove(ref Span<Move> moves, Move? currentBest, in int k)
