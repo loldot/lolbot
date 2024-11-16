@@ -108,10 +108,11 @@ public static class Heuristics
     {
         var occupied = position.Occupied;
         var king = position[color, PieceType.King];
+        var friendly = position[color];
         var sq = Squares.ToIndex(king);
 
-        var ra = MovePatterns.RookAttacks(sq, ref occupied) & position.Empty;
-        var ba = MovePatterns.BishopAttacks(sq, ref occupied) & position.Empty;
+        var ra = MovePatterns.RookAttacks(sq, ref occupied) & ~friendly;
+        var ba = MovePatterns.BishopAttacks(sq, ref occupied) & ~friendly;
 
         var opensquares = Bitboards.CountOccupied(ra)
             + Bitboards.CountOccupied(ba);
