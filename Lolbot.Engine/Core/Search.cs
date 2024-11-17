@@ -271,8 +271,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
         eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Color.Black);
 
-        // eval += Heuristics.Mobility(in position, Color.White);
-        // eval -= Heuristics.Mobility(in position, Color.Black);
+        eval += Heuristics.Mobility(in position, Color.White);
+        eval -= Heuristics.Mobility(in position, Color.Black);
 
         return color * eval;
     }
