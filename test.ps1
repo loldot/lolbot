@@ -1,6 +1,6 @@
 $prev = (git rev-parse --short HEAD)
 
-$buildDir = "C:\dev\lolbot\Lolbot.Engine\bin\Release\net8.0\win-x64\publish"
+$buildDir = "C:\dev\lolbot\Lolbot.Engine\bin\Release\net9.0\win-x64\publish"
 $previousDir = "C:\dev\lolbot-versions\$prev"
 
 $previousVersion = "$previousDir\Lolbot.Engine.exe"
