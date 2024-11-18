@@ -20,20 +20,20 @@ public static class Heuristics
     // https://lichess.org/@/ubdip/blog/comments-on-piece-values/Ps9kghhO
     public static int[] PieceValues = [0, 100, 316, 328, 493, 982, 9_999];
 
-    private static readonly int[][] mmvlva = new int[7][];
+    private static readonly int[][] mvvlva = new int[7][];
 
     static Heuristics()
     {
         for (int i = 0; i < 7; i++)
         {
-            mmvlva[i] = new int[7];
+            mvvlva[i] = new int[7];
 
             for (int j = 1; i > 0 && j < 7; j++)
             {
                 int capture = PieceValues[i];
                 int attacker = PieceValues[j];
 
-                mmvlva[i][j] = 10 * capture - attacker;
+                mvvlva[i][j] = 10 * capture - attacker;
             }
         }
     }
@@ -144,7 +144,12 @@ public static class Heuristics
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int MVV_LVA(Piece capture, Piece attacker)
-        => mmvlva[0xf & (byte)capture][0xf & (byte)attacker];
+        => mvvlva[0xf & (byte)capture][0xf & (byte)attacker];
+
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int MVV_LVA(PieceType capture, PieceType attacker)
+        => mvvlva[(byte)capture][(byte)attacker];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetPieceValue(Piece piece) => PieceValues[0xf & (byte)piece];

@@ -56,6 +56,8 @@ public readonly struct Move : IEquatable<Move>
         _ => 0
     };
 
+    public readonly bool IsNull => value.Data == 0;
+
     public static Move Promote(char fromPiece, string fromCoordinate, string toCoordinate, char toPiece)
     {
         return new Move(

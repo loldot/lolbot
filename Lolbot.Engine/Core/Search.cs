@@ -39,10 +39,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     public Move? BestMove(CancellationToken ct)
     {
         this.ct = ct;
-        var bestMove = default(Move?);
+        var bestMove = Move.Null;
         searchDepth = 1;
 
-        while (bestMove is null || searchDepth <= Max_Depth && !ct.IsCancellationRequested)
+        while (bestMove.IsNull || searchDepth <= Max_Depth && !ct.IsCancellationRequested)
         {
             nodes = 0;
 
@@ -55,7 +55,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return bestMove;
     }
 
-    public Move SearchRoot(int depth, Move? currentBest)
+    public Move SearchRoot(int depth, Move currentBest)
     {
         if (rootPosition.IsCheck) depth++;
 
@@ -63,7 +63,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var count = MoveGenerator.Legal(in rootPosition, ref moves);
         moves = moves[..count];
 
-        var bestMove = currentBest ?? moves[0];
+        var bestMove = currentBest.IsNull ? moves[0] : currentBest;
         var start = DateTime.Now;
 
         var (alpha, beta) = (-Inf, Inf);
@@ -130,7 +130,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             return QuiesenceSearch(in position, alpha, beta);
         }
 
-        var ttMove = default(Move?);
+        var ttMove = Move.Null;
         if (tt.TryGet(position.Hash, out var ttEntry))
         {
             if (ttEntry.Depth >= remainingDepth)
@@ -198,7 +198,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         else if (value >= beta) flag = TranspositionTable.LowerBound;
 
         if (value != 0)
-            tt.Add(position.Hash, remainingDepth, value, flag, ttMove ?? Move.Null);
+            tt.Add(position.Hash, remainingDepth, value, flag, ttMove);
 
         return value;
     }
@@ -218,7 +218,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         int i = 0;
         for (; i < count; i++)
         {
-            var move = SelectMove(ref moves, null, i);
+            var move = SelectMove(ref moves, Move.Null, i);
             var nextPosition = position.Move(move);
             var eval = -QuiesenceSearch(in nextPosition, -beta, -alpha);
 
@@ -277,15 +277,15 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return color * eval;
     }
 
-    private ref readonly Move SelectMove(ref Span<Move> moves, Move? currentBest, in int k)
+    private ref readonly Move SelectMove(ref Span<Move> moves, in Move currentBest, in int k)
     {
-        if (k == 0 && currentBest is not null)
+        if (k == 0 && !currentBest.IsNull)
         {
-            var index = moves.IndexOf(currentBest.Value);
+            var index = moves.IndexOf(currentBest);
             if (index >= 0)
             {
                 moves[index] = moves[0];
-                moves[0] = currentBest.Value;
+                moves[0] = currentBest;
             }
         }
 
