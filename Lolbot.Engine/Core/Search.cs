@@ -46,9 +46,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         {
             nodes = 0;
 
-            var temp = SearchRoot(searchDepth, bestMove);
-            if (!isAborted) bestMove = temp;
-
+            bestMove = SearchRoot(searchDepth, bestMove);
             searchDepth++;
         }
 
@@ -71,7 +69,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         int i = 0;
         for (; i < count; i++)
         {
-            if (ct.IsCancellationRequested) break;
 
             var move = SelectMove(ref moves, currentBest, in i);
             var nextPosition = rootPosition.Move(move);
@@ -96,6 +93,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                 alpha = value;
                 bestMove = move;
             }
+            if (ct.IsCancellationRequested) break;
         }
         nodes += i;
         var ms = (DateTime.Now - start).TotalMilliseconds;
@@ -123,12 +121,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         // Checkmate or stalemate
         if (count == 0) return position.IsCheck ? -mateValue : 0;
-
-        if (ct.IsCancellationRequested)
-        {
-            isAborted = true;
-            return QuiesenceSearch(in position, alpha, beta);
-        }
 
         var ttMove = Move.Null;
         if (tt.TryGet(position.Hash, out var ttEntry))
@@ -286,6 +278,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             {
                 moves[index] = moves[0];
                 moves[0] = currentBest;
+                return ref moves[0];
             }
         }
 

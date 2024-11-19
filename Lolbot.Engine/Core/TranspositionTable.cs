@@ -5,17 +5,19 @@ namespace Lolbot.Core;
 
 public class TranspositionTable
 {
+    public const uint Size = 128 * ushort.MaxValue;
+    public const uint Mask = 0x7F_FF7F;
     public const byte UpperBound = 1;
     public const byte LowerBound = 2;
     public const byte Exact = 3;
 
-// #if DEBUG
+    // #if DEBUG
     public int set_count = 0;
     public int collision_count = 0;
     public int rewrite_count = 0;
 
     public double FillFactor => set_count / (128.0 * ushort.MaxValue);
-// #endif
+    // #endif
 
 
     public readonly struct Entry
@@ -38,28 +40,28 @@ public class TranspositionTable
         }
     }
 
-    private readonly Entry[] entries = new Entry[128 * ushort.MaxValue];
+    private readonly Entry[] entries = new Entry[Size];
 
 
     public Entry Add(ulong hash, int depth, int eval, byte type, Move move)
     {
-        var index = hash & 0xf_fffe;
+        var index = hash & Mask;
 
         Debug.Assert(eval < short.MaxValue);
 
         var current = entries[index];
-// #if DEBUG
+        // #if DEBUG
         if (!current.IsSet) set_count++;
         else if (hash == current.Key) rewrite_count++;
         else if (hash != current.Key) collision_count++;
-// #endif
+        // #endif
 
         return entries[index] = new Entry(hash, depth, eval, type, move);
     }
 
     public Entry Get(ulong hash)
     {
-        var index = hash & 0xf_fffe;
+        var index = hash & Mask;
 
         return entries[index];
     }
@@ -67,14 +69,14 @@ public class TranspositionTable
     public bool TryGet(ulong hash, out Entry entry)
     {
         entry = Get(hash);
-        return entry.IsSet && hash == entry.Key;
+        return hash == entry.Key;
     }
 
 
     public bool TryGet(ulong hash, int depth, out Entry entry)
     {
         entry = Get(hash);
-        bool isMatch = entry.IsSet && entry.Depth >= depth && hash == entry.Key;
+        bool isMatch = entry.Depth >= depth && hash == entry.Key;
         // if (isMatch) Console.WriteLine($"info tt match: {entry.Key:X} [{entry.Type}]");
 
         return isMatch;
@@ -86,10 +88,10 @@ public class TranspositionTable
         {
             entries[i] = new Entry();
         }
-// #if DEBUG
+        // #if DEBUG
         set_count = 0;
         collision_count = 0;
         rewrite_count = 0;
-// #endif
+        // #endif
     }
 }
