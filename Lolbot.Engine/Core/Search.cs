@@ -124,7 +124,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         // Checkmate or stalemate
         if (count == 0) return position.IsCheck ? -mateValue : 0;
 
-        if ((nodes & 0xf) == 0 && ct.IsCancellationRequested)
+        if (ct.IsCancellationRequested)
         {
             isAborted = true;
             return QuiesenceSearch(in position, alpha, beta);
@@ -163,7 +163,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             var nextPosition = position.Move(move);
 
             history.Update(move, nextPosition.Hash);
-            if (i == 0)
+            if (TNode.IsPv)
             {
                 value = -EvaluateMove<TNode>(in nextPosition, remainingDepth - 1, ply + 1, -beta, -alpha);
             }
