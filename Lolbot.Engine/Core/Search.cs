@@ -178,6 +178,13 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                     if (moves[i].CapturePiece == Piece.None)
                     {
                         historyHeuristic[moves[i].FromIndex * 64 + moves[i].ToIndex] = remainingDepth * remainingDepth;
+                        for (int q = 0; q < i; q++)
+                        {
+                            if (moves[q].CapturePiece == Piece.None)
+                            {
+                                historyHeuristic[moves[q].FromIndex * 64 + moves[q].ToIndex] -= remainingDepth * remainingDepth; 
+                            }
+                        }
                     }
                     break;
                 }
@@ -229,7 +236,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         0.40f, 0.44f, 0.48f, 0.52f, 0.56f, 0.60f, 0.64f, 0.68f,
         0.72f, 0.76f, 0.80f, 0.84f, 0.88f, 0.92f, 0.96f, 1f, 1f
     ];
-    
+
     public static int StaticEvaluation(ref readonly Position position)
     {
         var pieceCount = Max(Bitboards.CountOccupied(position.Occupied), 0);
@@ -259,7 +266,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var eval = (int)float.Lerp(middle, end, phase);
 
         if (position.IsCheck) eval -= color * 50;
-        
+
         eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
         eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Color.Black);
 
