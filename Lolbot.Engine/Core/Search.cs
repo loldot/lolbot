@@ -24,10 +24,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     private readonly Position rootPosition = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
 
+    private Move[] Killers = new Move[Max_Depth + 32];
     private int searchDepth = 0;
     private int nodes = 0;
     private CancellationToken ct;
-    private bool isAborted;
 
     public Move? BestMove()
     {
@@ -70,7 +70,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         for (; i < count; i++)
         {
 
-            var move = SelectMove(ref moves, currentBest, in i);
+            var move = SelectMove(ref moves, currentBest, in i, 0);
             var nextPosition = rootPosition.Move(move);
 
             int value = -Inf;
@@ -151,7 +151,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         int i = 0;
         for (; i < count; i++)
         {
-            var move = SelectMove(ref moves, ttMove, in i);
+            var move = SelectMove(ref moves, ttMove, in i, ply);
             var nextPosition = position.Move(move);
 
             history.Update(move, nextPosition.Hash);
@@ -182,9 +182,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                         {
                             if (moves[q].CapturePiece == Piece.None)
                             {
-                                historyHeuristic[moves[q].FromIndex * 64 + moves[q].ToIndex] -= remainingDepth * remainingDepth; 
+                                historyHeuristic[moves[q].FromIndex * 64 + moves[q].ToIndex] -= remainingDepth * remainingDepth;
                             }
                         }
+                        Killers[ply] = move;
                     }
                     break;
                 }
@@ -217,7 +218,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         int i = 0;
         for (; i < count; i++)
         {
-            var move = SelectMove(ref moves, Move.Null, i);
+            var move = SelectMove(ref moves, Move.Null, i, 0);
             var nextPosition = position.Move(move);
             var eval = -QuiesenceSearch(in nextPosition, -beta, -alpha);
 
@@ -276,7 +277,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return color * eval;
     }
 
-    private ref readonly Move SelectMove(ref Span<Move> moves, in Move currentBest, in int k)
+    private ref readonly Move SelectMove(ref Span<Move> moves, in Move currentBest, in int k, int ply)
     {
         if (k == 0 && !currentBest.IsNull)
         {
@@ -292,10 +293,16 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var n = moves.Length;
         if (k <= 8)
         {
+            int bestScore = 0;
             int bestIndex = k;
             for (var i = k; i < n; i++)
             {
-                if (MoveComparer(moves[i], moves[bestIndex]) < 0) bestIndex = i;
+                var score = ScoreMove(moves[i], ply);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestIndex = i;
+                }
             }
 
             (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
@@ -308,13 +315,25 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     {
         int score = 0;
 
-        score -= Heuristics.GetPieceValue(x.PromotionPiece);
-        score -= Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
+        score -= 1_000_000 * Heuristics.GetPieceValue(x.PromotionPiece);
+        score -= 100_000 * Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
         score -= historyHeuristic[64 * x.FromIndex + x.ToIndex];
 
-        score += Heuristics.GetPieceValue(y.PromotionPiece);
-        score += Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
+        score += 1_000_000 * Heuristics.GetPieceValue(y.PromotionPiece);
+        score += 100_000 * Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
         score += historyHeuristic[64 * y.FromIndex + y.ToIndex];
+
+        return score;
+    }
+
+    private int ScoreMove(Move m, int ply)
+    {
+        int score = 0;
+
+        score += 1_000_000 * Heuristics.GetPieceValue(m.PromotionPiece);
+        score += 100_000 * Heuristics.MVV_LVA(m.CapturePiece, m.FromPiece);
+        score += Killers[ply] == m ? 99_999 : 0;
+        score += historyHeuristic[64 * m.FromIndex + m.ToIndex];
 
         return score;
     }
