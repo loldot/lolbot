@@ -61,7 +61,7 @@ public class FenSerializer
         } while (token != ' ');
 
         var metaTokens = fenString[(i + 1)..].Split(' ');
-        var currentPlayer = metaTokens[0] == "w" ? Color.White : Color.Black;
+        var currentPlayer = metaTokens[0] == "w" ? Colors.White : Colors.Black;
 
         var white = Bitboards.Create(position.WhitePawns, position.WhiteRooks, position.WhiteKnights, position.WhiteBishops, position.WhiteQueens, position.WhiteKing);
         var black = Bitboards.Create(position.BlackPawns, position.BlackRooks, position.BlackKnights, position.BlackBishops, position.BlackQueens, position.BlackKing);

@@ -36,7 +36,7 @@ public class Fen
         var serializer = new FenSerializer();
         var position = serializer.Parse(fenString);
 
-        position.CurrentPlayer.Should().Be(Color.Black);
+        position.CurrentPlayer.Should().Be(Colors.Black);
     }
 
     [TestCase("r3k2r/ppp3pp/8/8/8/8/P5PP/R3K2R b KQk - 0 1", CastlingRights.WhiteKing | CastlingRights.WhiteQueen | CastlingRights.BlackKing)]

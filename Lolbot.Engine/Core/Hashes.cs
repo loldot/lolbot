@@ -233,7 +233,7 @@ public partial class Hashes
         }
         zobrist ^= GetValue(position.CastlingRights);
 
-        var pawnAttackMap = position.CurrentPlayer == Color.White
+        var pawnAttackMap = position.CurrentPlayer == Colors.White
             ? MovePatterns.CalculateAllPawnAttacksWhite(position.WhitePawns)
             : MovePatterns.CalculateAllPawnAttacksBlack(position.BlackPawns);
 
@@ -253,7 +253,7 @@ public partial class Hashes
         return value;
     }
 
-    public static ulong GetValue(Color color) => color == Color.White ? Seeds[ColorOffset] : 0;
+    public static ulong GetValue(Colors color) => color == Colors.White ? Seeds[ColorOffset] : 0;
     public static ulong GetValue(byte square)
     {
         if (square == 0) return 0;

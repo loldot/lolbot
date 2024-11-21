@@ -13,7 +13,7 @@ public class Pawns
 
         whiteMoves.ToArray().Should().BeEquivalentTo([new Move('P', "f3", "f4")]);
 
-        position = position with { CurrentPlayer = Color.Black };
+        position = position with { CurrentPlayer = Colors.Black };
         var blackMoves = position.GenerateLegalMoves('p');
         blackMoves.ToArray().Should().BeEmpty();
     }

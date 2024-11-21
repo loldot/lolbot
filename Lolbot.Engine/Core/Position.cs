@@ -8,7 +8,7 @@ namespace Lolbot.Core;
 
 public readonly struct Position
 {
-    public readonly Color CurrentPlayer { get; init; } = Color.White;
+    public readonly Colors CurrentPlayer { get; init; } = Colors.White;
 
     public readonly ulong WhitePawns { get; init; } = 0x000000000000ff00;
     public readonly ulong WhiteRooks { get; init; } = Bitboards.Create("A1", "H1");
@@ -87,11 +87,11 @@ public readonly struct Position
     }
 
     public readonly ulong this[Piece piece] => this[(byte)piece];
-    public readonly ulong this[Color color]
+    public readonly ulong this[Colors color]
     {
         get => this[(byte)color];
     }
-    public readonly ulong this[Color color, PieceType pieceType]
+    public readonly ulong this[Colors color, PieceType pieceType]
     {
         get => this[(Piece)((byte)color << 4 | (byte)pieceType)];
     }
@@ -129,7 +129,7 @@ public readonly struct Position
 
     public Position Move(Move m)
     {
-        var next = CurrentPlayer == Color.White ? Color.Black : Color.White;
+        var next = CurrentPlayer == Colors.White ? Colors.Black : Colors.White;
         ulong bitboard = this[m.FromPiece];
 
         var moveMask = m.FromSquare | m.ToSquare;
@@ -143,8 +143,8 @@ public readonly struct Position
 
             Occupied = Occupied ^ moveMask ^ captureMask,
             Empty = ~(Occupied ^ moveMask ^ captureMask),
-            White = (CurrentPlayer == Color.White) ? White ^ moveMask : White ^ captureMask,
-            Black = (CurrentPlayer == Color.Black) ? Black ^ moveMask : Black ^ captureMask,
+            White = (CurrentPlayer == Colors.White) ? White ^ moveMask : White ^ captureMask,
+            Black = (CurrentPlayer == Colors.Black) ? Black ^ moveMask : Black ^ captureMask,
 
             CurrentPlayer = next
         };
@@ -180,7 +180,7 @@ public readonly struct Position
         hash ^= Hashes.GetValue(position.CastlingRights);
         hash ^= Hashes.GetValue(EnPassant);
         hash ^= Hashes.GetValue(position.EnPassant);
-        hash ^= Hashes.GetValue(Color.White);
+        hash ^= Hashes.GetValue(Colors.White);
 
         return position with
         {
@@ -270,11 +270,11 @@ public readonly struct Position
         return GenerateLegalMoves(piece);
     }
 
-    internal (bool, Vector256<ulong>) CreatePinmasks(Color color)
+    internal (bool, Vector256<ulong>) CreatePinmasks(Colors color)
     {
         bool isPinned = false;
-        byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
-        var (enemyHV, enemyAD, friendly, enemy) = color == Color.White
+        byte king = Squares.ToIndex(color == Colors.White ? WhiteKing : BlackKing);
+        var (enemyHV, enemyAD, friendly, enemy) = color == Colors.White
             ? (BlackRooks | BlackQueens, BlackBishops | BlackQueens, White, Black)
             : (WhiteRooks | WhiteQueens, WhiteBishops | WhiteQueens, Black, White);
 
@@ -316,13 +316,13 @@ public readonly struct Position
         return (isPinned, Vector256.Create(pinmasks[0], pinmasks[1], pinmasks[2], pinmasks[3]));
     }
 
-    internal (ulong, byte) CreateCheckMask(Color color)
+    internal (ulong, byte) CreateCheckMask(Colors color)
     {
         ulong checkmask = 0;
         byte countCheckers = 0;
 
-        int opponentColor = color == Color.White ? 0x20 : 0x10;
-        byte king = Squares.ToIndex(color == Color.White ? WhiteKing : BlackKing);
+        int opponentColor = color == Colors.White ? 0x20 : 0x10;
+        byte king = Squares.ToIndex(color == Colors.White ? WhiteKing : BlackKing);
 
         // king can never check
         for (int i = 1; i < 6; i++)
@@ -364,9 +364,9 @@ public readonly struct Position
         return ulong.MaxValue;
     }
 
-    public ulong CreateAttackMask(Color color)
+    public ulong CreateAttackMask(Colors color)
     {
-        var (king, enemyRooks, enemyBishops, enemyKnights, enemyPawns) = (color == Color.White)
+        var (king, enemyRooks, enemyBishops, enemyKnights, enemyPawns) = (color == Colors.White)
             ? (WhiteKing, BlackRooks | BlackQueens, BlackBishops | BlackQueens, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
             : (BlackKing, WhiteRooks | WhiteQueens, WhiteBishops | WhiteQueens, WhiteKnights, WhitePawns);
 
@@ -391,7 +391,7 @@ public readonly struct Position
         }
 
         var enemyPawnAttacks = MovePatterns.CalculateAllPawnAttacksWhite(enemyPawns);
-        if (color == Color.White)
+        if (color == Colors.White)
         {
             enemyAttacks |= Bitboards.FlipAlongVertical(enemyPawnAttacks);
             enemyAttacks |= MovePatterns.Kings[Squares.ToIndex(BlackKing)];

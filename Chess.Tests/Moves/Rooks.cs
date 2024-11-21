@@ -112,7 +112,7 @@ public class Rooks
             new Move('P', "d4", "d5"),
             new Move('n', "g8", "f6"),
             new Move('P', "f2", "f3"),
-            Move.Castle(Color.Black)
+            Move.Castle(Colors.Black)
         ]);
         var rooks = g.CurrentPosition.BlackRooks;
 

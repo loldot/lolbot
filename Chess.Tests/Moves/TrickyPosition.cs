@@ -27,7 +27,7 @@ public class TrickyPosition
     public void Should_Have_KingsideCastle()
     {
         moves.Should().IntersectWith([
-            Move.Castle(Color.White)
+            Move.Castle(Colors.White)
         ]);
     }
 }

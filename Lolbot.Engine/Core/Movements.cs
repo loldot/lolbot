@@ -76,8 +76,8 @@ public static class MovePatterns
             }
         }
 
-        PassedPawnMasks[(int)Color.White] = new ulong[64];
-        PassedPawnMasks[(int)Color.Black] = new ulong[64];
+        PassedPawnMasks[(int)Colors.White] = new ulong[64];
+        PassedPawnMasks[(int)Colors.Black] = new ulong[64];
 
         for (byte i = 8; i < 56; i++)
         {
@@ -86,8 +86,8 @@ public static class MovePatterns
             ulong white_mask = pawn | WhitePawnAttacks[i];
             ulong black_mask = pawn | BlackPawnAttacks[i];
 
-            PassedPawnMasks[(int)Color.White][i] = OccludedFill(white_mask, ulong.MaxValue, N);
-            PassedPawnMasks[(int)Color.Black][i] = OccludedFill(black_mask, ulong.MaxValue, S);
+            PassedPawnMasks[(int)Colors.White][i] = OccludedFill(white_mask, ulong.MaxValue, N);
+            PassedPawnMasks[(int)Colors.Black][i] = OccludedFill(black_mask, ulong.MaxValue, S);
         }
 
         InitPextTable();

@@ -53,7 +53,7 @@ public static class Engine
     public static int Evaluate(Position position)
     {
         var eval = 0;
-        int color = position.CurrentPlayer == Color.White ? 1 : -1;
+        int color = position.CurrentPlayer == Colors.White ? 1 : -1;
 
         // if (position.IsCheck)
         // {

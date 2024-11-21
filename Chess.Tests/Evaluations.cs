@@ -41,8 +41,8 @@ public class Evaluations
     public void Should_Eval_IsolatedPawns()
     {
         var position = Position.FromFen("1k6/p6p/1p1p1p2/8/2P5/5PP1/P3P2P/5K2 w - - 0 1");
-        var whiteEval = Heuristics.PawnStructure(position, Color.White);
-        var blackEval = Heuristics.PawnStructure(position, Color.Black);
+        var whiteEval = Heuristics.PawnStructure(position, Colors.White);
+        var blackEval = Heuristics.PawnStructure(position, Colors.Black);
 
         whiteEval.Should().Be(2 * Heuristics.IsolatedPawnPenalty);
         blackEval.Should().Be(3 * Heuristics.IsolatedPawnPenalty);
@@ -54,8 +54,8 @@ public class Evaluations
     {
         var position = Position.FromFen(fen);
 
-        var whiteEval = Heuristics.PawnStructure(position, Color.White);
-        var blackEval = Heuristics.PawnStructure(position, Color.Black);
+        var whiteEval = Heuristics.PawnStructure(position, Colors.White);
+        var blackEval = Heuristics.PawnStructure(position, Colors.Black);
 
         whiteEval.Should().Be(white);
         blackEval.Should().Be(black);
@@ -93,7 +93,7 @@ public class Evaluations
     public void KingSafety_Should_Be_Favorable()
     {
         var fen = "rb1qkr2/ppp2p1p/2np2p1/8/8/2NP2P1/PPP2P1P/RB1Q1RK1 w - - 0 1";
-        var eval = Heuristics.KingSafety(Position.FromFen(fen), Color.White);
+        var eval = Heuristics.KingSafety(Position.FromFen(fen), Colors.White);
         eval.Should().BePositive();
     }
 
@@ -102,7 +102,7 @@ public class Evaluations
     {
         var fen = "8/8/2k5/2p2p2/5P2/2K2P2/8/8 w - - 0 1";
         var position = Position.FromFen(fen);
-        var eval = Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
+        var eval = Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Colors.White);
         eval.Should().BeNegative();
     }
 }

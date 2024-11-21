@@ -260,19 +260,19 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             end -= egb;
         }
 
-        middle += Heuristics.KingSafety(in position, Color.White);
-        middle -= Heuristics.KingSafety(in position, Color.Black);
+        middle += Heuristics.KingSafety(in position, Colors.White);
+        middle -= Heuristics.KingSafety(in position, Colors.Black);
 
-        var color = position.CurrentPlayer == Color.White ? 1 : -1;
+        var color = position.CurrentPlayer == Colors.White ? 1 : -1;
         var eval = (int)float.Lerp(middle, end, phase);
 
         if (position.IsCheck) eval -= color * 50;
 
-        eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Color.White);
-        eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Color.Black);
+        eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Colors.White);
+        eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Colors.Black);
 
-        eval += Heuristics.Mobility(in position, Color.White);
-        eval -= Heuristics.Mobility(in position, Color.Black);
+        eval += Heuristics.Mobility(in position, Colors.White);
+        eval -= Heuristics.Mobility(in position, Colors.Black);
 
         return color * eval;
     }

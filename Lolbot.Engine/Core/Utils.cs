@@ -4,10 +4,10 @@ namespace Lolbot.Core;
 
 public static class Utils
 {
-    public static Color GetColor(Piece piece) => (Color)((int)piece >> 4);
+    public static Colors GetColor(Piece piece) => (Colors)((int)piece >> 4);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Piece GetPiece(Color color, PieceType pieceType) => pieceType == PieceType.None
+    public static Piece GetPiece(Colors color, PieceType pieceType) => pieceType == PieceType.None
         ? Piece.None 
         : (Piece)((int)color << 4 | (int)pieceType);
     public static char PieceName(Piece piece) => piece switch

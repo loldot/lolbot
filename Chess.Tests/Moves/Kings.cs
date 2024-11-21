@@ -10,8 +10,8 @@ class Kings
         var pos = Position.FromFen("r3k2r/p6p/8/8/8/8/P6P/R3K2R w KQkq - 0 1");
         var moves = pos.GenerateLegalMoves('K').ToArray();
 
-        moves.Should().Contain(Move.QueenSideCastle(Color.White));
-        moves.Should().Contain(Move.Castle(Color.White));
+        moves.Should().Contain(Move.QueenSideCastle(Colors.White));
+        moves.Should().Contain(Move.Castle(Colors.White));
     }
 
     [Test]
@@ -20,8 +20,8 @@ class Kings
         var pos = Position.FromFen("r3k2r/p6p/8/8/8/8/P6P/R3K2R b KQkq - 0 1");
         var moves = pos.GenerateLegalMoves('k').ToArray();
 
-        moves.Should().Contain(Move.QueenSideCastle(Color.Black));
-        moves.Should().Contain(Move.Castle(Color.Black));
+        moves.Should().Contain(Move.QueenSideCastle(Colors.Black));
+        moves.Should().Contain(Move.Castle(Colors.Black));
     }
 
     [Test]
@@ -30,8 +30,8 @@ class Kings
         var pos = Position.FromFen("r3k3/p6p/8/8/8/8/P6P/R3K2R w KQq - 0 1");
         var moves = pos.GenerateLegalMoves('K').ToArray();
 
-        moves.Should().NotContain(Move.QueenSideCastle(Color.Black));
-        moves.Should().NotContain(Move.Castle(Color.Black));
+        moves.Should().NotContain(Move.QueenSideCastle(Colors.Black));
+        moves.Should().NotContain(Move.Castle(Colors.Black));
     }
 
     [Test]
@@ -40,8 +40,8 @@ class Kings
         var pos = Position.FromFen("r3k3/p6p/8/8/8/8/P4p1P/R3K2R w KQq - 0 1");
         var moves = pos.GenerateLegalMoves('K').ToArray();
 
-        moves.Should().NotContain(Move.QueenSideCastle(Color.White));
-        moves.Should().NotContain(Move.Castle(Color.White));
+        moves.Should().NotContain(Move.QueenSideCastle(Colors.White));
+        moves.Should().NotContain(Move.Castle(Colors.White));
     }
 
     [Test]
@@ -61,7 +61,7 @@ class Kings
     {
         var pos = Position.FromFen("r3k2r/8/8/8/8/3b4/8/R3K2R w KQkq - 0 1");
         pos.GenerateLegalMoves('K').ToArray().Should().BeEquivalentTo([
-            Move.QueenSideCastle(Color.White),
+            Move.QueenSideCastle(Colors.White),
             new Move('K', "e1","d1"),
             new Move('K', "e1","d2"),
             new Move('K', "e1","f2")
@@ -73,7 +73,7 @@ class Kings
     {
         var pos = Position.FromFen("r1bqkb1r/1ppp1ppp/p1n2n2/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 5");
         var game = new Game(pos, []);
-        game = Engine.Move(game, Move.Castle(Color.White));
+        game = Engine.Move(game, Move.Castle(Colors.White));
 
         game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.BlackKing | CastlingRights.BlackQueen);
         game.CurrentPosition.WhiteRooks.Should().Be(Bitboards.Create("A1", "F1"));
@@ -95,7 +95,7 @@ class Kings
     {
         var pos = Position.FromFen("r1bqk2r/1ppp1ppp/p1n2n2/4p3/Bb2P3/1P3N2/P1PP1PPP/RNBQK2R b KQkq - 0 6");
         var game = new Game(pos, []);
-        game = Engine.Move(game, Move.Castle(Color.Black));
+        game = Engine.Move(game, Move.Castle(Colors.Black));
 
         game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.WhiteKing | CastlingRights.WhiteQueen);
         game.CurrentPosition.BlackRooks.Should().Be(Bitboards.Create("A8", "F8"));
@@ -123,7 +123,7 @@ class Kings
 
         game.CurrentPosition.GenerateLegalMoves('K')
             .ToArray().Should().Contain(x => x.CastleIndex != 0);
-        game = Engine.Move(game, Move.Castle(Color.White));
+        game = Engine.Move(game, Move.Castle(Colors.White));
         game = Engine.Move(game, "h7", "h6");
 
         game.CurrentPosition.GenerateLegalMoves('R')
@@ -152,8 +152,8 @@ class Kings
         var pos = Position.FromFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/2N2Q1p/PPpBBPPP/1K1R3R w kq - 0 1");
         var moves = pos.GenerateLegalMoves('K').ToArray();
 
-        moves.Should().NotContain(Move.QueenSideCastle(Color.White));
-        moves.Should().NotContain(Move.Castle(Color.White));
+        moves.Should().NotContain(Move.QueenSideCastle(Colors.White));
+        moves.Should().NotContain(Move.Castle(Colors.White));
     }
 
 }

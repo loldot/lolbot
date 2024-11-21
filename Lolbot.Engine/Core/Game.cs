@@ -9,7 +9,7 @@ public sealed record Game(Position InitialPosition, Move[] Moves)
     }
 
     public int PlyCount => Moves.Length;
-    public Color CurrentPlayer => CurrentPosition.CurrentPlayer;
+    public Colors CurrentPlayer => CurrentPosition.CurrentPlayer;
     public Position CurrentPosition => GetPosition(InitialPosition, Moves);
     public readonly RepetitionTable RepetitionTable = new RepetitionTable();
 
@@ -43,7 +43,7 @@ public enum CastlingRights : byte
     BlackKing = 8,
     All = WhiteKing | WhiteQueen | BlackKing | BlackQueen
 }
-public enum Color : byte { None = 0, White = 1, Black = 2 }
+public enum Colors : byte { None = 0, White = 1, Black = 2 }
 public enum PieceType : byte
 {
     None = 0,

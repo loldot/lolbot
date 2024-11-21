@@ -1,6 +1,5 @@
 ﻿using Lolbot.Core;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
 
 GetPerftCounts(new Position(), 5);
 

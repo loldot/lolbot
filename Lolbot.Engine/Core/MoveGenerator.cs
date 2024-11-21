@@ -262,7 +262,7 @@ public class MoveGenerator
         var pawns = position[piece];
         var targets = position[~position.CurrentPlayer];
 
-        var (pushPattern, attackPattern) = (position.CurrentPlayer == Color.White)
+        var (pushPattern, attackPattern) = (position.CurrentPlayer == Colors.White)
             ? (MovePatterns.WhitePawnPushes, MovePatterns.WhitePawnAttacks)
             : (MovePatterns.BlackPawnPushes, MovePatterns.BlackPawnAttacks);
 
@@ -309,7 +309,7 @@ public class MoveGenerator
         var pawns = position[piece];
         var targets = position[~position.CurrentPlayer];
 
-        var attackPattern = (position.CurrentPlayer == Color.White)
+        var attackPattern = (position.CurrentPlayer == Colors.White)
             ? MovePatterns.WhitePawnAttacks
             : MovePatterns.BlackPawnAttacks;
 
@@ -337,7 +337,7 @@ public class MoveGenerator
 
     private static bool IsCastleLegal(ref readonly Position position, CastlingRights requiredCastle, Move castle, ulong enemyAttacks)
     {
-        requiredCastle &= (position.CurrentPlayer == Color.White)
+        requiredCastle &= (position.CurrentPlayer == Colors.White)
             ? CastlingRights.WhiteQueen | CastlingRights.WhiteKing
             : CastlingRights.BlackQueen | CastlingRights.BlackKing;
 
@@ -361,13 +361,13 @@ public class MoveGenerator
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Pawn);
         var king = position[position.CurrentPlayer, PieceType.King];
-        var oppositeColor = position.CurrentPlayer == Color.White ? Color.Black : Color.White;
+        var oppositeColor = position.CurrentPlayer == Colors.White ? Colors.Black : Colors.White;
 
         var opponentBishop = position[oppositeColor, PieceType.Bishop];
         var opponentRook = position[oppositeColor, PieceType.Rook];
         var opponentQueen = position[oppositeColor, PieceType.Queen];
 
-        var captureOffset = position.CurrentPlayer == Color.White ? MovePatterns.S : MovePatterns.N;
+        var captureOffset = position.CurrentPlayer == Colors.White ? MovePatterns.S : MovePatterns.N;
         var epCapture = (byte)(position.EnPassant + captureOffset);
         var ep = new Move(piece, sq, attack, position.GetOccupant(ref epCapture), epCapture);
 

@@ -38,10 +38,10 @@ public static class Heuristics
         }
     }
 
-    public static int PawnStructure(Position position, Color color)
+    public static int PawnStructure(Position position, Colors color)
     {
         var eval = 0;
-        var opponent = color == Color.White ? Color.Black : Color.White;
+        var opponent = color == Colors.White ? Colors.Black : Colors.White;
 
         ulong pawns = position[color, PieceType.Pawn];
         ulong oponentPawns = position[opponent, PieceType.Pawn];
@@ -62,7 +62,7 @@ public static class Heuristics
             if ((neighbours & pawns) == 0) eval += Bitboards.CountOccupied(pawnsOnFile) * IsolatedPawnPenalty;
 
             // Passed pawns
-            var frontPawn = color == Color.White
+            var frontPawn = color == Colors.White
                 ? 63 - Bitboards.Msb(pawnsOnFile)
                 : Bitboards.Lsb(pawnsOnFile);
 
@@ -73,7 +73,7 @@ public static class Heuristics
         return eval;
     }
 
-    public static int PawnStructure(ulong pawns, ulong oponentPawns, Color color)
+    public static int PawnStructure(ulong pawns, ulong oponentPawns, Colors color)
     {
         var eval = 0;
 
@@ -93,7 +93,7 @@ public static class Heuristics
             if ((neighbours & pawns) == 0) eval += Bitboards.CountOccupied(pawnsOnFile) * IsolatedPawnPenalty;
 
             // Passed pawns
-            var frontPawn = color == Color.White
+            var frontPawn = color == Colors.White
                 ? 63 - Bitboards.Msb(pawnsOnFile)
                 : Bitboards.Lsb(pawnsOnFile);
 
@@ -104,7 +104,7 @@ public static class Heuristics
         return eval;
     }
 
-    public static int KingSafety(in Position position, Color color)
+    public static int KingSafety(in Position position, Colors color)
     {
         var occupied = position.Occupied;
         var king = position[color, PieceType.King];
@@ -120,7 +120,7 @@ public static class Heuristics
         return 8 * (3 - opensquares);
     }
 
-    public static int Mobility(ref readonly Position position, Color color)
+    public static int Mobility(ref readonly Position position, Colors color)
     {
         int movecount = 0;
 

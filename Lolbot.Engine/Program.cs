@@ -97,7 +97,7 @@ void Go(string command)
         if (tokens[i] == "binc") binc = int.Parse(tokens[++i]);
     }
 
-    var (timeleft, increment) = game.CurrentPlayer == Color.White
+    var (timeleft, increment) = game.CurrentPlayer == Colors.White
         ? (wtime, winc)
         : (btime, binc);
 

@@ -29,7 +29,7 @@ public class Moves
         var whiteMoves = position
             .GenerateLegalMoves();
 
-        position = position with { CurrentPlayer = Color.Black };
+        position = position with { CurrentPlayer = Colors.Black };
         var blackMoves = position
             .GenerateLegalMoves();
 
@@ -42,7 +42,7 @@ public class Moves
     [Test]
     public void LegalBlackPawnMovesAtStart()
     {
-        var position = new Position() with { CurrentPlayer = Color.Black };
+        var position = new Position() with { CurrentPlayer = Colors.Black };
         var startMoves = position.GenerateLegalMoves(Piece.BlackPawn);
 
         startMoves.ToArray().Should().BeEquivalentTo([
