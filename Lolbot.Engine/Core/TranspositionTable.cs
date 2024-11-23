@@ -5,19 +5,19 @@ namespace Lolbot.Core;
 
 public class TranspositionTable
 {
-    public const uint Size = 128 * ushort.MaxValue;
-    public const uint Mask = 0x7F_FF7F;
+    public const uint Size = 0x80_0000;
+    public const uint Mask = 0x7f_ffff;
     public const byte UpperBound = 1;
     public const byte LowerBound = 2;
     public const byte Exact = 3;
 
-    // #if DEBUG
+#if DEBUG
     public int set_count = 0;
     public int collision_count = 0;
     public int rewrite_count = 0;
 
     public double FillFactor => set_count / (128.0 * ushort.MaxValue);
-    // #endif
+#endif
 
 
     public readonly struct Entry
@@ -49,12 +49,13 @@ public class TranspositionTable
 
         Debug.Assert(eval < short.MaxValue);
 
+#if DEBUG
         var current = entries[index];
-        // #if DEBUG
+
         if (!current.IsSet) set_count++;
         else if (hash == current.Key) rewrite_count++;
         else if (hash != current.Key) collision_count++;
-        // #endif
+#endif
 
         return entries[index] = new Entry(hash, depth, eval, type, move);
     }
@@ -88,10 +89,10 @@ public class TranspositionTable
         {
             entries[i] = new Entry();
         }
-        // #if DEBUG
+#if DEBUG
         set_count = 0;
         collision_count = 0;
         rewrite_count = 0;
-        // #endif
+#endif
     }
 }
