@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using static System.Math;
 
 namespace Lolbot.Core;
@@ -25,7 +26,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     private readonly RepetitionTable history = game.RepetitionTable;
 
     private Move[] Killers = new Move[Max_Depth + 32];
-    private int searchDepth = 0;
+    private int depth = 0;
     private int nodes = 0;
     private CancellationToken ct;
 
@@ -40,20 +41,44 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     {
         this.ct = ct;
         var bestMove = Move.Null;
-        searchDepth = 1;
+        var score = -Inf;
 
-        while (bestMove.IsNull || searchDepth <= Max_Depth && !ct.IsCancellationRequested)
+        depth = 1;
+        while (bestMove.IsNull || depth <= Max_Depth && !ct.IsCancellationRequested)
         {
             nodes = 0;
+            var start = DateTime.Now;
 
-            bestMove = SearchRoot(searchDepth, bestMove);
-            searchDepth++;
+            var delta = 64;
+
+            while (true)
+            {
+                var (alpha, beta) = (depth > 1)
+                    ? (score - delta, score + delta)
+                    : (-Inf, Inf);
+
+                (bestMove, score) = SearchRoot(depth, bestMove, alpha, beta);
+                delta <<= 1;
+                
+                if (score <= alpha) alpha = score - delta;
+                else if (score >= beta) beta = score + delta;
+                else break;
+
+                Console.WriteLine($"DEBUG research cp {score} depth {depth}"
+                    + $" nodes {nodes} alpha {alpha} beta {beta} delta {delta}");
+            }
+
+            var s = (DateTime.Now - start).TotalSeconds;
+            var nps = (int)(nodes / s);
+            Console.WriteLine($"info score cp {score} depth {depth} bm {bestMove} nodes {nodes} nps {nps}");
+
+            depth++;
         }
 
         return bestMove;
     }
 
-    public Move SearchRoot(int depth, Move currentBest)
+    public (Move, int) SearchRoot(int depth, Move currentBest, int alpha = -Inf, int beta = Inf)
     {
         if (rootPosition.IsCheck) depth++;
 
@@ -62,9 +87,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         moves = moves[..count];
 
         var bestMove = currentBest.IsNull ? moves[0] : currentBest;
-        var start = DateTime.Now;
-
-        var (alpha, beta) = (-Inf, Inf);
 
         int i = 0;
         for (; i < count; i++)
@@ -96,11 +118,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             if (ct.IsCancellationRequested) break;
         }
         nodes += i;
-        var ms = (DateTime.Now - start).TotalMilliseconds;
-        var nps = (int)(nodes * 1000 / ms);
-        Console.WriteLine($"info score cp {alpha} depth {depth} bm {bestMove} nodes {nodes} nps {nps}");
 
-        return bestMove;
+        return (bestMove, alpha);
     }
 
     public int EvaluateMove<TNode>(ref readonly Position position, int remainingDepth, int ply, int alpha, int beta)
