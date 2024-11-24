@@ -1,20 +1,6 @@
-using System.Diagnostics;
 using static System.Math;
 
 namespace Lolbot.Core;
-
-public interface NodeType
-{
-    static abstract bool IsPv { get; }
-}
-public readonly struct PvNode : NodeType
-{
-    public static bool IsPv => true;
-}
-public readonly struct NonPvNode : NodeType
-{
-    public static bool IsPv => false;
-}
 
 public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuristic)
 {
@@ -59,7 +45,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
                 (bestMove, score) = SearchRoot(depth, bestMove, alpha, beta);
                 delta <<= 1;
-                
+
                 if (score <= alpha) alpha = score - delta;
                 else if (score >= beta) beta = score + delta;
                 else break;
@@ -82,10 +68,40 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     {
         if (rootPosition.IsCheck) depth++;
 
+        var originalAlpha = alpha;
+
+        var ttMove = Move.Null;
+        if (tt.TryGet(rootPosition.Hash, out var ttEntry))
+        {
+            if (ttEntry.Depth >= depth)
+            {
+                if (ttEntry.Type == TranspositionTable.Exact)
+                {
+                    return (ttEntry.Move, ttEntry.Evaluation);
+                }
+                else if (ttEntry.Type == TranspositionTable.LowerBound)
+                {
+                    alpha = Max(alpha, ttEntry.Evaluation);
+                }
+                else if (ttEntry.Type == TranspositionTable.UpperBound)
+                {
+                    beta = Min(beta, ttEntry.Evaluation);
+                }
+
+                if (alpha >= beta) 
+                {
+                    return (ttEntry.Move, ttEntry.Evaluation);
+                }
+            }
+            ttMove = ttEntry.Move;
+        }
+
+        
         Span<Move> moves = stackalloc Move[256];
         var count = MoveGenerator.Legal(in rootPosition, ref moves);
         moves = moves[..count];
 
+        currentBest = currentBest.IsNull ? ttMove : currentBest;
         var bestMove = currentBest.IsNull ? moves[0] : currentBest;
 
         int i = 0;
@@ -118,6 +134,13 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             if (ct.IsCancellationRequested) break;
         }
         nodes += i;
+
+        var flag = TranspositionTable.Exact;
+        if (alpha <= originalAlpha) flag = TranspositionTable.UpperBound;
+        else if (alpha >= beta) flag = TranspositionTable.LowerBound;
+
+        if (alpha != 0)
+            tt.Add(rootPosition.Hash, depth, alpha, flag, bestMove);
 
         return (bestMove, alpha);
     }
@@ -264,9 +287,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var whiteBishops = Bitboards.CountOccupied(position.WhiteBishops);
         var whiteRooks = Bitboards.CountOccupied(position.WhiteRooks);
         var whiteQueens = Bitboards.CountOccupied(position.WhiteQueens);
-        
-        var whitePieceMaterial 
-            = whiteKnigts * Heuristics.KnightValue 
+
+        var whitePieceMaterial
+            = whiteKnigts * Heuristics.KnightValue
             + whiteBishops * Heuristics.BishopValue
             + whiteRooks * Heuristics.RookValue
             + whiteQueens * Heuristics.QueenValue;
@@ -277,17 +300,17 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var blackRooks = Bitboards.CountOccupied(position.BlackRooks);
         var blackQueens = Bitboards.CountOccupied(position.BlackQueens);
 
-        var blackPieceMaterial 
-            = blackKnigts * Heuristics.KnightValue 
+        var blackPieceMaterial
+            = blackKnigts * Heuristics.KnightValue
             + blackBishops * Heuristics.BishopValue
             + blackRooks * Heuristics.RookValue
             + blackQueens * Heuristics.QueenValue;
 
-        var phase = (Heuristics.StartMaterialValue - whitePieceMaterial - blackPieceMaterial) 
+        var phase = (Heuristics.StartMaterialValue - whitePieceMaterial - blackPieceMaterial)
             / Heuristics.StartMaterialValue;
 
         int eval = 0, middle = 0, end = 0;
-        
+
         eval += whitePieceMaterial + (whitePawns * Heuristics.PawnValue);
         eval -= blackPieceMaterial + (blackPawns * Heuristics.PawnValue);
 
@@ -383,4 +406,17 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         return score;
     }
+}
+
+public interface NodeType
+{
+    static abstract bool IsPv { get; }
+}
+public readonly struct PvNode : NodeType
+{
+    public static bool IsPv => true;
+}
+public readonly struct NonPvNode : NodeType
+{
+    public static bool IsPv => false;
 }

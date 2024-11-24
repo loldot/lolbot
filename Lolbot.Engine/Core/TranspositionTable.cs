@@ -5,8 +5,8 @@ namespace Lolbot.Core;
 
 public class TranspositionTable
 {
-    public const uint Size = 0x80_0000;
-    public const uint Mask = 0x7f_ffff;
+    public const uint Size = 0x100_0000;
+    public const uint Mask = 0xff_ffff;
     public const byte UpperBound = 1;
     public const byte LowerBound = 2;
     public const byte Exact = 3;
