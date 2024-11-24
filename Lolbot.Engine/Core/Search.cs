@@ -259,10 +259,37 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
     public static int StaticEvaluation(ref readonly Position position)
     {
-        var pieceCount = Max(Bitboards.CountOccupied(position.Occupied), 0);
-        var phase = GamePhaseInterpolation[pieceCount];
+        var whitePawns = Bitboards.CountOccupied(position.WhitePawns);
+        var whiteKnigts = Bitboards.CountOccupied(position.WhiteKnights);
+        var whiteBishops = Bitboards.CountOccupied(position.WhiteBishops);
+        var whiteRooks = Bitboards.CountOccupied(position.WhiteRooks);
+        var whiteQueens = Bitboards.CountOccupied(position.WhiteQueens);
+        
+        var whitePieceMaterial 
+            = whiteKnigts * Heuristics.KnightValue 
+            + whiteBishops * Heuristics.BishopValue
+            + whiteRooks * Heuristics.RookValue
+            + whiteQueens * Heuristics.QueenValue;
 
-        int middle = 0, end = 0;
+        var blackPawns = Bitboards.CountOccupied(position.BlackPawns);
+        var blackKnigts = Bitboards.CountOccupied(position.BlackKnights);
+        var blackBishops = Bitboards.CountOccupied(position.BlackBishops);
+        var blackRooks = Bitboards.CountOccupied(position.BlackRooks);
+        var blackQueens = Bitboards.CountOccupied(position.BlackQueens);
+
+        var blackPieceMaterial 
+            = blackKnigts * Heuristics.KnightValue 
+            + blackBishops * Heuristics.BishopValue
+            + blackRooks * Heuristics.RookValue
+            + blackQueens * Heuristics.QueenValue;
+
+        var phase = (Heuristics.StartMaterialValue - whitePieceMaterial - blackPieceMaterial) 
+            / Heuristics.StartMaterialValue;
+
+        int eval = 0, middle = 0, end = 0;
+        
+        eval += whitePieceMaterial + (whitePawns * Heuristics.PawnValue);
+        eval -= blackPieceMaterial + (blackPawns * Heuristics.PawnValue);
 
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
@@ -283,7 +310,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         middle -= Heuristics.KingSafety(in position, Colors.Black);
 
         var color = position.CurrentPlayer == Colors.White ? 1 : -1;
-        var eval = (int)float.Lerp(middle, end, phase);
+        eval = (int)float.Lerp(eval + middle, eval + end, phase);
 
         if (position.IsCheck) eval -= color * 50;
 

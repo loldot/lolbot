@@ -18,7 +18,25 @@ public static class Heuristics
 
     // https://lichess.org/@/ubdip/blog/finding-the-value-of-pieces/PByOBlNB
     // https://lichess.org/@/ubdip/blog/comments-on-piece-values/Ps9kghhO
-    public static int[] PieceValues = [0, 100, 316, 328, 493, 982, 9_999];
+
+    public const int PawnValue = 100;
+    public const int KnightValue = 316;
+    public const int BishopValue = 328;
+    public const int RookValue = 493;
+    public const int QueenValue = 982;
+
+    public static int[] PieceValues = [0, 
+        PawnValue, 
+        KnightValue, 
+        BishopValue, 
+        RookValue, 
+        QueenValue, 
+        0
+    ];
+    public const float StartMaterialValue = 4 * KnightValue 
+        + 4 * BishopValue
+        + 4 * RookValue
+        + 2 * QueenValue;
 
     private static readonly int[][] mvvlva = new int[7][];
 
@@ -160,13 +178,12 @@ public static class Heuristics
         while (bitboard != 0)
         {
             var sq = Bitboards.PopLsb(ref bitboard);
-            var value = GetPieceValue(piece);
 
             var openingBonus = PieceSquareTables.GetOpeningBonus(piece, sq);
             var endgameBonus = PieceSquareTables.GetEndgameBonus(piece, sq);
             
-            mg += value + openingBonus;
-            eg += value + endgameBonus;// GetPieceValue(piece) + (phase * openingBonus + (100 - phase) * endgameBonus) / 100;
+            mg += openingBonus;
+            eg += endgameBonus;// GetPieceValue(piece) + (phase * openingBonus + (100 - phase) * endgameBonus) / 100;
         }
 
         return (mg, eg);
