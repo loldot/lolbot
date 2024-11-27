@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Lolbot.Core;
 namespace Lolbot.Tests;
 
+[Category(TestSuites.Fast)]
 public class HashTable
 {
     private static TranspositionTable tt = new TranspositionTable();

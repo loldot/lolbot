@@ -1,6 +1,8 @@
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
+
+[Category(TestSuites.Fast)]
 public class Pawns
 {
     [Test]
@@ -21,12 +23,12 @@ public class Pawns
     public void Should_Capture_En_Passant_Square()
     {
         var game = Engine.NewGame();
-        game = Engine.Move(game, "e2", "e4");
-        game = Engine.Move(game, "d7", "d5");
-        game = Engine.Move(game, "f1", "e2");
-        game = Engine.Move(game, "d5", "e4");
-        game = Engine.Move(game, "f2", "f4");
-        game = Engine.Move(game, "e4", "f3");
+        Engine.Move(game, "e2", "e4");
+        Engine.Move(game, "d7", "d5");
+        Engine.Move(game, "f1", "e2");
+        Engine.Move(game, "d5", "e4");
+        Engine.Move(game, "f2", "f4");
+        Engine.Move(game, "e4", "f3");
 
         var e4Pawn = game.CurrentPosition.BlackPawns & Squares.FromCoordinates("f4");
         e4Pawn.Should().Be(0);
@@ -92,7 +94,7 @@ public class Pawns
         var position = MutablePosition.FromFen("2k5/8/1pp2p2/3pPp2/3P1P2/1PP5/8/7K w - d6 0 1");
         var game = new Game(position, []);
 
-        game = Engine.Move(game, "e5", "d6");
+        Engine.Move(game, "e5", "d6");
 
         game.CurrentPosition.WhitePawns
             .Should().Be(Bitboards.Create("b3", "c3", "d4", "d6", "f4"));

@@ -85,16 +85,16 @@ app.MapGet("/game/{seq}", (int seq) =>
 })
 .WithOpenApi();
 
-app.MapPost("/game/{seq}", (int seq, string[] movedata) =>
-{
-    var game = GameDatabase.Instance.Get(seq);
-    if (game is null) return Results.NotFound();
+// app.MapPost("/game/{seq}", (int seq, string[] movedata) =>
+// {
+//     var game = GameDatabase.Instance.Get(seq);
+//     if (game is null) return Results.NotFound();
 
-    var updated = Engine.Move(game, movedata[0], movedata[1]);
+//     var updated = Engine.Move(game, movedata[0], movedata[1]);
 
-    GameDatabase.Instance.Update(seq, updated);
-    return Results.Ok(new ApiGame(updated));
-});
+//     GameDatabase.Instance.Update(seq, updated);
+//     return Results.Ok(new ApiGame(updated));
+// });
 
 app.MapGet("/game/{seq}/bitboard/{name}", (int seq, char name) =>
 {

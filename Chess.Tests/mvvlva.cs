@@ -3,6 +3,7 @@ using FluentAssertions;
 
 namespace Lolbot.Tests;
 
+[Category(TestSuites.Fast)]
 public class MVV_LVA
 {
     [Test]

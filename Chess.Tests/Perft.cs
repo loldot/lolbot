@@ -54,20 +54,42 @@ public class Perft
     public void PerftCountsOld(string fen, int depth, int expectedCount)
     {
         var pos1 = Position.FromFen(fen);
-        var pos2 = MutablePosition.FromFen(fen);
-        var perft = Engine.PerftDiff(in pos1, pos2, depth);
+        var perft = Engine.Perft(in pos1, depth);
         perft.Should().Be(expectedCount);
     }
 
-    // [TestCase(1, 20)]
-    [TestCase(2, 400)]
-    [TestCase(3, 8_902)]
-    [TestCase(4, 197_281)]
-    [TestCase(5, 4_865_609)]
-    [TestCase(6, 119_060_324)]
-    public void PerftCounts2(int depth, int expectedCount)
+    [TestCase(Position1, 1, 20)]
+    [TestCase(Position1, 2, 400)]
+    [TestCase(Position1, 3, 8_902)]
+    [TestCase(Position1, 4, 197_281)]
+    [TestCase(Position1, 5, 4_865_609)]
+    [TestCase(Position1, 6, 119_060_324)]
+
+    [TestCase(Position2, 1, 48)]
+    [TestCase(Position2, 2, 2_039)]
+    [TestCase(Position2, 3, 97_862)]
+    [TestCase(Position2_OOO_b4b3_c1b1_b3xc2, 3, 6_377)]
+
+    [TestCase(Position4, 1, 6)]
+    [TestCase(Position4, 2, 264)]
+    [TestCase(Position4, 3, 9_467)]
+
+    [TestCase(Position5, 1, 44)]
+    [TestCase(Position5, 2, 1_486)]
+    [TestCase(Position5, 3, 62_379)]
+
+    [TestCase(Position6, 1, 38)]
+    [TestCase(Position6, 2, 1_118)]
+    [TestCase(Position6, 3, 37_389)]
+    [TestCase(pos7, 1, 42)]
+    [TestCase(pos7, 2, 1_964)]
+    [TestCase(pos7, 3, 81_066)]
+    [TestCase(pos8, 1, 46)]
+    [TestCase(pos8, 2, 1_908)]
+    // [TestCase(6, 119_060_324)]
+    public void PerftCounts2(string fen, int depth, int expectedCount)
     {
-        var pos = new MutablePosition();
+        var pos = MutablePosition.FromFen(fen);
         var perft = Engine.Perft2(pos, depth);
         perft.Should().Be(expectedCount);
         Console.WriteLine(pos);

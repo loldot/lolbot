@@ -3,6 +3,7 @@ using Lolbot.Core;
 
 namespace Lolbot.Tests;
 
+[Category(TestSuites.Fast)]
 public class Pins
 {
     [TestCase("3k4/3r4/8/8/3R4/8/8/3K4 w - - 0 1", 5)]

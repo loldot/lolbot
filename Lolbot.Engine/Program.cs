@@ -68,13 +68,13 @@ Game SetPosition(string command)
         if (tokens[i] == "startpos" || tokens[i] == "moves") continue;
         else if (tokens[i] == "fen")
         {
-            game = Engine.FromPosition(string.Join(' ', tokens[(i + 1)..(i + 6)]));
+            Engine.FromPosition(string.Join(' ', tokens[(i + 1)..(i + 6)]));
             i += 6;
         }
         else
         {
             var (fromSq, toSq) = (tokens[i][..2], tokens[i][2..]);
-            game = Engine.Move(game, fromSq, toSq);
+            Engine.Move(game, fromSq, toSq);
         }
 
     }

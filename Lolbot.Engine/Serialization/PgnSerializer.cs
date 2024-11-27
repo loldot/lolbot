@@ -46,7 +46,7 @@ public sealed partial class PgnSerializer
     private static Game ReadMoves(GameMetadata meta, TextReader reader)
     {
         var position = meta.GetInitialPosition();
-        var game = new Game(position, []);
+        var game = new Game(position);
 
         string? line;
         while ((line = reader.ReadLine()) != null)
@@ -60,7 +60,7 @@ public sealed partial class PgnSerializer
 
                 var move = ParseMove(game, token);
 
-                game = Engine.Move(game, move);
+                Engine.Move(game, move);
             }
         }
 
@@ -77,7 +77,7 @@ public sealed partial class PgnSerializer
         var piece = (game.CurrentPlayer == Colors.White)
             ? Utils.FromName(pieceName[0])
             : Utils.FromName(char.ToLower(pieceName[0]));
-        var legalMoves = game.CurrentPosition.GenerateLegalMoves(piece);
+        var legalMoves = game.GenerateLegalMoves(piece);
 
         char? fileAmbiguity = null;
         byte? rankAmbiguity = null;

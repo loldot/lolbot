@@ -87,10 +87,10 @@ public class Tactics
         var bestmove = Engine.BestMove(game);
         bestmove.Should().Be(new Move('Q', "h4", "d8"));
 
-        game = Engine.Move(game, bestmove!.Value);
+        Engine.Move(game, bestmove!.Value);
 
         bestmove = Engine.BestMove(game);
-        game = Engine.Move(game, bestmove!.Value);
+        Engine.Move(game, bestmove!.Value);
 
         bestmove = Engine.BestMove(game);
         bestmove.Should().Be(new Move('Q', "d8", "a8"));

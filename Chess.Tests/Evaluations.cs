@@ -16,9 +16,9 @@ public class Evaluations
     {
         var game = Engine.NewGame();
 
-        game = Engine.Move(game, "E2", "E4");
-        game = Engine.Move(game, "D7", "D5");
-        game = Engine.Move(game, "E4", "D5");
+        Engine.Move(game, "E2", "E4");
+        Engine.Move(game, "D7", "D5");
+        Engine.Move(game, "E4", "D5");
 
         var pos = game.CurrentPosition;
         var eval = Search.StaticEvaluation(pos);

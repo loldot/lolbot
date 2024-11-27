@@ -2,6 +2,7 @@ using Lolbot.Core;
 
 namespace Lolbot.Tests;
 
+[Category(TestSuites.Fast)]
 public class Bishops
 {
     [TestCase("A2", (string[])[
@@ -50,8 +51,8 @@ public class Bishops
                 var bishopMoves = MovePatterns.BishopAttacks(i, ref blockers);
                 var occFill = MovePatterns.GenerateBishopAttacks(Squares.FromIndex(i), ~blockers);
 
-                bishopMoves.Should().Be(occFill, "Failed:\n\n{0}\n\n{1}\n\n{2}", 
-                    Bitboards.ToDebugString(blockers), 
+                bishopMoves.Should().Be(occFill, "Failed:\n\n{0}\n\n{1}\n\n{2}",
+                    Bitboards.ToDebugString(blockers),
                     Bitboards.ToDebugString(bishopMoves),
                     Bitboards.ToDebugString(occFill)
                 );

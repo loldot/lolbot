@@ -2,7 +2,8 @@ using Lolbot.Core;
 
 namespace Lolbot.Tests;
 
-class Kings
+[Category(TestSuites.Fast)]
+public class Kings
 {
     [Test]
     public void White_Should_Be_Allowed_Castle()
@@ -118,8 +119,8 @@ class Kings
 
         game.CurrentPosition.GenerateLegalMoves('K')
             .ToArray().Should().Contain(x => x.CastleIndex != 0);
-        game = Engine.Move(game, Move.Castle(Colors.White));
-        game = Engine.Move(game, "h7", "h6");
+        Engine.Move(game, Move.Castle(Colors.White));
+        Engine.Move(game, "h7", "h6");
 
         game.CurrentPosition.GenerateLegalMoves('R')
             .ToArray().Should().HaveCount(1);
@@ -134,9 +135,9 @@ class Kings
         1. e4 d5 2. Nf3 d4 3. Bc4 e5 4. O-O
         """;
         var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
-        game = Engine.Move(game, "c8", "e6");
-        game = Engine.Move(game, "f1", "e1");
-        game = Engine.Move(game, "h7", "h6");
+        Engine.Move(game, "c8", "e6");
+        Engine.Move(game, "f1", "e1");
+        Engine.Move(game, "h7", "h6");
 
         game.CurrentPosition.GenerateLegalMoves('R')
             .ToArray().Should().NotBeEmpty();

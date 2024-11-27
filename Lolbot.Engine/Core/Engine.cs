@@ -19,36 +19,33 @@ public static class Engine
         Console.WriteLine("info " + MovePatterns.PextTable.Length);
     }
 
-    public static Game NewGame() => new Game();
+    public static Game NewGame() => new Game(new Position());
 
     public static Game FromPosition(string fenstring)
     {
-        return new Game(MutablePosition.FromFen(fenstring), []);
+        return new Game(Position.FromFen(fenstring));
     }
 
-    public static Game Move(Game game, string from, string to)
+    public static void Move(Game game, string from, string to)
     {
-        return Move(
+        Move(
             game,
             Squares.FromCoordinates(from),
             Squares.FromCoordinates(to)
         );
     }
 
-    public static Game Move(Game game, Square from, Square to)
+    public static void Move(Game game, Square from, Square to)
     {
-        var move = game.CurrentPosition
-            .GenerateLegalMoves()
-            .ToArray()
+        var move = game.GenerateLegalMoves()
             .FirstOrDefault(x => x.FromIndex == Squares.ToIndex(from) && x.ToIndex == Squares.ToIndex(to));
-        return Move(game, move);
+        Move(game, move);
     }
 
-    public static Game Move(Game game, Move move)
+    public static void Move(Game game, Move move)
     {
         if (!game.IsLegalMove(move)) throw new ArgumentException("Invalid move");
-
-        return new Game(game.InitialPosition, [.. game.Moves, move]);
+        game.Move(in move);
     }
 
     public static int Evaluate(MutablePosition position)

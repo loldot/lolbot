@@ -2,6 +2,7 @@ using Lolbot.Core;
 
 namespace Lolbot.Tests;
 
+[Category(TestSuites.Fast)]
 public class Checks
 {
     [Test]
@@ -84,7 +85,8 @@ public class Checks
     {
         var position = MutablePosition.FromFen("4k1nr/6p1/8/2bNNp2/5Q2/1P6/5P2/R5K1 w - - 0 1");
         var game = new Game(position, []);
-        game = Engine.Move(game, "a1", "a8");
+        
+        Engine.Move(game, "a1", "a8");
         var legalMoves = game.CurrentPosition.GenerateLegalMoves().ToArray();
         legalMoves.Should().BeEmpty();
     }

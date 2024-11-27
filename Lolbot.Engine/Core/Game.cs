@@ -1,54 +1,85 @@
-using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Lolbot.Core;
 
-public sealed record Game
+public sealed class Game
 {
+    private readonly RepetitionTable repetitions = new();
+    private readonly MutablePosition position;
+    private readonly Stack<Move> moves = [];
+    public Move[] Moves => moves.Reverse().ToArray();
+    
+    public Colors CurrentPlayer => position.CurrentPlayer;
+    public int PlyCount => moves.Count;
+    public MutablePosition CurrentPosition => position;
+    public RepetitionTable RepetitionTable => repetitions;
+
+    public Game(Position initialPosition)
+    {
+        position = MutablePosition.FromReadOnly(initialPosition);
+    }
+
+    public Game(MutablePosition initialPosition)
+    {
+        position = initialPosition;
+    }
+
     public Game(MutablePosition initialPosition, Move[] moves)
     {
-        InitialPosition = initialPosition.AsReadOnly();
-        CurrentPosition = GetPosition(initialPosition, moves);
-        Moves = moves;
+        position = initialPosition;
+        foreach (var move in moves)
+        {
+            Move(move);
+        }
     }
+
 
     public Game(Position initialPosition, Move[] moves)
     {
-        InitialPosition = initialPosition;
-        CurrentPosition = GetPosition(MutablePosition.FromReadOnly(initialPosition), moves);
-        Moves = moves;
-    }
-
-    public Game() : this(new MutablePosition(), []) { }
-
-    public Game(string fen) : this(MutablePosition.FromFen(fen), [])
-    {
-
-    }
-
-    public int PlyCount => Moves.Length;
-    public Colors CurrentPlayer => CurrentPosition.CurrentPlayer;
-    public Move[] Moves { get; }
-    public Position InitialPosition { get; private set; }
-    public MutablePosition CurrentPosition { get; private set; }
-    public readonly RepetitionTable RepetitionTable = new RepetitionTable();
-
-    public MutablePosition GetPosition(MutablePosition position, Move[] moves)
-    {
-        RepetitionTable.Clear();
-        foreach (var m in moves)
+        position = MutablePosition.FromReadOnly(initialPosition);
+        foreach (var move in moves)
         {
-            position.Move(in m);
-            RepetitionTable.Update(m, position.Hash);
+            Move(move);
         }
-
-        return position;
     }
+
+    public Game() : this(new Position())
+    {
+    }
+    public Game(string fen)
+    {
+        position = MutablePosition.FromFen(fen);
+    }
+
+    public void Move(in Move m)
+    {
+        position.Move(in m);
+        repetitions.Update(m, position.Hash);
+        moves.Push(m);
+    }
+    public void UndoLastMove()
+    {
+        var m = moves.Pop();
+        repetitions.Unwind();
+        position.Undo(in m);
+    }
+
 
     public bool IsLegalMove(Move move)
     {
-        return CurrentPosition
+        return position
             .GenerateLegalMoves().ToArray()
             .Contains(move);
+    }
+
+    public Move[] GenerateLegalMoves()
+    {
+        return position.GenerateLegalMoves().ToArray();
+    }
+
+    public Move[] GenerateLegalMoves(Piece piece)
+    {
+        return position.GenerateLegalMoves(piece).ToArray();
     }
 }
 
