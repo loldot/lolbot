@@ -5,7 +5,6 @@ namespace Lolbot.Core;
 
 public sealed class MutablePosition
 {
-
     public Colors CurrentPlayer { get; private set; } = Colors.White;
     public const int MaxDepth = 256;
     public const int Pawns = 1;
@@ -141,9 +140,15 @@ public sealed class MutablePosition
         var newCastling = ApplyCastlingRights(in m);
         var newEnPassant = SetEnPassant(in m);
 
-        Hashes.Update(ref Hash, in m,
-            CastlingRights, newCastling,
-            EnPassant, newEnPassant);
+        Hash ^= Hashes.GetValue(m.FromPiece, m.FromIndex);
+        Hash ^= Hashes.GetValue(m.FromPiece, m.ToIndex);
+        Hash ^= Hashes.GetValue(m.CapturePiece, m.CaptureIndex);
+        Hash ^= Hashes.GetValue(m.PromotionPiece, m.ToIndex);
+        Hash ^= Hashes.GetValue(CastlingRights);
+        Hash ^= Hashes.GetValue(newCastling);
+        Hash ^= Hashes.GetValue(EnPassant);
+        Hash ^= Hashes.GetValue(newEnPassant);
+        Hash ^= Hashes.GetValue(Colors.White);
 
         CastlingRights = newCastling;
         EnPassant = newEnPassant;
@@ -487,6 +492,7 @@ public sealed class MutablePosition
         mutable.Checkmask = pos.Checkmask;
         mutable.Pinmasks = pos.Pinmasks;
         mutable.IsPinned = pos.IsPinned;
+        mutable.Hash = pos.Hash;
         return mutable;
     }
     public override string ToString()

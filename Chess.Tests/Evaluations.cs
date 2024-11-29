@@ -2,6 +2,7 @@ using Lolbot.Core;
 
 namespace Lolbot.Tests;
 
+[Category(TestSuites.Fast)]
 public class Evaluations
 {
     [Test]

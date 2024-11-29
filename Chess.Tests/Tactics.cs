@@ -71,7 +71,7 @@ public class Tactics
         var position = MutablePosition.FromFen("8/3k4/8/8/3PK3/8/8/8 w - - 0 1");
         var game = new Game(position, []);
 
-        var ct = new CancellationTokenSource(25_000);
+        var ct = new CancellationTokenSource(5_000);
         var bestmove = Engine.BestMove(game, ct.Token);
 
         bestmove.Should().Be(new Move('K', "e4", "d5"));

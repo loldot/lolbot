@@ -16,7 +16,7 @@ public class HashTable
     [TestCase("8/8/8/3k4/8/2nK1N2/8/8 w - - 0 1", ExpectedResult = 0x02b70cb7a5dda169ul)]
     [TestCase("8/8/8/3k4/8/2nK1N2/8/8 b - - 0 1", ExpectedResult = 0xfa612a1d0afa2460)]
     [TestCase("rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPPKPPP/RNBQ1BNR b kq - 0 3", ExpectedResult = 0x652a607ca3f242c1ul)]
-    public ulong ZobristKeys(string fen) => Position.FromFen(fen).Hash;
+    public ulong ZobristKeys(string fen) => MutablePosition.FromFen(fen).Hash;
 
     [Test]
     public void ZobristUpdates()
@@ -37,10 +37,10 @@ public class HashTable
             0x652a607ca3f242c1ul,
         ];
 
-        var position = new Position();
+        var position = new MutablePosition();
         for (int i = 0; i < moves.Length; i++)
         {
-            position = position.Move(moves[i]);
+            position.Move(in moves[i]);
             position.Hash.Should().Be(hashes[i]);
         }
     }

@@ -148,7 +148,24 @@ public static class Engine
             var posCount = PerftDiff(position.Move(moves1[i]), position2, remainingDepth - 1);
             position2.Undo(in moves1[i]);
 
-            Debug.Assert(position.Hash == position2.Hash);
+            if (position.Hash != position2.Hash)
+            {
+                Console.WriteLine("Err: pos1");
+                Console.WriteLine(position);
+                Console.WriteLine(position.EnPassant);
+                Console.WriteLine(position.CastlingRights);
+                Console.WriteLine(position.IsCheck);
+                Console.WriteLine(position.IsPinned);
+
+                Console.WriteLine();
+                Console.WriteLine("Err: pos2");
+                Console.WriteLine();
+                Console.WriteLine(position2);
+                Console.WriteLine(position2.EnPassant);
+                Console.WriteLine(position2.CastlingRights);
+                Console.WriteLine(position2.IsCheck);
+                Console.WriteLine(position2.IsPinned);
+            }
             count += posCount;
         }
         return count;
