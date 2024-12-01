@@ -7,43 +7,25 @@ public sealed class MutablePosition
 {
     public Colors CurrentPlayer { get; private set; } = Colors.White;
     public const int MaxDepth = 256;
-    public const int Pawns = 1;
-    public const int Knights = 2;
-    public const int Bishops = 3;
-    public const int Rooks = 4;
-    public const int Queens = 5;
-    public const int Kings = 6;
-    public const int WhiteIndex = 7;
-    public const int BlackIndex = 8;
+
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
     private int plyfromRoot = 0;
 
-    private readonly ulong[] bb = [
-        /*Empty*/ 0x00_00_ff_ff_ff_ff_ff_00_00,
-        /*Pawns*/ 0x000000000000ff00 | 0x00ff000000000000,
-        /*Knights*/ Bitboards.Create("B1", "G1", "B8", "G8"),
-        /*Bishops */ Bitboards.Create("C1", "F1", "C8", "F8"),
-        /*Rooks*/ Bitboards.Create("A1", "H1", "A8", "H8"),
-        /*Queens*/ Bitboards.Create("D1", "D8"),
-        /*Kings*/ Bitboards.Create("E1", "E8"),
-        /*White*/ 0x000000000000ffff,
-        /*Black*/ 0xffff000000000000
-    ];
+    public ulong WhitePawns = Bitboards.Masks.Rank_2;
+    public ulong WhiteKnights = Bitboards.Create("B1", "G1");
+    public ulong WhiteBishops = Bitboards.Create("C1", "F1");
+    public ulong WhiteRooks = Bitboards.Create("A1", "H1");
+    public ulong WhiteQueens = Bitboards.Create("D1");
+    public ulong WhiteKing = Bitboards.Create("E1");
+    public ulong White = 0x000000000000ffff;
 
-    public ulong WhitePawns => bb[Pawns] & White;
-    public ulong WhiteRooks => bb[Rooks] & White;
-    public ulong WhiteBishops => bb[Bishops] & White;
-    public ulong WhiteKnights => bb[Knights] & White;
-    public ulong WhiteQueens => bb[Queens] & White;
-    public ulong WhiteKing => bb[Kings] & White;
-
-
-    public ulong BlackPawns => bb[Pawns] & Black;
-    public ulong BlackRooks => bb[Rooks] & Black;
-    public ulong BlackBishops => bb[Bishops] & Black;
-    public ulong BlackKnights => bb[Knights] & Black;
-    public ulong BlackQueens => bb[Queens] & Black;
-    public ulong BlackKing => bb[Kings] & Black;
+    public ulong BlackPawns = Bitboards.Masks.Rank_7;
+    public ulong BlackKnights = Bitboards.Create("B8", "G8");
+    public ulong BlackBishops = Bitboards.Create("C8", "F8");
+    public ulong BlackRooks = Bitboards.Create("A8", "H8");
+    public ulong BlackQueens = Bitboards.Create("D8");
+    public ulong BlackKing = Bitboards.Create("E8");
+    public ulong Black = 0xffff000000000000;
 
     public byte EnPassant { get; private set; } = 0;
     public CastlingRights CastlingRights { get; private set; } = CastlingRights.All;
@@ -76,25 +58,52 @@ public sealed class MutablePosition
             0xfd => White,
             _ => Empty
         };
+        set
+        {
+            switch (index)
+            {
+                case 1: White = value; break;
+                case 2: Black = value; break;
+                case 0x11: WhitePawns = value; break;
+                case 0x12: WhiteKnights = value; break;
+                case 0x13: WhiteBishops = value; break;
+                case 0x14: WhiteRooks = value; break;
+                case 0x15: WhiteQueens = value; break;
+                case 0x16: WhiteKing = value; break;
+                case 0x21: BlackPawns = value; break;
+                case 0x22: BlackKnights = value; break;
+                case 0x23: BlackBishops = value; break;
+                case 0x24: BlackRooks = value; break;
+                case 0x25: BlackQueens = value; break;
+                case 0x26: BlackKing = value; break;
+                case 0xfe: Black = value; break;
+                case 0xfd: White = value; break;
+                default: throw new NotImplementedException();
+            }
+        }
     }
 
-    public ulong this[Piece piece] => this[(byte)piece];
+    public ulong this[Piece piece]
+    {
+        get => this[(byte)piece];
+        set => this[(byte)piece] = value;
+    }
     public ulong this[Colors color]
     {
         get => this[(byte)color];
+        set => this[(byte)color] = value;
     }
     public ulong this[Colors color, PieceType pieceType]
     {
-        get => bb[(byte)pieceType] & bb[6 + (int)color];
+        get => this[(byte)((byte)color << 4 | (byte)pieceType)];
+        set => this[(byte)((byte)color << 4 | (byte)pieceType)] = value;
     }
 
     public ulong this[PieceType pieceType]
     {
-        get => bb[(byte)pieceType];
+        get => this[(byte)((byte)CurrentPlayer << 4 | (byte)pieceType)];
+        set => this[(byte)((byte)CurrentPlayer << 4 | (byte)pieceType)] = value;
     }
-
-    public ulong White => bb[WhiteIndex];
-    public ulong Black => bb[BlackIndex];
 
     public ulong Occupied => White | Black;
     public ulong Empty => ~(White | Black);
@@ -103,38 +112,34 @@ public sealed class MutablePosition
 
     public void Move(ref readonly Move m)
     {
-        var (us, oponent, next) = CurrentPlayer == Colors.White
-            ? (WhiteIndex, BlackIndex, Colors.Black)
-            : (BlackIndex, WhiteIndex, Colors.White);
+        var oponent = CurrentPlayer == Colors.White
+            ? Colors.Black
+            : Colors.White;
 
         Diffs[plyfromRoot] = new DiffData(
            Hash, CastlingRights, EnPassant
         );
 
-
-        var pieceIndex = (int)m.FromPieceType;
-        bb[pieceIndex] ^= m.FromSquare | m.ToSquare;
-        bb[us] ^= m.FromSquare | m.ToSquare;
-
-        var captureIndex = (int)m.CapturePieceType;
+        this[m.FromPiece] ^= m.FromSquare | m.ToSquare;
+        this[CurrentPlayer] ^= m.FromSquare | m.ToSquare;
 
         if (m.CastleFlag != CastlingRights.None)
         {
             var rookmask = m.CaptureSquare | m.CastleSquare;
-            bb[captureIndex] ^= rookmask;
-            bb[us] ^= rookmask;
+            this[CurrentPlayer, m.CapturePieceType] ^= rookmask;
+            this[CurrentPlayer] ^= rookmask;
         }
         else if (m.CapturePieceType != PieceType.None)
         {
-            bb[captureIndex] ^= m.CaptureSquare;
-            bb[oponent] ^= m.CaptureSquare;
+            this[m.CapturePiece] ^= m.CaptureSquare;
+            this[oponent] ^= m.CaptureSquare;
         }
 
         if (m.PromotionPieceType != PieceType.None)
         {
-            var promoteIndex = (int)m.PromotionPieceType;
-            bb[promoteIndex] ^= m.ToSquare;
-            bb[Pawns] ^= m.ToSquare;
+            var promoteIndex = m.PromotionPiece;
+            this[promoteIndex] ^= m.ToSquare;
+            this[m.FromPiece] ^= m.ToSquare;
         }
 
         var newCastling = ApplyCastlingRights(in m);
@@ -153,9 +158,9 @@ public sealed class MutablePosition
         CastlingRights = newCastling;
         EnPassant = newEnPassant;
 
-        (Checkmask, CheckerCount) = CreateCheckMask(next);
-        (IsPinned, Pinmasks) = CreatePinmasks(next);
-        CurrentPlayer = next;
+        (Checkmask, CheckerCount) = CreateCheckMask(oponent);
+        (IsPinned, Pinmasks) = CreatePinmasks(oponent);
+        CurrentPlayer = oponent;
 
         plyfromRoot++;
     }
@@ -164,41 +169,40 @@ public sealed class MutablePosition
     public void Undo(ref readonly Move m)
     {
         plyfromRoot--;
-        var (us, oponent, next) = CurrentPlayer == Colors.White
-                    ? (BlackIndex, WhiteIndex, Colors.Black)
-                    : (WhiteIndex, BlackIndex, Colors.White);
 
-        var pieceIndex = (int)m.FromPieceType;
-        bb[pieceIndex] ^= m.FromSquare | m.ToSquare;
-        bb[us] ^= m.FromSquare | m.ToSquare;
+        var (us, oponent) = CurrentPlayer == Colors.White
+                    ? (Colors.Black, Colors.White)
+                    : (Colors.White, Colors.Black);
 
-        var captureIndex = (int)m.CapturePieceType;
+
+        this[m.FromPiece] ^= m.FromSquare | m.ToSquare;
+        this[us] ^= m.FromSquare | m.ToSquare;
+
         if (m.CastleFlag != CastlingRights.None)
         {
             var rookmask = m.CaptureSquare | m.CastleSquare;
-            bb[captureIndex] ^= rookmask;
-            bb[us] ^= rookmask;
+            this[us, m.CapturePieceType] ^= rookmask;
+            this[us] ^= rookmask;
         }
         else if (m.CapturePieceType != PieceType.None)
         {
-            bb[captureIndex] ^= m.CaptureSquare;
-            bb[oponent] ^= m.CaptureSquare;
+            this[m.CapturePiece] ^= m.CaptureSquare;
+            this[oponent] ^= m.CaptureSquare;
         }
 
         if (m.PromotionPieceType != PieceType.None)
         {
-            var promoteIndex = (int)m.PromotionPieceType;
-            bb[promoteIndex] ^= m.ToSquare;
-            bb[Pawns] ^= m.ToSquare;
+            this[m.PromotionPiece] ^= m.ToSquare;
+            this[m.FromPiece] ^= m.ToSquare;
         }
 
         CastlingRights = Diffs[plyfromRoot].Castling;
         EnPassant = Diffs[plyfromRoot].EnPassant;
         Hash = Diffs[plyfromRoot].Hash;
 
-        (Checkmask, CheckerCount) = CreateCheckMask(next);
-        (IsPinned, Pinmasks) = CreatePinmasks(next);
-        CurrentPlayer = next;
+        (Checkmask, CheckerCount) = CreateCheckMask(us);
+        (IsPinned, Pinmasks) = CreatePinmasks(us);
+        CurrentPlayer = us;
     }
 
     public void SkipTurn()
@@ -233,20 +237,20 @@ public sealed class MutablePosition
 
     public byte SetEnPassant(ref readonly Move m)
     {
+        if (m.FromPieceType != PieceType.Pawn) return 0;
+
         var from = 1ul << m.FromIndex;
         var to = 1ul << m.ToIndex;
-
-        if (m.FromPieceType != PieceType.Pawn) return 0;
 
         // Pawn moves leading to en passant has the en passant square
         // 1 square in front of the start and 1 square behind the target
         var (rank2, rank4, ep, op) = m.Color == (byte)Colors.White
-            ? (Bitboards.Masks.Rank_2, Bitboards.Masks.Rank_4, (from << 8) & (to >> 8), Black)
-            : (Bitboards.Masks.Rank_7, Bitboards.Masks.Rank_5, (from >> 8) & (to << 8), White);
+            ? (Bitboards.Masks.Rank_2, Bitboards.Masks.Rank_4, (from << 8) & (to >> 8), BlackPawns)
+            : (Bitboards.Masks.Rank_7, Bitboards.Masks.Rank_5, (from >> 8) & (to << 8), WhitePawns);
 
         if ((from & rank2) == 0 || (to & rank4) == 0) return 0;
 
-        var adjacent = (to << 1 | to >> 1) & bb[Pawns] & op;
+        var adjacent = (to << 1 | to >> 1) & op;
         return adjacent == 0 ? (byte)0 : Squares.ToIndex(ep);
     }
 
@@ -475,24 +479,33 @@ public sealed class MutablePosition
 
     public static MutablePosition FromReadOnly(Position pos)
     {
-        var mutable = new MutablePosition();
+        var mutable = new MutablePosition
+        {
+            WhitePawns = pos.WhitePawns,
+            WhiteKnights = pos.WhiteKnights,
+            WhiteBishops = pos.WhiteBishops,
+            WhiteRooks = pos.WhiteRooks,
+            WhiteQueens = pos.WhiteQueens,
+            WhiteKing = pos.WhiteKing,
+            White = pos.White,
 
-        mutable.bb[Pawns] = pos.WhitePawns | pos.BlackPawns;
-        mutable.bb[Knights] = pos.WhiteKnights | pos.BlackKnights;
-        mutable.bb[Bishops] = pos.WhiteBishops | pos.BlackBishops;
-        mutable.bb[Rooks] = pos.WhiteRooks | pos.BlackRooks;
-        mutable.bb[Queens] = pos.WhiteQueens | pos.BlackQueens;
-        mutable.bb[Kings] = pos.WhiteKing | pos.BlackKing;
-        mutable.bb[WhiteIndex] = pos.White;
-        mutable.bb[BlackIndex] = pos.Black;
-        mutable.CastlingRights = pos.CastlingRights;
-        mutable.EnPassant = pos.EnPassant;
-        mutable.CurrentPlayer = pos.CurrentPlayer;
-        mutable.CheckerCount = pos.CheckerCount;
-        mutable.Checkmask = pos.Checkmask;
-        mutable.Pinmasks = pos.Pinmasks;
-        mutable.IsPinned = pos.IsPinned;
-        mutable.Hash = pos.Hash;
+            BlackPawns = pos.BlackPawns,
+            BlackKnights = pos.BlackKnights,
+            BlackBishops = pos.BlackBishops,
+            BlackRooks = pos.BlackRooks,
+            BlackQueens = pos.BlackQueens,
+            BlackKing = pos.BlackKing,
+            Black = pos.Black,
+
+            CastlingRights = pos.CastlingRights,
+            EnPassant = pos.EnPassant,
+            CurrentPlayer = pos.CurrentPlayer,
+            CheckerCount = pos.CheckerCount,
+            Checkmask = pos.Checkmask,
+            Pinmasks = pos.Pinmasks,
+            IsPinned = pos.IsPinned,
+            Hash = pos.Hash
+        };
         return mutable;
     }
     public override string ToString()

@@ -92,7 +92,6 @@ public class Perft
         var pos = MutablePosition.FromFen(fen);
         var perft = Engine.Perft2(pos, depth);
         perft.Should().Be(expectedCount);
-        Console.WriteLine(pos);
     }
 
     [TestCase(2, 400)]
