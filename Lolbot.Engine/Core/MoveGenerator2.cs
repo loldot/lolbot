@@ -41,7 +41,7 @@ public class MoveGenerator2
         var king = position[piece];
         var targets = position[~position.CurrentPlayer];
 
-        ulong enemyAttacks = position.CreateAttackMask(position.CurrentPlayer);
+        ulong enemyAttacks = position.AttackMask;
 
         var fromIndex = Squares.ToIndex(king);
         var quiets = MovePatterns.Kings[fromIndex] & ~(position.Occupied | enemyAttacks);
@@ -77,7 +77,7 @@ public class MoveGenerator2
         var king = position[piece];
         var targets = position[~position.CurrentPlayer];
 
-        ulong enemyAttacks = position.CreateAttackMask(position.CurrentPlayer);
+        ulong enemyAttacks = position.AttackMask;
 
         var fromIndex = Squares.ToIndex(king);
 

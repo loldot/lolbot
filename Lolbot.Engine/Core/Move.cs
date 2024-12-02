@@ -2,6 +2,10 @@ namespace Lolbot.Core;
 
 public readonly struct Move : IEquatable<Move>
 {
+    // TODO: Fix color enum
+    public const int C_Black = 0;
+    public const int C_White = 1;
+
     public const int FromSqMask = 0x3f;
 
     public const int ToSqOffset = 6;
@@ -56,11 +60,11 @@ public readonly struct Move : IEquatable<Move>
 
             if ((value & CastleMask) == 0) // Normal capture
             {
-                c = Color == 1 ? Colors.Black : Colors.White;
+                c = Color == C_White ? Colors.Black : Colors.White;
             }
             else // Castle hack
             {
-                c = Color == 1 ? Colors.White : Colors.Black;
+                c = Color == C_White ? Colors.White : Colors.Black;
             }
 
             return Utils.GetPiece(c, CapturePieceType);

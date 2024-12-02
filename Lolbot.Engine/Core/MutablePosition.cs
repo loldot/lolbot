@@ -6,7 +6,7 @@ namespace Lolbot.Core;
 public sealed class MutablePosition
 {
     public Colors CurrentPlayer { get; private set; } = Colors.White;
-    public const int MaxDepth = 256;
+    public const int MaxDepth = 1024;
 
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
     private int plyfromRoot = 0;
@@ -35,6 +35,9 @@ public sealed class MutablePosition
     public bool IsPinned { get; private set; } = false;
 
     public byte CheckerCount { get; private set; } = 0;
+
+    public ulong AttackMask = Bitboards.Masks.Rank_3;
+    public ulong BlackAttacks = Bitboards.Masks.Rank_6;
 
     public ulong this[byte index]
     {
@@ -158,10 +161,11 @@ public sealed class MutablePosition
         CastlingRights = newCastling;
         EnPassant = newEnPassant;
 
+        AttackMask = CreateEnemyAttackMask(oponent);
         (Checkmask, CheckerCount) = CreateCheckMask(oponent);
         (IsPinned, Pinmasks) = CreatePinmasks(oponent);
-        CurrentPlayer = oponent;
 
+        CurrentPlayer = oponent;
         plyfromRoot++;
     }
 
@@ -200,8 +204,10 @@ public sealed class MutablePosition
         EnPassant = Diffs[plyfromRoot].EnPassant;
         Hash = Diffs[plyfromRoot].Hash;
 
+        AttackMask = CreateEnemyAttackMask(us);
         (Checkmask, CheckerCount) = CreateCheckMask(us);
         (IsPinned, Pinmasks) = CreatePinmasks(us);
+
         CurrentPlayer = us;
     }
 
@@ -311,7 +317,10 @@ public sealed class MutablePosition
         byte countCheckers = 0;
 
         int opponentColor = color == Colors.White ? 0x20 : 0x10;
-        byte king = Squares.ToIndex(color == Colors.White ? WhiteKing : BlackKing);
+        ulong bbKing = color == Colors.White ? WhiteKing : BlackKing;
+        if ((AttackMask & bbKing) == 0) return (ulong.MaxValue, 0);
+
+        byte king = Squares.ToIndex(bbKing);
 
         // king can never check
         for (int i = 1; i < 6; i++)
@@ -353,7 +362,7 @@ public sealed class MutablePosition
         return ulong.MaxValue;
     }
 
-    public ulong CreateAttackMask(Colors color)
+    private ulong CreateEnemyAttackMask(Colors color)
     {
         var (king, enemyRooks, enemyBishops, enemyKnights, enemyPawns) = (color == Colors.White)
             ? (WhiteKing, BlackRooks | BlackQueens, BlackBishops | BlackQueens, BlackKnights, Bitboards.FlipAlongVertical(BlackPawns))
@@ -506,6 +515,7 @@ public sealed class MutablePosition
             IsPinned = pos.IsPinned,
             Hash = pos.Hash
         };
+        mutable.AttackMask = mutable.CreateEnemyAttackMask(mutable.CurrentPlayer);
         return mutable;
     }
     public override string ToString()
