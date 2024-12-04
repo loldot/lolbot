@@ -32,10 +32,11 @@ Push-Location "C:\Program Files (x86)\Cute Chess"
     -engine cmd=$previousVersion name=Previous `
     -openings file=C:\dev\lolbot-versions\silver-openings.pgn plies=20 `
     -each proto=uci tc=40/5 `
-    -rounds 50 `
+    -rounds 1000 `
     -games 2 `
     -repeat 2 `
     -recover `
+    -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 `
     -debug
 
 Pop-Location
