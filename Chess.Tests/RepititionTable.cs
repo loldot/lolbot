@@ -2,6 +2,7 @@ using Lolbot.Core;
 
 namespace Lolbot.Tests;
 
+[Category(TestSuites.Fast)]
 public class RepetitionTables
 {
     [Test]
@@ -12,7 +13,7 @@ public class RepetitionTables
         table.Update(new Move('n', "e1", "e2"), 2);
         table.Update(new Move('N', "d2", "e1"), 1);
 
-        table.IsDrawByRepetition(1).Should().BeTrue();
+        table.IsDraw(1).Should().BeTrue();
     }
 
     [Test]
@@ -24,7 +25,7 @@ public class RepetitionTables
         table.Update(new Move('N', "d2", "e1"), 1);
         table.Unwind();
 
-        table.IsDrawByRepetition(1).Should().BeFalse();
+        table.IsDraw(1).Should().BeFalse();
     }
 
     [Test]
@@ -34,6 +35,6 @@ public class RepetitionTables
         var (game, _) = await pgn.Read(File.OpenRead("./TestData/Berlin-Draw.pgn"));
 
         game.CurrentPosition.Move(new Move(Piece.BlackQueen, Squares.E6, Squares.D6));
-        game.RepetitionTable.IsDrawByRepetition(game.CurrentPosition.Hash).Should().BeTrue();
+        game.RepetitionTable.IsDraw(game.CurrentPosition.Hash).Should().BeTrue();
     }
 }

@@ -155,7 +155,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         if (alpha > mateValue) alpha = -mateValue;
         if (beta > mateValue - 1) beta = mateValue - 1;
-        if (history.IsRepeated(position.Hash)) return 0;
+        if (history.IsDraw(position.Hash)) return 0;
 
         Span<Move> moves = stackalloc Move[218];
         var count = MoveGenerator2.Legal(position, ref moves);

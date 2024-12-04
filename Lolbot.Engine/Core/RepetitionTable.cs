@@ -31,44 +31,19 @@ public class RepetitionTable
 
     private static bool IsIrreversible(ref readonly Move m)
     {
-        return ((byte)m.FromPiece & 0xf) == (byte)PieceType.Pawn || m.CapturePiece != Piece.None;
+        return m.FromPieceType == PieceType.Pawn || m.CapturePiece != Piece.None;
     }
 
     public void Unwind() => moveCount--;
 
-    public bool IsRepeated(ulong key)
+    public bool IsDraw(ulong key)
     {
+        // if (moveCount - irreversible[moveCount - 1] >= 100) return true;
+
         for (int i = moveCount - 2; i > 0 && i >= irreversible[moveCount - 1]; i--)
         {
             if (history[i] == key) return true;
         }
-        return false;
-    }
-
-    public bool IsDrawByRepetition(ulong key)
-    {
-        ulong posCount = 0;
-        if (moveCount <= 2) return false;
-
-        // Console.WriteLine(key);
-        // Console.WriteLine($"MoveCount: {moveCount}");
-        // Console.WriteLine($"Irrev: [{string.Join(',', irreversible[..moveCount])}]");
-
-        // Console.WriteLine($"History:");
-        if (moveCount - irreversible[moveCount - 1] >= 100) return true;
-        for (int i = moveCount - 1; i >= irreversible[moveCount - 1]; i--)
-        {
-            // Console.Write(history[i]);
-            if (history[i] == key)
-            {
-                posCount++;
-                // Console.Write("*");               
-            }
-            if (posCount >= 2) return true;
-
-            // Console.WriteLine();
-        }
-
         return false;
     }
 
