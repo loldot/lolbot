@@ -30,8 +30,8 @@ Push-Location "C:\Program Files (x86)\Cute Chess"
 ./cutechess-cli `
     -engine cmd=$buildVersion name=Experimental `
     -engine cmd=$previousVersion name=Previous `
-    -openings file=C:\dev\lolbot-versions\silver-openings.pgn plies=20 `
-    -each proto=uci tc=40/5 `
+    -openings file=C:\dev\lolbot-versions\8moves_v3.pgn plies=16 `
+    -each proto=uci tc=Inf/10+0.1 `
     -rounds 1000 `
     -games 2 `
     -repeat 2 `

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using static System.Math;
 
 namespace Lolbot.Core;
@@ -6,7 +8,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 {
     public const int Inf = short.MaxValue;
     public const int Mate = short.MaxValue / 2;
-    const int Max_Depth = 64;
+
+    const int Max_History = 38_400;
+    const int Max_Depth = 128;
 
     private readonly MutablePosition rootPosition = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
@@ -39,7 +43,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
             while (true)
             {
-                var (alpha, beta) = (depth > 1)
+                var (alpha, beta) = (depth > 1 && delta < 512)
                     ? (score - delta, score + delta)
                     : (-Inf, Inf);
 
@@ -88,7 +92,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                     beta = Min(beta, ttEntry.Evaluation);
                 }
 
-                if (alpha >= beta) 
+                if (alpha >= beta)
                 {
                     return (ttEntry.Move, ttEntry.Evaluation);
                 }
@@ -96,7 +100,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             ttMove = ttEntry.Move;
         }
 
-        
+
         Span<Move> moves = stackalloc Move[256];
         var count = MoveGenerator2.Legal(rootPosition, ref moves);
         moves = moves[..count];
@@ -119,7 +123,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             }
             else
             {
-                value = -EvaluateMove<NonPvNode>(rootPosition, depth - 1, 1, -alpha - 1, -alpha);
+                int reduction = depth > 3 && i <= 8 ? 1 : 2;
+                value = -EvaluateMove<NonPvNode>(rootPosition, depth - reduction, 1, -alpha - 1, -alpha);
                 if (value > alpha)
                     value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha); // re-search
             }
@@ -148,7 +153,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     public int EvaluateMove<TNode>(MutablePosition position, int remainingDepth, int ply, int alpha, int beta)
         where TNode : struct, NodeType
     {
-        if (remainingDepth == 0) return QuiesenceSearch(position, alpha, beta);
+        if (remainingDepth <= 0) return QuiesenceSearch(position, alpha, beta);
 
         var mateValue = Mate - ply;
         var originalAlpha = alpha;
@@ -188,11 +193,22 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         }
         // else if (remainingDepth > 3) remainingDepth--;
 
+        // if (!TNode.IsPv && remainingDepth <= 5)
+        // {
+        //     var eval = StaticEvaluation(position);
+        //     var margin = 117 * remainingDepth;
+
+        //     if (eval - margin >= beta) return eval;
+        // }
+
         var value = -Inf;
 
         int i = 0;
         for (; i < count; i++)
         {
+            Debug.Assert(ply >= 0, $"Unexpected ply: {ply} {remainingDepth}/{depth}");
+            Debug.Assert(ply < Killers.Length, $"Unexpected ply: {ply} {remainingDepth}/{depth}");
+
             var move = SelectMove(ref moves, ttMove, in i, ply);
 
             position.Move(in move);
@@ -220,15 +236,18 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                 {
                     if (moves[i].CapturePiece == Piece.None)
                     {
-                        historyHeuristic[moves[i].FromIndex * 64 + moves[i].ToIndex] = remainingDepth * remainingDepth;
+                        Killers[ply] = move;
+
+                        var historyBonus = 300 * remainingDepth - 250;
+                        UpdateHistory(move, historyBonus);
+
                         for (int q = 0; q < i; q++)
                         {
                             if (moves[q].CapturePiece == Piece.None)
                             {
-                                historyHeuristic[moves[q].FromIndex * 64 + moves[q].ToIndex] -= remainingDepth * remainingDepth;
+                                UpdateHistory(moves[q], -historyBonus);
                             }
                         }
-                        Killers[ply] = move;
                     }
                     break;
                 }
@@ -262,11 +281,11 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         for (; i < count; i++)
         {
             var move = SelectMove(ref moves, Move.Null, i, 0);
-       
+
             position.Move(in move);
             var eval = -QuiesenceSearch(position, -beta, -alpha);
             position.Undo(in move);
-            
+
             if (eval >= beta) return beta;
 
             alpha = Max(eval, alpha);
@@ -382,11 +401,11 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         score -= 1_000_000 * Heuristics.GetPieceValue(x.PromotionPiece);
         score -= 100_000 * Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
-        score -= historyHeuristic[64 * x.FromIndex + x.ToIndex];
+        score -= historyHeuristic[x.value & 0xfff];
 
         score += 1_000_000 * Heuristics.GetPieceValue(y.PromotionPiece);
         score += 100_000 * Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
-        score += historyHeuristic[64 * y.FromIndex + y.ToIndex];
+        score += historyHeuristic[y.value & 0xfff];
 
         return score;
     }
@@ -398,9 +417,17 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         score += 1_000_000 * Heuristics.GetPieceValue(m.PromotionPiece);
         score += 100_000 * Heuristics.MVV_LVA(m.CapturePiece, m.FromPiece);
         score += Killers[ply] == m ? 99_999 : 0;
-        score += historyHeuristic[64 * m.FromIndex + m.ToIndex];
+        score += historyHeuristic[m.value & 0xfffu];
 
         return score;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void UpdateHistory(Move m, int bonus)
+    {
+        var index = m.value & 0xfff;
+        bonus = Clamp(bonus, -Max_History, Max_History);
+        historyHeuristic[index] += bonus - historyHeuristic[index] * Abs(bonus) / Max_History;
     }
 }
 

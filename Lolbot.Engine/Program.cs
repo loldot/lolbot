@@ -101,7 +101,7 @@ void Go(string command)
         ? (wtime, winc)
         : (btime, binc);
 
-    var timer = new CancellationTokenSource(timeleft / 20 + increment / 2);
+    var timer = new CancellationTokenSource(timeleft / 32 + increment / 2);
     var move = Engine.BestMove(game, timer.Token);
 
     if (move is null)
