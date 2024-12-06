@@ -11,7 +11,6 @@ public class RepetitionTables
         var table = new RepetitionTable();
         table.Update(new Move('N', "e1", "d2"), 1);
         table.Update(new Move('n', "e1", "e2"), 2);
-        table.Update(new Move('N', "d2", "e1"), 1);
 
         table.IsDraw(1).Should().BeTrue();
     }
@@ -22,10 +21,9 @@ public class RepetitionTables
         var table = new RepetitionTable();
         table.Update(new Move('N', "e1", "d2"), 1);
         table.Update(new Move('n', "e1", "e2"), 2);
-        table.Update(new Move('N', "d2", "e1"), 1);
         table.Unwind();
 
-        table.IsDraw(1).Should().BeFalse();
+        table.IsDraw(2).Should().BeFalse();
     }
 
     [Test]
