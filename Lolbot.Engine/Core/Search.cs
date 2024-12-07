@@ -231,7 +231,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             if (value > alpha)
             {
                 alpha = value;
-                ttMove = moves[i];
+                if (alpha > originalAlpha) ttMove = moves[i];
                 if (alpha >= beta)
                 {
                     if (moves[i].CapturePiece == Piece.None)
