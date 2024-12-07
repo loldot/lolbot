@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static System.Math;
 
@@ -16,9 +15,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     private readonly RepetitionTable history = game.RepetitionTable;
 
     private Move[] Killers = new Move[Max_Depth + 32];
-    private int depth = 0;
     private int nodes = 0;
     private CancellationToken ct;
+
+    public Action<SearchProgress>? OnSearchProgress { get; set; }
 
     public Move? BestMove()
     {
@@ -31,39 +31,43 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     {
         this.ct = ct;
         var bestMove = Move.Null;
-        var score = -Inf;
 
-        depth = 1;
+        var depth = 1;
         while (bestMove.IsNull || depth <= Max_Depth && !ct.IsCancellationRequested)
         {
-            nodes = 0;
-            var start = DateTime.Now;
-
-            var delta = 64;
-
-            while (true)
-            {
-                var (alpha, beta) = (depth > 1 && delta < 512)
-                    ? (score - delta, score + delta)
-                    : (-Inf, Inf);
-
-                (bestMove, score) = SearchRoot(depth, bestMove, alpha, beta);
-                delta <<= 1;
-
-                if (score <= alpha) alpha = score - delta;
-                else if (score >= beta) beta = score + delta;
-                else break;
-
-                Console.WriteLine($"DEBUG research cp {score} depth {depth}"
-                    + $" nodes {nodes} alpha {alpha} beta {beta} delta {delta}");
-            }
-
-            var s = (DateTime.Now - start).TotalSeconds;
-            var nps = (int)(nodes / s);
-            Console.WriteLine($"info score cp {score} depth {depth} bm {bestMove} nodes {nodes} nps {nps}");
-
+            bestMove = BestMove(bestMove, depth);
             depth++;
         }
+
+        return bestMove;
+    }
+
+    public Move BestMove(Move bestMove, int depth)
+    {
+        var score = -Inf;
+        var delta = 64;
+
+        var start = DateTime.Now;
+        this.nodes = 0;
+
+        var (alpha, beta) = (-Inf, Inf);
+
+        while (true)
+        {
+            (bestMove, score) = SearchRoot(depth, bestMove, alpha, beta);
+
+            if (score <= alpha) alpha = score - delta;
+            else if (score >= beta) beta = score + delta;
+            else break;
+
+            delta <<= 1;
+
+            Console.WriteLine($"DEBUG research cp {score} depth {depth}"
+                + $" nodes {nodes} alpha {alpha} beta {beta} delta {delta}");
+        }
+
+        var s = (DateTime.Now - start).TotalSeconds;
+        OnSearchProgress?.Invoke(new SearchProgress(depth, bestMove, score, nodes, s));
 
         return bestMove;
     }
@@ -206,21 +210,18 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         int i = 0;
         for (; i < count; i++)
         {
-            Debug.Assert(ply >= 0, $"Unexpected ply: {ply} {remainingDepth}/{depth}");
-            Debug.Assert(ply < Killers.Length, $"Unexpected ply: {ply} {remainingDepth}/{depth}");
-
             var move = SelectMove(ref moves, ttMove, in i, ply);
 
             position.Move(in move);
             history.Update(move, position.Hash);
-            if (TNode.IsPv)
+            if (i == 0)
             {
                 value = -EvaluateMove<TNode>(position, remainingDepth - 1, ply + 1, -beta, -alpha);
             }
             else
             {
                 value = -EvaluateMove<NonPvNode>(position, remainingDepth - 1, ply + 1, -alpha - 1, -alpha);
-                if (value > alpha && TNode.IsPv)
+                if (value > alpha && value < beta)
                     value = -EvaluateMove<PvNode>(position, remainingDepth - 1, ply + 1, -beta, -alpha); // re-search
             }
             history.Unwind();
@@ -295,7 +296,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return alpha;
     }
 
-    public static int StaticEvaluation(MutablePosition position)
+    public static int StaticEvaluation(MutablePosition position, bool debug = false)
     {
         var whitePawns = Bitboards.CountOccupied(position.WhitePawns);
         var whiteKnigts = Bitboards.CountOccupied(position.WhiteKnights);
@@ -324,10 +325,15 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var phase = (Heuristics.StartMaterialValue - whitePieceMaterial - blackPieceMaterial)
             / Heuristics.StartMaterialValue;
 
+        if (debug) Console.WriteLine("Phase {0}", phase);
+
         int eval = 0, middle = 0, end = 0;
 
         eval += whitePieceMaterial + (whitePawns * Heuristics.PawnValue);
+        if (debug) Console.WriteLine("White material: {0}", whitePieceMaterial + (whitePawns * Heuristics.PawnValue));
+
         eval -= blackPieceMaterial + (blackPawns * Heuristics.PawnValue);
+        if (debug) Console.WriteLine("White material: {0}", blackPieceMaterial + (blackPawns * Heuristics.PawnValue));
 
         for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
         {
@@ -429,6 +435,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         bonus = Clamp(bonus, -Max_History, Max_History);
         historyHeuristic[index] += bonus - historyHeuristic[index] * Abs(bonus) / Max_History;
     }
+}
+
+public record SearchProgress(int Depth, Move BestMove, int Eval, int Nodes, double Time)
+{
 }
 
 public interface NodeType

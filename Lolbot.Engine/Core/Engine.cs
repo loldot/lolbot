@@ -177,7 +177,10 @@ public static class Engine
         for (int i = 0; i < historyHeuristic.Length; i++)
             historyHeuristic[i] /= 8;
 
-        var search = new Search(game, tt, historyHeuristic);
+        var search = new Search(game, tt, historyHeuristic)
+        {
+            OnSearchProgress = Uci.PrintProgress
+        };
         return search.BestMove(ct);
     }
 
