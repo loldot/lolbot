@@ -75,13 +75,13 @@ public static class Bitboards
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong Pext(ref ulong bitboard, ref ulong mask)
+    internal static ulong Pext(ref ulong bitboard, ref ulong mask)
     {
         return Bmi2.X64.ParallelBitExtract(bitboard, mask);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong Pepd(ulong bitboard, ulong mask)
+    internal static ulong Pepd(ulong bitboard, ulong mask)
     {
         return Bmi2.X64.ParallelBitDeposit(bitboard, mask);
     }
@@ -102,7 +102,7 @@ public static class Bitboards
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte PopLsb(ref ulong board)
+    internal static byte PopLsb(ref ulong board)
     {
         byte lsb = (byte)Bmi1.X64.TrailingZeroCount(board);
         board = Bmi1.X64.ResetLowestSetBit(board);
@@ -110,9 +110,9 @@ public static class Bitboards
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Msb(ulong board) => (byte)BitOperations.LeadingZeroCount(board);
+    internal static byte Msb(ulong board) => (byte)BitOperations.LeadingZeroCount(board);
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte Lsb(ulong board) => (byte)BitOperations.TrailingZeroCount(board);
+    internal static byte Lsb(ulong board) => (byte)BitOperations.TrailingZeroCount(board);
 
     public static ulong Create(params string[] squares)
     {

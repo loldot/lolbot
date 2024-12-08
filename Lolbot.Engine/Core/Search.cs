@@ -44,7 +44,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
     public Move BestMove(Move bestMove, int depth)
     {
-        var score = -Inf;
         var delta = 64;
 
         var start = DateTime.Now;
@@ -52,6 +51,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         var (alpha, beta) = (-Inf, Inf);
 
+        int score;
         while (true)
         {
             (bestMove, score) = SearchRoot(depth, bestMove, alpha, beta);
@@ -157,6 +157,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     public int EvaluateMove<TNode>(MutablePosition position, int remainingDepth, int ply, int alpha, int beta)
         where TNode : struct, NodeType
     {
+        if (position.IsCheck) remainingDepth++;
         if (remainingDepth <= 0) return QuiesenceSearch(position, alpha, beta);
 
         var mateValue = Mate - ply;
@@ -166,12 +167,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (beta > mateValue - 1) beta = mateValue - 1;
         if (history.IsDraw(position.Hash)) return 0;
 
-        Span<Move> moves = stackalloc Move[218];
-        var count = MoveGenerator2.Legal(position, ref moves);
-        moves = moves[..count];
-
         // Checkmate or stalemate
-        if (count == 0) return position.IsCheck ? -mateValue : 0;
 
         var ttMove = Move.Null;
         if (tt.TryGet(position.Hash, out var ttEntry))
@@ -208,12 +204,17 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var value = -Inf;
 
         int i = 0;
-        for (; i < count; i++)
-        {
-            var move = SelectMove(ref moves, ttMove, in i, ply);
+        Span<Move> moves = stackalloc Move[256];
+        var movepicker = new MovePicker(ref Killers, ref historyHeuristic, ref moves, position, ttMove, ply);
+        var move = movepicker.SelectMove(i);
 
+        if (move.IsNull) return position.IsCheck ? -mateValue : 0;
+
+        while (!move.IsNull)
+        {
             position.Move(in move);
             history.Update(move, position.Hash);
+
             if (i == 0)
             {
                 value = -EvaluateMove<TNode>(position, remainingDepth - 1, ply + 1, -beta, -alpha);
@@ -224,6 +225,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                 if (value > alpha && value < beta)
                     value = -EvaluateMove<PvNode>(position, remainingDepth - 1, ply + 1, -beta, -alpha); // re-search
             }
+
             history.Unwind();
             position.Undo(in move);
 
@@ -232,10 +234,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             if (value > alpha)
             {
                 alpha = value;
-                if (alpha > originalAlpha) ttMove = moves[i];
+                if (alpha > originalAlpha) ttMove = move;
                 if (alpha >= beta)
                 {
-                    if (moves[i].CapturePiece == Piece.None)
+                    if (move.CapturePiece == Piece.None)
                     {
                         Killers[ply] = move;
 
@@ -253,6 +255,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                     break;
                 }
             }
+
+            move = movepicker.SelectMove(++i);
         }
         nodes += i;
 
