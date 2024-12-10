@@ -47,6 +47,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var delta = 64;
 
         var start = DateTime.Now;
+
         this.nodes = 0;
 
         var (alpha, beta) = (-Inf, Inf);
@@ -135,12 +136,11 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             rootPosition.Undo(in move);
             history.Unwind();
 
-            if (value > alpha)
+            if (value > alpha && value < Inf)
             {
                 alpha = value;
                 bestMove = move;
             }
-            if (ct.IsCancellationRequested) break;
         }
         nodes += i;
 
@@ -148,17 +148,18 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (alpha <= originalAlpha) flag = TranspositionTable.UpperBound;
         else if (alpha >= beta) flag = TranspositionTable.LowerBound;
 
-        if (alpha != 0)
+        if (alpha != 0 && alpha > -Inf && alpha < Inf)
             tt.Add(rootPosition.Hash, depth, alpha, flag, bestMove);
 
         return (bestMove, alpha);
     }
 
-    public int EvaluateMove<TNode>(MutablePosition position, int remainingDepth, int ply, int alpha, int beta)
+    public int EvaluateMove<TNode>(MutablePosition position, int depth, int ply, int alpha, int beta, bool isNullAllowed = true)
         where TNode : struct, NodeType
     {
-        if (position.IsCheck) remainingDepth++;
-        if (remainingDepth <= 0) return QuiesenceSearch(position, alpha, beta);
+        if (ct.IsCancellationRequested) return Inf;
+        if (position.IsCheck) depth++;
+        if (depth <= 0) return QuiesenceSearch(position, alpha, beta);
 
         var mateValue = Mate - ply;
         var originalAlpha = alpha;
@@ -172,7 +173,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var ttMove = Move.Null;
         if (tt.TryGet(position.Hash, out var ttEntry))
         {
-            if (ttEntry.Depth >= remainingDepth)
+            if (ttEntry.Depth >= depth)
             {
                 if (ttEntry.Type == TranspositionTable.Exact)
                 {
@@ -201,6 +202,21 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         //     if (eval - margin >= beta) return eval;
         // }
 
+        // if (!TNode.IsPv && !position.IsCheck)
+        // {
+        //     var eval = StaticEvaluation(position);
+
+        //     if (isNullAllowed && eval >= beta && !position.IsEndgame)
+        //     {
+        //         position.SkipTurn();
+        //         var r = (depth * 100 + beta - eval) / 186;
+        //         eval = -EvaluateMove<NonPvNode>(position, r - 1, ply + 1, -alpha - 1, -alpha, isNullAllowed: false);
+        //         position.SkipTurn();
+
+        //         if (eval >= beta) return beta;
+        //     }
+        // }
+
         var value = -Inf;
 
         int i = 0;
@@ -217,13 +233,13 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
             if (i == 0)
             {
-                value = -EvaluateMove<TNode>(position, remainingDepth - 1, ply + 1, -beta, -alpha);
+                value = -EvaluateMove<TNode>(position, depth - 1, ply + 1, -beta, -alpha);
             }
             else
             {
-                value = -EvaluateMove<NonPvNode>(position, remainingDepth - 1, ply + 1, -alpha - 1, -alpha);
+                value = -EvaluateMove<NonPvNode>(position, depth - 1, ply + 1, -alpha - 1, -alpha);
                 if (value > alpha && value < beta)
-                    value = -EvaluateMove<PvNode>(position, remainingDepth - 1, ply + 1, -beta, -alpha); // re-search
+                    value = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search
             }
 
             history.Unwind();
@@ -241,7 +257,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                     {
                         Killers[ply] = move;
 
-                        var historyBonus = 300 * remainingDepth - 250;
+                        var historyBonus = 300 * depth - 250;
                         UpdateHistory(move, historyBonus);
 
                         for (int q = 0; q < i; q++)
@@ -264,8 +280,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (value <= originalAlpha) flag = TranspositionTable.UpperBound;
         else if (value >= beta) flag = TranspositionTable.LowerBound;
 
-        if (value != 0)
-            tt.Add(position.Hash, remainingDepth, value, flag, ttMove);
+        if (value != 0 && value > -Inf && value < Inf)
+            tt.Add(position.Hash, depth, value, flag, ttMove);
 
         return value;
     }

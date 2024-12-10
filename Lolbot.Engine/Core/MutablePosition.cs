@@ -1,3 +1,4 @@
+using System.Reflection.Metadata;
 using System.Runtime.Intrinsics;
 using System.Text;
 
@@ -113,6 +114,8 @@ public sealed class MutablePosition
     public ulong Hash = Hashes.Default;
     public bool IsCheck => Checkmask != ulong.MaxValue;
 
+    public bool IsEndgame => Occupied == (WhiteKing | WhitePawns | BlackKing | BlackPawns);
+
     public void Move(ref readonly Move m)
     {
         var oponent = CurrentPlayer == Colors.White
@@ -214,6 +217,7 @@ public sealed class MutablePosition
     public void SkipTurn()
     {
         CurrentPlayer = CurrentPlayer == Colors.White ? Colors.Black : Colors.White;
+        Hash ^= Hashes.GetValue(Colors.White);
     }
 
     private CastlingRights ApplyCastlingRights(ref readonly Move m)

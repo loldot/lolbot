@@ -115,8 +115,10 @@ public class Uci
             ? (wtime, winc)
             : (btime, binc);
 
-        var timer = new CancellationTokenSource(timeleft / 20 + increment / 2);
-        var move = Engine.BestMove(game, timer.Token);
+        var clock = new Clock();
+        var ct = clock.Start(timeleft, increment);
+
+        var move = Engine.BestMove(game, ct);
 
         if (move is null)
         {

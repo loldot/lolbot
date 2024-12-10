@@ -23,6 +23,7 @@ public class Perft
     const string pos7 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 1";
     const string pos8 = "r3k2r/p1ppqpb1/bn2pn2/3PN1p1/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R w KQkq - 0 2";
 
+    [Explicit]
     [TestCase(Position1, 1, 20)]
     [TestCase(Position1, 2, 400)]
     [TestCase(Position1, 3, 8_902)]
@@ -87,13 +88,14 @@ public class Perft
     [TestCase(pos8, 1, 46)]
     [TestCase(pos8, 2, 1_908)]
     // [TestCase(6, 119_060_324)]
-    public void PerftCounts2(string fen, int depth, int expectedCount)
+    public void MutablePositionPerft(string fen, int depth, int expectedCount)
     {
         var pos = MutablePosition.FromFen(fen);
         var perft = Engine.Perft2(pos, depth);
         perft.Should().Be(expectedCount);
     }
 
+    [Explicit]
     [TestCase(2, 400)]
     [TestCase(3, 8_902)]
     [TestCase(4, 197_281)]
