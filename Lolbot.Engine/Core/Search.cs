@@ -194,13 +194,13 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         }
         // else if (remainingDepth > 3) remainingDepth--;
 
-        // if (!TNode.IsPv && remainingDepth <= 5)
-        // {
-        //     var eval = StaticEvaluation(position);
-        //     var margin = 117 * remainingDepth;
+        if (!TNode.IsPv && depth <= 5)
+        {
+            var eval = StaticEvaluation(position);
+            var margin = 117 * depth;
 
-        //     if (eval - margin >= beta) return eval;
-        // }
+            if (eval - margin >= beta) return eval;
+        }
 
         // if (!TNode.IsPv && !position.IsCheck)
         // {
