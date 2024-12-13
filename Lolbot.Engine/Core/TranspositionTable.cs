@@ -1,5 +1,6 @@
 
 using System.Diagnostics;
+using static System.Math;
 
 namespace Lolbot.Core;
 
@@ -65,6 +66,35 @@ public class TranspositionTable
         var index = hash & Mask;
 
         return entries[index];
+    }
+
+    public bool Probe(ulong hash,
+        int depth,
+        ref int alpha,
+        ref int beta,
+        out Move move,
+        out int eval)
+    {
+        var index = hash & Mask;
+        ref var entry = ref entries[index];
+        eval = entry.Evaluation;
+
+        if (hash == entry.Key)
+        {
+            move = entry.Move;
+            if (entry.Depth >= depth)
+            {
+                if (entry.Type == Exact) return true;
+                else if (entry.Type == LowerBound) alpha = Max(alpha, entry.Evaluation);
+                else if (entry.Type == UpperBound) beta = Min(beta, entry.Evaluation);
+
+                if (alpha >= beta) return true;
+            }
+            return false;
+        }
+
+        move = Move.Null;
+        return false;
     }
 
     public bool TryGet(ulong hash, out Entry entry)

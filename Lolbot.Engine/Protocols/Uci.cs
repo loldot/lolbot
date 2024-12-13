@@ -146,6 +146,12 @@ public class Uci
     public static void PrintProgress(SearchProgress progress)
     {
         var nps = (int)(progress.Nodes / progress.Time);
-        Console.WriteLine($"info score depth {progress.Depth} cp {progress.Eval} bm {progress.BestMove} nodes {progress.Nodes} nps {nps}");
+        Console.Write($"info score depth {progress.Depth} ");
+        Console.Write($"cp {progress.Eval} ");
+        Console.Write($"bm {progress.BestMove} ");
+        Console.Write($"nodes {progress.Nodes} ");
+        Console.Write($"nps {nps}");
+        // pv {string.Join(' ', pv[..])}");
+        Console.WriteLine();
     }
 }
