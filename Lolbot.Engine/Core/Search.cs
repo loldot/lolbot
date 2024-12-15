@@ -10,11 +10,14 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
     const int Max_History = 38_400;
     const int Max_Depth = 128;
+    const int Max_Extensions = 32;
 
     private readonly MutablePosition rootPosition = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
 
-    private Move[] Killers = new Move[Max_Depth + 32];
+    private Move[] Killers = new Move[Max_Depth + Max_Extensions];
+    private int rootScore = -Inf;
+
     private int nodes = 0;
     private CancellationToken ct;
 
@@ -50,25 +53,26 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         this.nodes = 0;
 
-        var (alpha, beta) = (-Inf, Inf);
+        var (alpha, beta) = depth <= 1
+            ? (-Inf, Inf)
+            : (rootScore - delta, rootScore + delta);
 
-        int score;
         while (true)
         {
-            (bestMove, score) = SearchRoot(depth, bestMove, alpha, beta);
+            (bestMove, rootScore) = SearchRoot(depth, bestMove, alpha, beta);
 
-            if (score <= alpha) alpha = score - delta;
-            else if (score >= beta) beta = score + delta;
+            if (rootScore <= alpha) alpha = rootScore - delta;
+            else if (rootScore >= beta) beta = rootScore + delta;
             else break;
 
-            delta <<= 1;
+            delta *= delta;
 
-            Console.WriteLine($"DEBUG research cp {score} depth {depth}"
+            Console.WriteLine($"DEBUG research cp {rootScore} depth {depth}"
                 + $" nodes {nodes} alpha {alpha} beta {beta} delta {delta}");
         }
 
         var s = (DateTime.Now - start).TotalSeconds;
-        OnSearchProgress?.Invoke(new SearchProgress(depth, bestMove, score, nodes, s));
+        OnSearchProgress?.Invoke(new SearchProgress(depth, bestMove, rootScore, nodes, s));
 
         return bestMove;
     }
@@ -202,14 +206,14 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             if (eval - margin >= beta) return eval;
         }
 
-        // if (!TNode.IsPv && !position.IsCheck)
+        // if (!TNode.IsPv && !position.IsCheck && eval >= beta - 21 * depth + 421 )
         // {
         //     var eval = StaticEvaluation(position);
 
         //     if (isNullAllowed && eval >= beta && !position.IsEndgame)
         //     {
         //         position.SkipTurn();
-        //         var r = (depth * 100 + beta - eval) / 186;
+        //         var r = Min(eval - beta / 235, 7) + depth / 3 + 5;
         //         eval = -EvaluateMove<NonPvNode>(position, r - 1, ply + 1, -alpha - 1, -alpha, isNullAllowed: false);
         //         position.SkipTurn();
 
@@ -231,13 +235,14 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             position.Move(in move);
             history.Update(move, position.Hash);
 
-            if (i == 0)
+            if (TNode.IsPv && i == 0)
             {
-                value = -EvaluateMove<TNode>(position, depth - 1, ply + 1, -beta, -alpha);
+                value = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha);
             }
             else
             {
-                value = -EvaluateMove<NonPvNode>(position, depth - 1, ply + 1, -alpha - 1, -alpha);
+                int reduction = depth > 3 && i <= 8 ? 1 : 2;
+                value = -EvaluateMove<NonPvNode>(position, depth - reduction, ply + 1, -alpha - 1, -alpha);
                 if (value > alpha && value < beta)
                     value = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search
             }
