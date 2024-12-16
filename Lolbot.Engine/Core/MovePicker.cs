@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Lolbot.Core;
 
 public ref struct MovePicker
@@ -69,6 +71,10 @@ public ref struct MovePicker
 
         score += 100_000 * Heuristics.GetPieceValue(m.PromotionPiece);
         score += 100_000 * Heuristics.MVV_LVA(m.CapturePieceType, m.FromPieceType);
+
+        Debug.Assert(ply > 0, "negative ply");
+        Debug.Assert(ply < killers.Length);
+
         score += killers[ply] == m ? 99_999 : 0;
         score += history[m.value & 0xfffu];
 

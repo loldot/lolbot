@@ -15,7 +15,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     private readonly MutablePosition rootPosition = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
 
-    private Move[] Killers = new Move[Max_Depth + Max_Extensions];
+    private Move[] Killers = new Move[2 * Max_Depth];
     private int rootScore = -Inf;
 
     private int nodes = 0;
@@ -198,28 +198,27 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         }
         // else if (remainingDepth > 3) remainingDepth--;
 
-        if (!TNode.IsPv && depth <= 5)
+        if (!TNode.IsPv && !position.IsCheck)
         {
             var eval = StaticEvaluation(position);
             var margin = 117 * depth;
 
-            if (eval - margin >= beta) return eval;
+            if (depth <= 5 && eval - margin >= beta) return eval - margin;
+            // else if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
+            // {
+            //     position.SkipTurn();
+            //     var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
+            //     eval = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -alpha - 1, -alpha, isNullAllowed: false);
+            //     position.SkipTurn();
+
+            //     if (eval >= beta)
+            //     {
+            //         depth -= 4;
+            //         if (depth <= 0)
+            //             return QuiesenceSearch(position, alpha, beta);
+            //     }
+            // }
         }
-
-        // if (!TNode.IsPv && !position.IsCheck && eval >= beta - 21 * depth + 421 )
-        // {
-        //     var eval = StaticEvaluation(position);
-
-        //     if (isNullAllowed && eval >= beta && !position.IsEndgame)
-        //     {
-        //         position.SkipTurn();
-        //         var r = Min(eval - beta / 235, 7) + depth / 3 + 5;
-        //         eval = -EvaluateMove<NonPvNode>(position, r - 1, ply + 1, -alpha - 1, -alpha, isNullAllowed: false);
-        //         position.SkipTurn();
-
-        //         if (eval >= beta) return beta;
-        //     }
-        // }
 
         var value = -Inf;
 
@@ -243,7 +242,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             {
                 int reduction = depth > 3 && i <= 8 ? 1 : 2;
                 value = -EvaluateMove<NonPvNode>(position, depth - reduction, ply + 1, -alpha - 1, -alpha);
-                if (value > alpha && value < beta)
+                if (TNode.IsPv && value > alpha && value < beta)
                     value = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search
             }
 
