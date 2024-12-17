@@ -77,6 +77,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return bestMove;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static int Lmr(int depth, int move) => 1 + (int)(Log(depth) * Log(1 + move) / 2);
+
     public (Move, int) SearchRoot(int depth, Move currentBest, int alpha = -Inf, int beta = Inf)
     {
         if (rootPosition.IsCheck) depth++;
@@ -132,7 +135,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             }
             else
             {
-                int reduction = depth > 3 && i <= 8 ? 1 : 2;
+                int reduction = Lmr(depth, i);
                 value = -EvaluateMove<NonPvNode>(rootPosition, depth - reduction, 1, -alpha - 1, -alpha);
                 if (value > alpha)
                     value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha); // re-search
@@ -204,20 +207,18 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             var margin = 117 * depth;
 
             if (depth <= 5 && eval - margin >= beta) return eval - margin;
-            // else if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
-            // {
-            //     position.SkipTurn();
-            //     var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
-            //     eval = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -alpha - 1, -alpha, isNullAllowed: false);
-            //     position.SkipTurn();
+            else if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
+            {
+                position.SkipTurn();
+                var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
+                eval = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
+                position.SkipTurn();
 
-            //     if (eval >= beta)
-            //     {
-            //         depth -= 4;
-            //         if (depth <= 0)
-            //             return QuiesenceSearch(position, alpha, beta);
-            //     }
-            // }
+                if (eval >= beta)
+                {
+                    return eval;
+                }
+            }
         }
 
         var value = -Inf;
@@ -240,7 +241,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             }
             else
             {
-                int reduction = depth > 3 && i <= 8 ? 1 : 2;
+                int reduction = Lmr(depth, i);
                 value = -EvaluateMove<NonPvNode>(position, depth - reduction, ply + 1, -alpha - 1, -alpha);
                 if (TNode.IsPv && value > alpha && value < beta)
                     value = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search
