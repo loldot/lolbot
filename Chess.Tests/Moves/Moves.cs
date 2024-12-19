@@ -140,12 +140,26 @@ public class Moves
         var game = new Game(pos, []);
         Engine.Move(game, "e5", "f7");
         Engine.Move(game, "e8", "e1");
-        
+
         game.CurrentPosition.WhiteRooks.Should().Be(1ul << Squares.A1);
         game.CurrentPosition.BlackRooks.Should().Be(1ul << Squares.E1);
 
         (game.CurrentPosition.White & (1ul << Squares.E1)).Should().Be(0);
         (game.CurrentPosition.Black & (1ul << Squares.E1)).Should().Be(1ul << Squares.E1);
+    }
+
+    [Test]
+    public void Capture_Should_Have_Correct_PiecType()
+    {
+        var fen = "7K/6Q1/5n2/8/8/8/8/k5q1 b - - 0 1";
+        var pos = MutablePosition.FromFen(fen);
+
+        Span<Move> moves = new Move[10];
+        var count = MoveGenerator2.Captures(pos, ref moves);
+
+        count.Should().Be(1);
+        moves[0].CapturePiece.Should().Be(Piece.WhiteQueen);
+        moves[0].CapturePieceType.Should().Be(PieceType.Queen);
     }
 
     internal static void VerifyMovePattern(ulong[] pattern, string square, string[] expectedSquares)
