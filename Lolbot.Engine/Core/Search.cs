@@ -19,6 +19,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     private int rootScore = -Inf;
 
     private int nodes = 0;
+    private int qnodes = 0;
     private CancellationToken ct;
 
     public Action<SearchProgress>? OnSearchProgress { get; set; }
@@ -52,6 +53,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         var start = DateTime.Now;
 
         this.nodes = 0;
+        this.qnodes = 0;
 
         var (alpha, beta) = depth <= 1
             ? (-Inf, Inf)
@@ -73,6 +75,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         var s = (DateTime.Now - start).TotalSeconds;
         OnSearchProgress?.Invoke(new SearchProgress(depth, bestMove, rootScore, nodes, s));
+        Console.WriteLine($"DEBUG qnodes: {qnodes} ({qnodes * 100 / Max(nodes, 1)} %)");
 
         return bestMove;
     }
@@ -212,7 +215,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
                 position.SkipTurn();
                 var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
                 eval = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
-                position.SkipTurn();
+                position.UndoSkipTurn();
 
                 if (eval >= beta)
                 {
@@ -293,30 +296,40 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
     private int QuiesenceSearch(MutablePosition position, int alpha, int beta)
     {
-        Span<Move> moves = stackalloc Move[218];
+        int i = 0;
+        Move move;
+        int[] deltas = { 0, 180, 390, 442, 718, 1332, 88888 }; // Piece values for delta pruning
 
-        var count = MoveGenerator2.Captures(position, ref moves);
-        moves = moves[..count];
+        Span<Move> moves = stackalloc Move[256];
 
         var standPat = StaticEvaluation(position);
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;
 
-        int i = 0;
-        for (; i < count; i++)
-        {
-            var move = SelectMove(ref moves, Move.Null, i, 0);
+        var movepicker = new MovePicker(ref Killers, ref historyHeuristic, ref moves, position, Move.Null, 0);
 
+        while ((move = movepicker.PickCapture(i++)) != Move.Null)
+        {
+
+            if (standPat + deltas[(byte)move.CapturePieceType] < alpha)
+                continue;
+
+            // Static Exchange Evaluation (SEE): Skip bad captures
+
+            // Make the move
             position.Move(in move);
-            var eval = -QuiesenceSearch(position, -beta, -alpha);
+            int eval = -QuiesenceSearch(position, -beta, -alpha);
             position.Undo(in move);
 
+            // Beta cutoff
             if (eval >= beta) return beta;
 
-            alpha = Max(eval, alpha);
+            // Update alpha
+            alpha = Max(alpha, eval);
         }
         nodes += i;
+        qnodes += i;
 
         return alpha;
     }

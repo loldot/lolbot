@@ -37,7 +37,7 @@ public ref struct MovePicker
         {
             Count = MoveGenerator2.Legal(position, ref moves);
             isGenerated = true;
-            
+
             int index;
             if (!ttMove.IsNull && (index = moves.IndexOf(ttMove)) >= 0)
             {
@@ -63,6 +63,35 @@ public ref struct MovePicker
             (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
         }
         return moves[k];
+    }
+
+    public Move PickCapture(int k)
+    {
+        if (!isGenerated)
+        {
+            Count = MoveGenerator2.Captures(position, ref moves);
+            Span<int> scores = stackalloc int[Count];
+            for (int i = 0; i < Count; i++)
+            {
+                scores[i] = -ScoreCapture(moves[i]);
+            }
+
+            moves = moves[..Count];
+            scores.Sort(moves);
+
+            isGenerated = true;
+        }
+        return k < Count ? moves[k] : Move.Null;
+    }
+
+    private static int ScoreCapture(Move m)
+    {
+        int score = 0;
+
+        score += Heuristics.GetPieceValue(m.PromotionPiece);
+        score += Heuristics.MVV_LVA(m.CapturePieceType, m.FromPieceType);
+
+        return score;
     }
 
     private readonly int ScoreMove(Move m)

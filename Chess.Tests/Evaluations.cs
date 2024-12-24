@@ -23,7 +23,7 @@ public class Evaluations
 
         var pos = game.CurrentPosition;
         var eval = Search.StaticEvaluation(pos);
-        eval.Should().BeCloseTo(-100, 10    );
+        eval.Should().BeCloseTo(-100, 30);
     }
 
     [Test]

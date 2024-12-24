@@ -1,4 +1,3 @@
-using System.Reflection.Metadata;
 using System.Runtime.Intrinsics;
 using System.Text;
 
@@ -216,8 +215,37 @@ public sealed class MutablePosition
 
     public void SkipTurn()
     {
-        CurrentPlayer = CurrentPlayer == Colors.White ? Colors.Black : Colors.White;
+        Diffs[plyfromRoot] = new DiffData(
+            Hash, CastlingRights, EnPassant
+        );
+        var us = CurrentPlayer == Colors.White ? Colors.Black : Colors.White;
+
+        CurrentPlayer = us;
+        EnPassant = 0;
+
+        AttackMask = CreateEnemyAttackMask(us);
+        (Checkmask, CheckerCount) = CreateCheckMask(us);
+        (IsPinned, Pinmasks) = CreatePinmasks(us);
+
         Hash ^= Hashes.GetValue(Colors.White);
+        Hash ^= Hashes.GetValue(EnPassant);
+        plyfromRoot++;
+    }
+
+    public void UndoSkipTurn()
+    {
+        plyfromRoot--;
+        var us = CurrentPlayer == Colors.White ? Colors.Black : Colors.White;
+
+        CurrentPlayer = us;
+        AttackMask = CreateEnemyAttackMask(us);
+        (Checkmask, CheckerCount) = CreateCheckMask(us);
+        (IsPinned, Pinmasks) = CreatePinmasks(us);
+
+        CastlingRights = Diffs[plyfromRoot].Castling;
+        EnPassant = Diffs[plyfromRoot].EnPassant;
+        Hash = Diffs[plyfromRoot].Hash;
+        
     }
 
     private CastlingRights ApplyCastlingRights(ref readonly Move m)
@@ -364,6 +392,29 @@ public sealed class MutablePosition
         }
 
         return ulong.MaxValue;
+    }
+
+    public string ToDebugString()
+    {
+        return
+            $"W: {White:X}\n" +
+            $"P: {WhitePawns:X}\n" +
+            $"N: {WhiteKnights:X}\n" +
+            $"B: {WhiteBishops:X}\n" +
+            $"R: {WhiteRooks:X}\n" +
+            $"Q: {WhiteQueens:X}\n" +
+            $"K: {WhiteKing:X}\n" +
+            $"B: {Black:X}\n" +
+            $"p: {BlackPawns:X}\n" +
+            $"n: {BlackKnights:X}\n" +
+            $"b: {BlackBishops:X}\n" +
+            $"r: {BlackRooks:X}\n" +
+            $"q: {BlackQueens:X}\n" +
+            $"k: {BlackKing:X}\n" +
+            $"Player: {CurrentPlayer}\n" +
+            $"Castle: {CastlingRights}\n" +
+            $"EP: {EnPassant}\n" +
+            $"Checkmask: {Checkmask:X}";
     }
 
     private ulong CreateEnemyAttackMask(Colors color)

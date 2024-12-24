@@ -162,6 +162,22 @@ public class Moves
         moves[0].CapturePieceType.Should().Be(PieceType.Queen);
     }
 
+    [TestCase("rnbqkbnr/ppp2ppp/8/3pp3/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 3", 2)]
+    [TestCase("r1b1kbnr/ppp2ppp/2n5/3pp1q1/3PP2N/8/PPPQ1PPP/RNB1KB1R b KQkq - 4 5", 6)]
+    [TestCase("6k1/1rp2b2/1p1p2p1/3P1p1p/2P1pP1Q/7R/6PP/2q2BK1 w - - 0 1", 1)]
+    public void Captures_Should_All_Have_CapturePiece(string fen, int expectedCount)
+    {
+        var pos = MutablePosition.FromFen(fen);
+
+        Span<Move> moves = new Move[256];
+        var count = MoveGenerator2.Captures(pos, ref moves);
+
+        count.Should().Be(expectedCount);
+        moves = moves[..count];
+
+        moves.ToArray().Should().AllSatisfy(x => x.CapturePieceType.Should().NotBe(PieceType.None));
+    }
+
     internal static void VerifyMovePattern(ulong[] pattern, string square, string[] expectedSquares)
     {
         var from = Squares.IndexFromCoordinate(square);
