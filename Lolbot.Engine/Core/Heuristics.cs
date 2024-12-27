@@ -76,7 +76,7 @@ public static class Heuristics
                 ? 63 - Bitboards.Msb(pawnsOnFile)
                 : Bitboards.Lsb(pawnsOnFile);
 
-            var passedPawnMask = MovePatterns.PassedPawnMasks[(int)color][frontPawn];
+            var passedPawnMask = MovePatterns.PassedPawnMasks[1 & (int)color][frontPawn];
             eval += (passedPawnMask & opposingPawns) == 0 ? PassedPawnBonus : 0;
         }
 
@@ -107,7 +107,7 @@ public static class Heuristics
                 ? 63 - Bitboards.Msb(pawnsOnFile)
                 : Bitboards.Lsb(pawnsOnFile);
 
-            var passedPawnMask = MovePatterns.PassedPawnMasks[(int)color][frontPawn];
+            var passedPawnMask = MovePatterns.PassedPawnMasks[1 & (int) color][frontPawn];
             eval += (passedPawnMask & opposingPawns) == 0 ? PassedPawnBonus : 0;
         }
 

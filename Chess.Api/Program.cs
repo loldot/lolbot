@@ -1,3 +1,4 @@
+using System.Runtime.Intrinsics;
 using Lolbot.Api;
 using Lolbot.Core;
 using Microsoft.AspNetCore.Mvc;
@@ -85,16 +86,16 @@ app.MapGet("/game/{seq}", (int seq) =>
 })
 .WithOpenApi();
 
-// app.MapPost("/game/{seq}", (int seq, string[] movedata) =>
-// {
-//     var game = GameDatabase.Instance.Get(seq);
-//     if (game is null) return Results.NotFound();
+app.MapPost("/game/{seq}", (int seq, string[] movedata) =>
+{
+    var game = GameDatabase.Instance.Get(seq);
+    if (game is null) return Results.NotFound();
 
-//     var updated = Engine.Move(game, movedata[0], movedata[1]);
+    Engine.Move(game, movedata[0], movedata[1]);
 
-//     GameDatabase.Instance.Update(seq, updated);
-//     return Results.Ok(new ApiGame(updated));
-// });
+    GameDatabase.Instance.Update(seq, game);
+    return Results.Ok(new ApiGame(game));
+});
 
 app.MapGet("/game/{seq}/bitboard/{name}", (int seq, char name) =>
 {
@@ -110,7 +111,7 @@ app.MapGet("/game/{seq}/bitboard/{name}", (int seq, char name) =>
     }
     else if (name == 'i')
     {
-        bb = Bitboards.Create(game.CurrentPosition.Pinmasks);
+        bb = Bitboards.Create((Vector256<ulong>)game.CurrentPosition.Pinmasks);
         Bitboards.Debug(bb);
 
     }

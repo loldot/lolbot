@@ -16,34 +16,63 @@ public class CheckMovesMessage
     public required string Square { get; set; }
 }
 
+public class UndoLastMove
+{
+    public required int GameId { get; set; }
+}
+
 public class GameHub : Hub
 {
-    // public async Task Move(MoveMessage message)
-    // {
-        // var game = GameDatabase.Instance.Get(message.GameId);
-        // if (game is null) return;
+    public async Task Move(MoveMessage message)
+    {
+        var game = GameDatabase.Instance.Get(message.GameId);
+        if (game is null) return;
 
-        // Engine.Move(game, message.Move[0], message.Move[1]);
-        // GameDatabase.Instance.Update(message.GameId, updated);
-        // await Clients.AllExcept([Context.ConnectionId]).SendAsync("movePlayed", message);
+        Engine.Move(game, message.Move[0], message.Move[1]);
+        await Clients.AllExcept([Context.ConnectionId]).SendAsync("movePlayed", message);
 
-        // var nextMove = Engine.BestMove(updated);
+        // var nextMove = Engine.BestMove(game);
         // if (nextMove is null)
         // {
         //     await Clients.All.SendAsync("finished", new { Winner = "w" });
         //     return;
         // }
 
-        // updated = Engine.Move(updated, nextMove.Value);
-        // GameDatabase.Instance.Update(message.GameId, updated);
+        // Engine.Move(game, nextMove.Value);
+        // GameDatabase.Instance.Update(message.GameId, game);
 
         // await Clients.All.SendAsync("movePlayed", new MoveMessage
         // {
         //     GameId = message.GameId,
-        //     PlyCount = updated.PlyCount,
+        //     PlyCount = game.PlyCount,
         //     Move = ApiMove.Create(nextMove.Value)!
         // });
-    // }
+    }
+
+    public async Task Undo(UndoLastMove message)
+    {
+        var game = GameDatabase.Instance.Get(message.GameId);
+        if (game is null) return;
+
+        game.UndoLastMove();
+
+        // var nextMove = Engine.BestMove(game);
+        // if (nextMove is null)
+        // {
+        //     await Clients.All.SendAsync("finished", new { Winner = "w" });
+        //     return;
+        // }
+
+        // Engine.Move(game, nextMove.Value);
+        // GameDatabase.Instance.Update(message.GameId, game);
+
+        // await Clients.All.SendAsync("movePlayed", new MoveMessage
+        // {
+        //     GameId = message.GameId,
+        //     PlyCount = game.PlyCount,
+        //     Move = ApiMove.Create(nextMove.Value)!
+        // });
+    }
 
     public async Task CheckMove(CheckMovesMessage message)
     {

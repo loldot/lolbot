@@ -126,18 +126,64 @@ public class Pins
     [Test]
     public void Should_Pin_When_Piece_On_Diagonal_After_King()
     {
-        var pins = new ulong[4];
-        MutablePosition.FromFen("4r3/3k4/8/1n6/Q7/8/8/1K6 b - - 0 1")
-                .Pinmasks.CopyTo(pins);
         var expectedPinmask = Bitboards.Create("a4", "b5", "c6");
+        var pos = MutablePosition.FromFen("4r3/3k4/8/1n6/Q7/8/8/1K6 b - - 0 1");
 
-        pins.Should().Contain(expectedPinmask);
+
+        ulong[] pins = [
+            pos.Pinmasks[0],
+            pos.Pinmasks[1],
+            pos.Pinmasks[2],
+            pos.Pinmasks[3]
+        ];
+        pins.ToArray().Should().Contain(expectedPinmask);
     }
+    //3q3k/8/8/3P4/q1PKP2q/8/3N4/3q4 w - - 0 1
 
     [Test]
     public void PinnedPieceCannot_Capture_Checker()
     {
         var position = MutablePosition.FromFen("2k5/2q5/8/8/8/2N5/2Kp4/8 w - - 0 1");
         position.GenerateLegalMoves(Piece.WhiteKnight).ToArray().Should().BeEmpty();
+    }
+
+    [Test]
+    public void Moving_Should_Update_Pinmasks()
+    {
+        var fen = "8/8/8/2k1rR2/3b4/2q5/2Q2B2/6K1 b - - 0 1";
+        var position = MutablePosition.FromFen(fen);
+        var game = new Game(position);
+        
+        Engine.Move(game, "d4", "f2");
+        position.Pinmasks[0].Should().Be(0);
+        position.Pinmasks[1].Should().Be(0);
+        position.Pinmasks[2].Should().Be(0);
+        position.Pinmasks[3].Should().Be(0);
+        Engine.Move(game, "g1", "f2");
+
+        position.Pinmasks[0].Should().Be(Bitboards.Create("d5", "e5", "f5"));
+        position.Pinmasks[1].Should().Be(Bitboards.Create("c2", "c3", "c4"));
+        position.Pinmasks[2].Should().Be(0);
+        position.Pinmasks[3].Should().Be(0);
+    }
+
+    
+    [Test]
+    public void Undo_Should_Update_Pinmasks()
+    {
+        var fen = "8/8/8/2k1rR2/3b4/2q5/2Q2B2/6K1 b - - 0 1";
+        var position = MutablePosition.FromFen(fen);
+        var game = new Game(position);
+        
+        Engine.Move(game, "d4", "f2");
+        Engine.Move(game, "g1", "f2");
+
+        game.UndoLastMove();
+        game.UndoLastMove();
+
+        position.Pinmasks[0].Should().Be(Bitboards.Create("d5", "e5", "f5"));
+        position.Pinmasks[1].Should().Be(Bitboards.Create("c2", "c3", "c4"));
+        position.Pinmasks[2].Should().Be(Bitboards.Create("d4", "e3", "f2"));
+        position.Pinmasks[3].Should().Be(0);
     }
 }

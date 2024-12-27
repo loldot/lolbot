@@ -8,7 +8,7 @@ public sealed class Game
     private readonly MutablePosition position;
     private readonly Stack<Move> moves = [];
     public Move[] Moves => moves.Reverse().ToArray();
-    
+
     public Colors CurrentPlayer => position.CurrentPlayer;
     public int PlyCount => moves.Count;
     public MutablePosition CurrentPosition => position;
@@ -93,7 +93,7 @@ public enum CastlingRights : byte
     BlackKing = 8,
     All = WhiteKing | WhiteQueen | BlackKing | BlackQueen
 }
-public enum Colors : byte { None = 0, White = 1, Black = 2 }
+public enum Colors : byte { White = 7, Black = 0 }
 public enum PieceType : byte
 {
     None = 0,
@@ -108,18 +108,18 @@ public enum Piece : byte
 {
     None = 0,
 
-    WhitePawn = 0x11,
-    WhiteKnight = 0x12,
-    WhiteBishop = 0x13,
-    WhiteRook = 0x14,
-    WhiteQueen = 0x15,
-    WhiteKing = 0x16,
+    WhitePawn = (Colors.White << 4) | PieceType.Pawn,
+    WhiteKnight = (Colors.White << 4) | PieceType.Knight,
+    WhiteBishop = (Colors.White << 4) | PieceType.Bishop,
+    WhiteRook = (Colors.White << 4) | PieceType.Rook,
+    WhiteQueen = (Colors.White << 4) | PieceType.Queen,
+    WhiteKing = (Colors.White << 4) | PieceType.King,
 
-    BlackPawn = 0x21,
-    BlackKnight = 0x22,
-    BlackBishop = 0x23,
-    BlackRook = 0x24,
-    BlackQueen = 0x25,
-    BlackKing = 0x26,
+    BlackPawn = (Colors.Black << 4) | PieceType.Pawn,
+    BlackKnight = (Colors.Black << 4) | PieceType.Knight,
+    BlackBishop = (Colors.Black << 4) | PieceType.Bishop,
+    BlackRook = (Colors.Black << 4) | PieceType.Rook,
+    BlackQueen = (Colors.Black << 4) | PieceType.Queen,
+    BlackKing = (Colors.Black << 4) | PieceType.King,
 }
 

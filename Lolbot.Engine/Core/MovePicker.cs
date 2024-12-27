@@ -84,6 +84,34 @@ public ref struct MovePicker
         return k < Count ? moves[k] : Move.Null;
     }
 
+    public Move PickEvasion(int k)
+    {
+        if (k == 0 && !ttMove.IsNull) return ttMove;
+
+        if (!isGenerated)
+        {
+            Count = MoveGenerator2.Legal(position, ref moves);
+            Span<int> scores = stackalloc int[Count];
+            for (int i = 0; i < Count; i++)
+            {
+                scores[i] = -ScoreMove(moves[i]);
+            }
+
+            moves = moves[..Count];
+            scores.Sort(moves);
+
+            int index;
+            if (!ttMove.IsNull && (index = moves.IndexOf(ttMove)) >= 0)
+            {
+                moves[index] = moves[0];
+                moves[0] = ttMove;
+            }
+
+            isGenerated = true;
+        }
+        return k < Count ? moves[k] : Move.Null;
+    }
+
     private static int ScoreCapture(Move m)
     {
         int score = 0;
@@ -101,7 +129,7 @@ public ref struct MovePicker
         score += 100_000 * Heuristics.GetPieceValue(m.PromotionPiece);
         score += 100_000 * Heuristics.MVV_LVA(m.CapturePieceType, m.FromPieceType);
 
-        Debug.Assert(ply > 0, "negative ply");
+        Debug.Assert(ply >= 0, "negative ply");
         Debug.Assert(ply < killers.Length);
 
         score += killers[ply] == m ? 99_999 : 0;

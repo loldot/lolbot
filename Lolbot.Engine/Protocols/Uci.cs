@@ -88,9 +88,17 @@ public class Uci
             else
             {
                 var (fromSq, toSq) = (tokens[i][..2], tokens[i][2..]);
-                Engine.Move(game, fromSq, toSq);
-            }
 
+                if (tokens[i].Length == 4)
+                {
+                    Engine.Move(game, fromSq, toSq);
+                }
+                else // promotion
+                {
+                    var promotionPiece = tokens[i][4];
+                    Engine.Move(game, fromSq, toSq, promotionPiece);
+                }
+            }
         }
 
         return game;
@@ -146,8 +154,8 @@ public class Uci
     public static void PrintProgress(SearchProgress progress)
     {
         var nps = (int)(progress.Nodes / progress.Time);
-        Console.Write($"info score depth {progress.Depth} ");
-        Console.Write($"cp {progress.Eval} ");
+        Console.Write($"info score cp {progress.Eval} ");
+        Console.Write($"depth {progress.Depth} ");
         Console.Write($"bm {progress.BestMove} ");
         Console.Write($"nodes {progress.Nodes} ");
         Console.Write($"nps {nps}");

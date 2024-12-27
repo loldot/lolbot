@@ -1,49 +1,24 @@
 ﻿using Lolbot.Core;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
 
-GetPerftCounts(new Position(), 5);
 
-//var summary = BenchmarkRunner.Run<Perft5Bench>();
+var summary = BenchmarkRunner.Run<Perft5Bench>();
 
-static int GetPerftCounts(Position position, int remainingDepth = 4)
-{
-    Span<Move> moves = new Move[218];
-    var currentCount = MoveGenerator.Legal(ref position, ref moves);
-    var count = 0;
-
-    if (remainingDepth == 1) return currentCount;
-
-    for (int i = 0; i < currentCount; i++)
-    {
-        var posCount = GetPerftCounts(position.Move(moves[i]), remainingDepth - 1);
-        count += posCount;
-    }
-    return count;
-}
-
+[DisassemblyDiagnoser]
 public class Perft5Bench()
 {
+    MutablePosition pos = MutablePosition.FromFen("Q2R2Q1/8/2ppp3/R1pkp2R/2ppp3/8/B7/1K1R3Q b - - 0 1");
+
     [Benchmark]
     public void Current()
     {
-        GetPerftCounts(new Position(), 5);
+        var x = pos.CreatePinmasksOld(Colors.Black);
     }
 
-
-
-
-    private static int GetPerftCounts(Position position, int remainingDepth = 5)
+    [Benchmark]
+    public void New()
     {
-        var moves = position.GenerateLegalMoves();
-        var count = 0;
-
-        if (remainingDepth == 1) return moves.Length;
-
-        foreach (var move in moves)
-        {
-            var posCount = GetPerftCounts(position.Move(move), remainingDepth - 1);
-            count += posCount;
-        }
-        return count;
-    }
+        var x = pos.CreatePinmasks(Colors.Black);
+    } 
 }

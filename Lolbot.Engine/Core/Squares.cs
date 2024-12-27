@@ -31,6 +31,9 @@ public static class Squares
     public static Square FromIndex(byte index) => 1ul << index;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Square FromIndex(int index) => 1ul << index;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Square FromCoordinates(ReadOnlySpan<char> coords)
     {
         byte file = (byte)(char.ToLowerInvariant(coords[0]) - 'a');
@@ -55,5 +58,5 @@ public static class Squares
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string? CoordinateFromIndex(ref byte index) => ToCoordinate(FromIndex(index));
+    public static string? CoordinateFromIndex(byte index) => ToCoordinate(FromIndex(index));
 }

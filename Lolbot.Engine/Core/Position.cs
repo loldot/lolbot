@@ -1,8 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using System.Text;
+using static Lolbot.Core.Utils;
 
 namespace Lolbot.Core;
 
@@ -42,6 +40,8 @@ public readonly struct Position
 
     public static Position EmptyBoard => new Position() with
     {
+        Black = 0,
+        White = 0,
         WhitePawns = 0,
         WhiteKnights = 0,
         WhiteBishops = 0,
@@ -62,34 +62,26 @@ public readonly struct Position
         return fenSerializer.Parse(fen);
     }
 
-    public readonly ulong this[byte index]
+    public readonly ulong this[Piece piece] => piece switch
     {
-        get => index switch
-        {
-            1 => White,
-            2 => Black,
-            0x11 => WhitePawns,
-            0x12 => WhiteKnights,
-            0x13 => WhiteBishops,
-            0x14 => WhiteRooks,
-            0x15 => WhiteQueens,
-            0x16 => WhiteKing,
-            0x21 => BlackPawns,
-            0x22 => BlackKnights,
-            0x23 => BlackBishops,
-            0x24 => BlackRooks,
-            0x25 => BlackQueens,
-            0x26 => BlackKing,
-            0xfe => Black,
-            0xfd => White,
-            _ => Empty
-        };
-    }
+        Piece.WhitePawn => WhitePawns,
+        Piece.WhiteKnight => WhiteKnights,
+        Piece.WhiteBishop => WhiteBishops,
+        Piece.WhiteRook => WhiteRooks,
+        Piece.WhiteQueen => WhiteQueens,
+        Piece.WhiteKing => WhiteKing,
+        Piece.BlackPawn => BlackPawns,
+        Piece.BlackKnight => BlackKnights,
+        Piece.BlackBishop => BlackBishops,
+        Piece.BlackRook => BlackRooks,
+        Piece.BlackQueen => BlackQueens,
+        Piece.BlackKing => BlackKing,
+        _ => Empty,
+    };
 
-    public readonly ulong this[Piece piece] => this[(byte)piece];
     public readonly ulong this[Colors color]
     {
-        get => this[(byte)color];
+        get => color == Colors.White ? White : Black;
     }
     public readonly ulong this[Colors color, PieceType pieceType]
     {
@@ -230,7 +222,7 @@ public readonly struct Position
         var fromBlack = from & BlackPawns;
         enPassant ^= (fromBlack >> 8) & (to << 8);
 
-        var nextTo = (to << 1 | to >> 1) & this[~CurrentPlayer] 
+        var nextTo = (to << 1 | to >> 1) & this[Enemy(CurrentPlayer)] 
             & (
                 (WhitePawns & Bitboards.Masks.Rank_5) | (Bitboards.Masks.Rank_4 & BlackPawns)
             );
@@ -321,13 +313,13 @@ public readonly struct Position
         ulong checkmask = 0;
         byte countCheckers = 0;
 
-        int opponentColor = color == Colors.White ? 0x20 : 0x10;
+        Colors opponentColor = Enemy(color);
         byte king = Squares.ToIndex(color == Colors.White ? WhiteKing : BlackKing);
 
         // king can never check
         for (int i = 1; i < 6; i++)
         {
-            var pieceType = (Piece)(opponentColor + i);
+            var pieceType = (Piece)((int)opponentColor << 4 | i);
             var pieceBitboard = this[pieceType];
             while (pieceBitboard != 0)
             {

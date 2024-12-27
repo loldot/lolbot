@@ -1,4 +1,5 @@
 namespace Lolbot.Core;
+using static Lolbot.Core.Utils;
 
 public class MoveGenerator
 {
@@ -37,9 +38,9 @@ public class MoveGenerator
 
     private static void AddKingMoves(ref readonly Position position, ref Span<Move> moves, ref int count, ref ulong attackmask)
     {
-        var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.King);
+        var piece = GetPiece(position.CurrentPlayer, PieceType.King);
         var king = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         ulong enemyAttacks = position.CreateAttackMask(position.CurrentPlayer);
 
@@ -75,7 +76,7 @@ public class MoveGenerator
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.King);
         var king = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         ulong enemyAttacks = position.CreateAttackMask(position.CurrentPlayer);
 
@@ -150,7 +151,7 @@ public class MoveGenerator
         ref ulong attackmask)
     {
         var friendlies = position[position.CurrentPlayer];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         var occ = position.Occupied;
 
@@ -187,8 +188,7 @@ public class MoveGenerator
     SligerGen attackFunc,
     ref int count)
     {
-        var friendlies = position[position.CurrentPlayer];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         var occ = position.Occupied;
 
@@ -212,7 +212,7 @@ public class MoveGenerator
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Knight);
         var knights = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         while (knights != 0)
         {
@@ -241,7 +241,7 @@ public class MoveGenerator
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Knight);
         var knights = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         while (knights != 0)
         {
@@ -260,7 +260,7 @@ public class MoveGenerator
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Pawn);
         var pawns = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         var (pushPattern, attackPattern) = (position.CurrentPlayer == Colors.White)
             ? (MovePatterns.WhitePawnPushes, MovePatterns.WhitePawnAttacks)
@@ -307,7 +307,7 @@ public class MoveGenerator
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Pawn);
         var pawns = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         var attackPattern = (position.CurrentPlayer == Colors.White)
             ? MovePatterns.WhitePawnAttacks

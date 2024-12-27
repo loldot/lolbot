@@ -41,6 +41,26 @@ public static class Engine
         Move(game, move);
     }
 
+    public static void Move(Game game, string from, string to, char promotionPiece)
+    {
+        Move(
+            game,
+            Squares.FromCoordinates(from),
+            Squares.FromCoordinates(to),
+            promotionPiece
+        );
+    }
+    public static void Move(Game game, Square from, Square to, char promotionPiece)
+    {
+        var move = game.GenerateLegalMoves()
+            .FirstOrDefault(x => 
+                x.FromIndex == Squares.ToIndex(from) 
+            && x.ToIndex == Squares.ToIndex(to)
+            && x.PromotionPieceType == Utils.GetPieceType(promotionPiece));
+
+        Move(game, move);
+    }
+
     public static void Move(Game game, Move move)
     {
         if (!game.IsLegalMove(move)) throw new ArgumentException("Invalid move");
@@ -189,4 +209,6 @@ public static class Engine
         // tt.Clear();
         Array.Clear(historyHeuristic);
     }
+
+
 }

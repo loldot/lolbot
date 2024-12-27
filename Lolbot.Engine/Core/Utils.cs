@@ -4,6 +4,7 @@ namespace Lolbot.Core;
 
 public static class Utils
 {
+    public static Colors Enemy(Colors c) => Colors.White ^ c;
     public static Colors GetColor(Piece piece) => (Colors)((int)piece >> 4);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -42,5 +43,16 @@ public static class Utils
         'q' => Piece.BlackQueen,
         'k' => Piece.BlackKing,
         _ => Piece.None,
+    };
+
+    internal static PieceType GetPieceType(char name) => char.ToLower(name) switch
+    {
+        'p' => PieceType.Pawn,
+        'n' => PieceType.Knight,
+        'b' => PieceType.Bishop,
+        'r' => PieceType.Rook,
+        'q' => PieceType.Queen,
+        'k' => PieceType.King,
+        _ => PieceType.None
     };
 }

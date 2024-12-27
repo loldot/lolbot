@@ -133,7 +133,7 @@ public readonly struct Move : IEquatable<Move>
 
     public Move(Piece fromPiece, byte fromIndex, byte toIndex)
     {
-        var colorbit = Utils.GetColor(fromPiece) == Colors.White ? 1u : 0u;
+        var colorbit = (uint)Utils.GetColor(fromPiece) & 1;
         value |= fromIndex;
         value |= ((uint)toIndex) << ToSqOffset;
         value |= colorbit << ColorOffset;
@@ -142,7 +142,7 @@ public readonly struct Move : IEquatable<Move>
 
     public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece)
     {
-        var colorbit = Utils.GetColor(fromPiece) == Colors.White ? 1u : 0u;
+        var colorbit = (uint)Utils.GetColor(fromPiece) & 1;
         value |= fromIndex;
         value |= ((uint)toIndex) << ToSqOffset;
         if (capturePiece != Piece.None)
@@ -155,7 +155,7 @@ public readonly struct Move : IEquatable<Move>
 
     public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece, Piece promotionPiece)
     {
-        var colorbit = Utils.GetColor(fromPiece) == Colors.White ? 1u : 0u;
+        var colorbit = (uint)Utils.GetColor(fromPiece) & 1;
         value |= fromIndex;
         value |= ((uint)toIndex) << ToSqOffset;
         if (capturePiece != Piece.None)
@@ -169,7 +169,7 @@ public readonly struct Move : IEquatable<Move>
 
     public Move(Piece fromPiece, byte fromIndex, byte toIndex, Piece capturePiece, byte captureIndex)
     {
-        var colorbit = Utils.GetColor(fromPiece) == Colors.White ? 1u : 0u;
+        var colorbit = (uint)Utils.GetColor(fromPiece) & 1;
         value |= fromIndex;
         value |= ((uint)toIndex) << ToSqOffset;
         if (capturePiece != Piece.None)

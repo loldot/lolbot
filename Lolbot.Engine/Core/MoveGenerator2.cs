@@ -1,7 +1,10 @@
+using System.Diagnostics;
+using static Lolbot.Core.Utils;
 namespace Lolbot.Core;
 
 public class MoveGenerator2
 {
+
     public static int Legal(MutablePosition position, ref Span<Move> moves)
     {
         var count = 0;
@@ -41,7 +44,7 @@ public class MoveGenerator2
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.King);
         var king = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         ulong enemyAttacks = position.AttackMask;
 
@@ -113,7 +116,7 @@ public class MoveGenerator2
         ref ulong attackmask) where TMove : MoveType
     {
         var friendlies = position[position.CurrentPlayer];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         var occ = position.Occupied;
 
@@ -145,9 +148,9 @@ public class MoveGenerator2
     private static void AddKnightMoves<TMove>(MutablePosition position, ref Span<Move> moves, ref int count, ref ulong attackmask)
         where TMove : MoveType
     {
-        var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Knight);
+        var piece = GetPiece(position.CurrentPlayer, PieceType.Knight);
         var knights = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         while (knights != 0)
         {
@@ -156,20 +159,26 @@ public class MoveGenerator2
             var pseudoAttacks = MovePatterns.Knights[fromIndex];
             attackmask |= pseudoAttacks;
 
-            var quiets = pseudoAttacks & ~position.Occupied & position.Checkmask & position.PinnedPiece(in fromIndex);
-            while (TMove.HasQuiets && quiets != 0)
+            if (TMove.HasQuiets)
             {
-                var toIndex = Bitboards.PopLsb(ref quiets);
-                if (TMove.HasQuiets)
-                    moves[count++] = new Move(piece, fromIndex, toIndex);
+                var quiets = pseudoAttacks & ~position.Occupied & position.Checkmask & position.PinnedPiece(in fromIndex);
+                while (quiets != 0)
+                {
+                    var toIndex = Bitboards.PopLsb(ref quiets);
+                    if (TMove.HasQuiets)
+                        moves[count++] = new Move(piece, fromIndex, toIndex);
+                }
             }
-
-            var attacks = MovePatterns.Knights[fromIndex] & targets & position.Checkmask & position.PinnedPiece(in fromIndex);
-            while (TMove.HasCaptures && attacks != 0)
+            if (TMove.HasCaptures)
             {
-                var attack = Bitboards.PopLsb(ref attacks);
-                if (TMove.HasCaptures)
-                    moves[count++] = new Move(piece, fromIndex, attack, position.GetOccupant(ref attack));
+                var attacks = MovePatterns.Knights[fromIndex] & targets & position.Checkmask & position.PinnedPiece(in fromIndex);
+                while (attacks != 0)
+                {
+                    var attack = Bitboards.PopLsb(ref attacks);
+                    var occupant = position.GetOccupant(ref attack);
+
+                    moves[count++] = new Move(piece, fromIndex, attack, occupant);
+                }
             }
         }
     }
@@ -179,7 +188,7 @@ public class MoveGenerator2
     {
         var piece = Utils.GetPiece(position.CurrentPlayer, PieceType.Pawn);
         var pawns = position[piece];
-        var targets = position[~position.CurrentPlayer];
+        var targets = position[Enemy(position.CurrentPlayer)];
 
         var (pushPattern, attackPattern) = (position.CurrentPlayer == Colors.White)
             ? (MovePatterns.WhitePawnPushes, MovePatterns.WhitePawnAttacks)

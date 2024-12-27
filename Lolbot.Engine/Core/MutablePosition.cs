@@ -1,5 +1,9 @@
+using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
+using static Lolbot.Core.Utils;
 
 namespace Lolbot.Core;
 
@@ -11,105 +15,79 @@ public sealed class MutablePosition
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
     private int plyfromRoot = 0;
 
-    public ulong WhitePawns = Bitboards.Masks.Rank_2;
-    public ulong WhiteKnights = Bitboards.Create("B1", "G1");
-    public ulong WhiteBishops = Bitboards.Create("C1", "F1");
-    public ulong WhiteRooks = Bitboards.Create("A1", "H1");
-    public ulong WhiteQueens = Bitboards.Create("D1");
-    public ulong WhiteKing = Bitboards.Create("E1");
-    public ulong White = 0x000000000000ffff;
+    private const int BlackIndex = 0;
+    private const int PawnIndex = 1;
+    private const int KnightsIndex = 2;
+    private const int BishopsIndex = 3;
+    private const int RooksIndex = 4;
+    private const int QueensIndex = 5;
+    private const int KingsIndex = 6;
+    private const int WhiteIndex = 7;
 
-    public ulong BlackPawns = Bitboards.Masks.Rank_7;
-    public ulong BlackKnights = Bitboards.Create("B8", "G8");
-    public ulong BlackBishops = Bitboards.Create("C8", "F8");
-    public ulong BlackRooks = Bitboards.Create("A8", "H8");
-    public ulong BlackQueens = Bitboards.Create("D8");
-    public ulong BlackKing = Bitboards.Create("E8");
-    public ulong Black = 0xffff000000000000;
+
+    private DenseBitboards bb = new()
+    {
+        [BlackIndex] = Bitboards.Masks.Rank_8 | Bitboards.Masks.Rank_7,
+        [PawnIndex] = Bitboards.Masks.Rank_2 | Bitboards.Masks.Rank_7,
+        [KnightsIndex] = Bitboards.Create("B1", "G1", "B8", "G8"),
+        [BishopsIndex] = Bitboards.Create("C1", "F1", "C8", "F8"),
+        [RooksIndex] = Bitboards.Create("A1", "H1", "A8", "H8"),
+        [QueensIndex] = Bitboards.Create("D1", "D8"),
+        [KingsIndex] = Bitboards.Create("E1", "E8"),
+        [WhiteIndex] = Bitboards.Masks.Rank_1 | Bitboards.Masks.Rank_2
+    };
+
+    public ulong WhitePawns => bb[WhiteIndex] & bb[PawnIndex];
+    public ulong WhiteKnights => bb[WhiteIndex] & bb[KnightsIndex];
+    public ulong WhiteBishops => bb[WhiteIndex] & bb[BishopsIndex];
+    public ulong WhiteRooks => bb[WhiteIndex] & bb[RooksIndex];
+    public ulong WhiteQueens => bb[WhiteIndex] & bb[QueensIndex];
+    public ulong WhiteKing => bb[WhiteIndex] & bb[KingsIndex];
+    public ulong White => bb[WhiteIndex];
+
+    public ulong BlackPawns => bb[BlackIndex] & bb[PawnIndex];
+    public ulong BlackKnights => bb[BlackIndex] & bb[KnightsIndex];
+    public ulong BlackBishops => bb[BlackIndex] & bb[BishopsIndex];
+    public ulong BlackRooks => bb[BlackIndex] & bb[RooksIndex];
+    public ulong BlackQueens => bb[BlackIndex] & bb[QueensIndex];
+    public ulong BlackKing => bb[BlackIndex] & bb[KingsIndex];
+    public ulong Black => bb[BlackIndex];
 
     public byte EnPassant { get; private set; } = 0;
     public CastlingRights CastlingRights { get; private set; } = CastlingRights.All;
 
     public ulong Checkmask { get; private set; } = ulong.MaxValue;
-    public Vector256<ulong> Pinmasks { get; private set; } = Vector256<ulong>.Zero;
+    public PinData Pinmasks = new PinData();
     public bool IsPinned { get; private set; } = false;
 
     public byte CheckerCount { get; private set; } = 0;
 
     public ulong AttackMask = Bitboards.Masks.Rank_3;
     public ulong BlackAttacks = Bitboards.Masks.Rank_6;
-
-    public ulong this[byte index]
-    {
-        get => index switch
-        {
-            1 => White,
-            2 => Black,
-            0x11 => WhitePawns,
-            0x12 => WhiteKnights,
-            0x13 => WhiteBishops,
-            0x14 => WhiteRooks,
-            0x15 => WhiteQueens,
-            0x16 => WhiteKing,
-            0x21 => BlackPawns,
-            0x22 => BlackKnights,
-            0x23 => BlackBishops,
-            0x24 => BlackRooks,
-            0x25 => BlackQueens,
-            0x26 => BlackKing,
-            0xfe => Black,
-            0xfd => White,
-            _ => Empty
-        };
-        set
-        {
-            switch (index)
-            {
-                case 1: White = value; break;
-                case 2: Black = value; break;
-                case 0x11: WhitePawns = value; break;
-                case 0x12: WhiteKnights = value; break;
-                case 0x13: WhiteBishops = value; break;
-                case 0x14: WhiteRooks = value; break;
-                case 0x15: WhiteQueens = value; break;
-                case 0x16: WhiteKing = value; break;
-                case 0x21: BlackPawns = value; break;
-                case 0x22: BlackKnights = value; break;
-                case 0x23: BlackBishops = value; break;
-                case 0x24: BlackRooks = value; break;
-                case 0x25: BlackQueens = value; break;
-                case 0x26: BlackKing = value; break;
-                case 0xfe: Black = value; break;
-                case 0xfd: White = value; break;
-                default: throw new NotImplementedException();
-            }
-        }
-    }
-
     public ulong this[Piece piece]
     {
-        get => this[(byte)piece];
-        set => this[(byte)piece] = value;
+        get => bb[(byte)((byte)piece >> 4), (byte)piece & 0xf];
+        set => bb[(byte)((byte)piece >> 4), (byte)piece & 0xf] = value;
     }
     public ulong this[Colors color]
     {
-        get => this[(byte)color];
-        set => this[(byte)color] = value;
+        get => bb[(byte)color];
+        set => bb[(byte)color] = value;
     }
     public ulong this[Colors color, PieceType pieceType]
     {
-        get => this[(byte)((byte)color << 4 | (byte)pieceType)];
-        set => this[(byte)((byte)color << 4 | (byte)pieceType)] = value;
+        get => bb[(byte)color, (byte)pieceType];
+        set => bb[(byte)color, (byte)pieceType] = value;
     }
 
     public ulong this[PieceType pieceType]
     {
-        get => this[(byte)((byte)CurrentPlayer << 4 | (byte)pieceType)];
-        set => this[(byte)((byte)CurrentPlayer << 4 | (byte)pieceType)] = value;
+        get => bb[(byte)CurrentPlayer, (byte)pieceType];
+        set => bb[(byte)CurrentPlayer, (byte)pieceType] = value;
     }
 
     public ulong Occupied => White | Black;
-    public ulong Empty => ~(White | Black);
+    public ulong Empty => ~Occupied;
     public ulong Hash = Hashes.Default;
     public bool IsCheck => Checkmask != ulong.MaxValue;
 
@@ -117,32 +95,29 @@ public sealed class MutablePosition
 
     public void Move(ref readonly Move m)
     {
-        var oponent = CurrentPlayer == Colors.White
-            ? Colors.Black
-            : Colors.White;
+        var oponent = Enemy(CurrentPlayer);
 
         Diffs[plyfromRoot] = new DiffData(
            Hash, CastlingRights, EnPassant
         );
 
-        this[m.FromPiece] ^= m.FromSquare | m.ToSquare;
-        this[CurrentPlayer] ^= m.FromSquare | m.ToSquare;
+        bb[(int)Colors.White * m.Color, (int)m.FromPieceType] ^= m.FromSquare | m.ToSquare;
 
         if (m.CastleFlag != CastlingRights.None)
         {
             var rookmask = m.CaptureSquare | m.CastleSquare;
-            this[CurrentPlayer, m.CapturePieceType] ^= rookmask;
-            this[CurrentPlayer] ^= rookmask;
+            bb[(int)m.CapturePieceType] ^= rookmask;
+            bb[(int)CurrentPlayer] ^= rookmask;
         }
         else if (m.CapturePieceType != PieceType.None)
         {
-            this[m.CapturePiece] ^= m.CaptureSquare;
-            this[oponent] ^= m.CaptureSquare;
+            bb[(int)m.CapturePieceType] ^= m.CaptureSquare;
+            bb[(int)oponent] ^= m.CaptureSquare;
         }
 
         if (m.PromotionPieceType != PieceType.None)
         {
-            var promoteIndex = m.PromotionPiece;
+            var promoteIndex = m.PromotionPieceType;
             this[promoteIndex] ^= m.ToSquare;
             this[m.FromPiece] ^= m.ToSquare;
         }
@@ -165,7 +140,7 @@ public sealed class MutablePosition
 
         AttackMask = CreateEnemyAttackMask(oponent);
         (Checkmask, CheckerCount) = CreateCheckMask(oponent);
-        (IsPinned, Pinmasks) = CreatePinmasks(oponent);
+        IsPinned = CreatePinmasks(oponent);
 
         CurrentPlayer = oponent;
         plyfromRoot++;
@@ -176,24 +151,20 @@ public sealed class MutablePosition
     {
         plyfromRoot--;
 
-        var (us, oponent) = CurrentPlayer == Colors.White
-                    ? (Colors.Black, Colors.White)
-                    : (Colors.White, Colors.Black);
+        var (us, oponent) = (Enemy(CurrentPlayer), CurrentPlayer);
 
-
-        this[m.FromPiece] ^= m.FromSquare | m.ToSquare;
-        this[us] ^= m.FromSquare | m.ToSquare;
+        bb[(int)us, (int)m.FromPieceType] ^= m.FromSquare | m.ToSquare;
 
         if (m.CastleFlag != CastlingRights.None)
         {
             var rookmask = m.CaptureSquare | m.CastleSquare;
-            this[us, m.CapturePieceType] ^= rookmask;
-            this[us] ^= rookmask;
+            bb[(int)m.CapturePieceType] ^= rookmask;
+            bb[(int)us] ^= rookmask;
         }
         else if (m.CapturePieceType != PieceType.None)
         {
-            this[m.CapturePiece] ^= m.CaptureSquare;
-            this[oponent] ^= m.CaptureSquare;
+            bb[(int)m.CapturePieceType] ^= m.CaptureSquare;
+            bb[(int)oponent] ^= m.CaptureSquare;
         }
 
         if (m.PromotionPieceType != PieceType.None)
@@ -208,7 +179,7 @@ public sealed class MutablePosition
 
         AttackMask = CreateEnemyAttackMask(us);
         (Checkmask, CheckerCount) = CreateCheckMask(us);
-        (IsPinned, Pinmasks) = CreatePinmasks(us);
+        IsPinned = CreatePinmasks(us);
 
         CurrentPlayer = us;
     }
@@ -225,7 +196,7 @@ public sealed class MutablePosition
 
         AttackMask = CreateEnemyAttackMask(us);
         (Checkmask, CheckerCount) = CreateCheckMask(us);
-        (IsPinned, Pinmasks) = CreatePinmasks(us);
+        IsPinned = CreatePinmasks(us);
 
         Hash ^= Hashes.GetValue(Colors.White);
         Hash ^= Hashes.GetValue(EnPassant);
@@ -240,12 +211,11 @@ public sealed class MutablePosition
         CurrentPlayer = us;
         AttackMask = CreateEnemyAttackMask(us);
         (Checkmask, CheckerCount) = CreateCheckMask(us);
-        (IsPinned, Pinmasks) = CreatePinmasks(us);
+        IsPinned = CreatePinmasks(us);
 
         CastlingRights = Diffs[plyfromRoot].Castling;
         EnPassant = Diffs[plyfromRoot].EnPassant;
         Hash = Diffs[plyfromRoot].Hash;
-        
     }
 
     private CastlingRights ApplyCastlingRights(ref readonly Move m)
@@ -277,12 +247,12 @@ public sealed class MutablePosition
     {
         if (m.FromPieceType != PieceType.Pawn) return 0;
 
-        var from = 1ul << m.FromIndex;
-        var to = 1ul << m.ToIndex;
+        var from = m.FromSquare;
+        var to = m.ToSquare;
 
         // Pawn moves leading to en passant has the en passant square
         // 1 square in front of the start and 1 square behind the target
-        var (rank2, rank4, ep, op) = m.Color == (byte)Colors.White
+        var (rank2, rank4, ep, op) = m.Color == ((byte)Colors.White & 1)
             ? (Bitboards.Masks.Rank_2, Bitboards.Masks.Rank_4, (from << 8) & (to >> 8), BlackPawns)
             : (Bitboards.Masks.Rank_7, Bitboards.Masks.Rank_5, (from >> 8) & (to << 8), WhitePawns);
 
@@ -297,7 +267,116 @@ public sealed class MutablePosition
         return FromReadOnly(Position.FromFen(fen));
     }
 
-    internal (bool, Vector256<ulong>) CreatePinmasks(Colors color)
+    public bool CreatePinmasks(Colors color)
+    {
+        bool isPinned = false;
+        byte king = Squares.ToIndex(color == Colors.White ? WhiteKing : BlackKing);
+        var enemy = Enemy(color);
+
+        var enemyRooks = bb[(int)enemy, RooksIndex] | bb[(int)enemy, QueensIndex];
+
+        var rank = Bitboards.Masks.GetRank(king);
+        var file = Bitboards.Masks.GetFile(king);
+
+        var epTargetSquare = (color == Colors.White)
+            ? EnPassant - 8
+            : EnPassant + 8;
+
+        Pinmasks = new PinData();
+
+        while (enemyRooks != 0)
+        {
+            var sq = Bitboards.PopLsb(ref enemyRooks);
+            var attack = MovePatterns.SquaresBetween[king][sq];
+
+            if (EnPassant != 0)
+            {
+                attack ^= Squares.FromIndex(epTargetSquare);
+            }
+
+            if (Bitboards.CountOccupied(attack & this[color]) == 1
+                && Bitboards.CountOccupied(attack & this[enemy]) == 1)
+            {
+                if ((attack & rank) != 0)
+                {
+                    Pinmasks[0] |= attack;
+                    isPinned = true;
+                }
+                else if ((attack & file) != 0)
+                {
+                    Pinmasks[1] |= attack;
+                    isPinned = true;
+                }
+            }
+        }
+
+        var enemyBishops = bb[(int)enemy, BishopsIndex] | bb[(int)enemy, QueensIndex];
+
+        var diagonal = Bitboards.Masks.GetDiagonal(king);
+        var antiDiagonal = Bitboards.Masks.GetAntiadiagonal(king);
+
+        while (enemyBishops != 0)
+        {
+            var sq = Bitboards.PopLsb(ref enemyBishops);
+            var attack = MovePatterns.SquaresBetween[king][sq];
+
+            if (Bitboards.CountOccupied(attack & this[color]) == 1
+                && Bitboards.CountOccupied(attack & this[enemy]) == 1)
+            {
+                if ((attack & diagonal) != 0)
+                {
+                    Pinmasks[3] |= attack;
+                    isPinned = true;
+                }
+                else if ((attack & antiDiagonal) != 0)
+                {
+                    Pinmasks[2] |= attack;
+                    isPinned = true;
+                }
+            }
+        }
+
+
+        return isPinned;
+    }
+
+    internal (ulong, byte) CreateCheckMask(Colors color)
+    {
+        ulong checkmask = 0;
+        byte countCheckers = 0;
+
+        Colors opponentColor = Utils.Enemy(color);
+        ulong bbKing = color == Colors.White ? WhiteKing : BlackKing;
+        if ((AttackMask & bbKing) == 0) return (ulong.MaxValue, 0);
+
+        byte king = Squares.ToIndex(bbKing);
+
+        // king can never check
+        for (int i = 1; i < 6; i++)
+        {
+            var pieceBitboard = this[opponentColor, (PieceType)i];
+            while (pieceBitboard != 0)
+            {
+                var piece = Bitboards.PopLsb(ref pieceBitboard);
+                var checker = Squares.FromIndex(piece);
+
+                var squares = MovePatterns.SquaresBetween[piece][king];
+                var attacks = MovePatterns.GetAttack((Piece)((int)opponentColor << 4 | i), checker, Empty);
+
+                var pieceCheckmask = attacks & squares;
+
+                if ((pieceCheckmask & (1ul << king)) != 0)
+                {
+                    checkmask |= pieceCheckmask | checker;
+                    countCheckers++;
+                }
+            }
+        }
+
+        return (countCheckers > 0 ? checkmask : ulong.MaxValue, countCheckers);
+    }
+
+    public (bool, Vector256<ulong>) CreatePinmasksOld(Colors color)
     {
         bool isPinned = false;
         byte king = Squares.ToIndex(color == Colors.White ? WhiteKing : BlackKing);
@@ -340,44 +419,7 @@ public sealed class MutablePosition
             }
         }
 
-        return (isPinned, Vector256.Create(pinmasks[0], pinmasks[1], pinmasks[2], pinmasks[3]));
-    }
-
-    internal (ulong, byte) CreateCheckMask(Colors color)
-    {
-        ulong checkmask = 0;
-        byte countCheckers = 0;
-
-        int opponentColor = color == Colors.White ? 0x20 : 0x10;
-        ulong bbKing = color == Colors.White ? WhiteKing : BlackKing;
-        if ((AttackMask & bbKing) == 0) return (ulong.MaxValue, 0);
-
-        byte king = Squares.ToIndex(bbKing);
-
-        // king can never check
-        for (int i = 1; i < 6; i++)
-        {
-            var pieceType = (Piece)(opponentColor + i);
-            var pieceBitboard = this[pieceType];
-            while (pieceBitboard != 0)
-            {
-                var piece = Bitboards.PopLsb(ref pieceBitboard);
-                var checker = Squares.FromIndex(piece);
-
-                var squares = MovePatterns.SquaresBetween[piece][king];
-                var attacks = MovePatterns.GetAttack(pieceType, checker, Empty);
-
-                var pieceCheckmask = attacks & squares;
-
-                if ((pieceCheckmask & (1ul << king)) != 0)
-                {
-                    checkmask |= pieceCheckmask | checker;
-                    countCheckers++;
-                }
-            }
-        }
-
-        return (countCheckers > 0 ? checkmask : ulong.MaxValue, countCheckers);
+        return (isPinned, Vector256.LoadUnsafe(ref pinmasks[0]));
     }
 
 
@@ -460,22 +502,20 @@ public sealed class MutablePosition
 
     public Piece GetOccupant(ref readonly byte attack)
     {
-        Piece piece = Piece.None;
-        byte colorOffset;
+        Colors color;
 
         var square = Squares.FromIndex(attack);
 
-        if ((White & square) != 0) colorOffset = 0x10;
-        else if ((Black & square) != 0) colorOffset = 0x20;
-        else return piece;
+        if ((White & square) != 0) color = Colors.White;
+        else if ((Black & square) != 0) color = Colors.Black;
+        else return Piece.None;
 
-        for (var i = 0; i <= 6; i++)
+        // Find the piece type
+        for (var pieceType = PieceType.Pawn; pieceType <= PieceType.King; pieceType++)
         {
-            piece = (Piece)(colorOffset + i);
-            if ((this[piece] & square) != 0) break;
+            if ((bb[(int)pieceType] & square) != 0) return GetPiece(color, pieceType);
         }
-
-        return piece;
+        throw new InvalidOperationException($"{Squares.CoordinateFromIndex(attack)} is {color}, but missing in piece bitboards");
     }
 
     public Span<Move> GenerateLegalMoves(Piece pieceType)
@@ -535,7 +575,7 @@ public sealed class MutablePosition
 
             CheckerCount = CheckerCount,
             Checkmask = Checkmask,
-            Pinmasks = Pinmasks,
+            Pinmasks = (Vector256<ulong>)Pinmasks,
             IsPinned = IsPinned,
             CurrentPlayer = CurrentPlayer,
         };
@@ -545,31 +585,25 @@ public sealed class MutablePosition
     {
         var mutable = new MutablePosition
         {
-            WhitePawns = pos.WhitePawns,
-            WhiteKnights = pos.WhiteKnights,
-            WhiteBishops = pos.WhiteBishops,
-            WhiteRooks = pos.WhiteRooks,
-            WhiteQueens = pos.WhiteQueens,
-            WhiteKing = pos.WhiteKing,
-            White = pos.White,
-
-            BlackPawns = pos.BlackPawns,
-            BlackKnights = pos.BlackKnights,
-            BlackBishops = pos.BlackBishops,
-            BlackRooks = pos.BlackRooks,
-            BlackQueens = pos.BlackQueens,
-            BlackKing = pos.BlackKing,
-            Black = pos.Black,
-
             CastlingRights = pos.CastlingRights,
             EnPassant = pos.EnPassant,
             CurrentPlayer = pos.CurrentPlayer,
             CheckerCount = pos.CheckerCount,
             Checkmask = pos.Checkmask,
-            Pinmasks = pos.Pinmasks,
+            Pinmasks = new PinData(pos.Pinmasks),
             IsPinned = pos.IsPinned,
             Hash = pos.Hash
         };
+
+        mutable.bb[BlackIndex] = pos.Black;
+        mutable.bb[PawnIndex] = pos.WhitePawns | pos.BlackPawns;
+        mutable.bb[KnightsIndex] = pos.WhiteKnights | pos.BlackKnights;
+        mutable.bb[BishopsIndex] = pos.WhiteBishops | pos.BlackBishops;
+        mutable.bb[RooksIndex] = pos.WhiteRooks | pos.BlackRooks;
+        mutable.bb[QueensIndex] = pos.WhiteQueens | pos.BlackQueens;
+        mutable.bb[KingsIndex] = pos.WhiteKing | pos.BlackKing;
+        mutable.bb[WhiteIndex] = pos.White;
+
         mutable.AttackMask = mutable.CreateEnemyAttackMask(mutable.CurrentPlayer);
         return mutable;
     }
@@ -596,5 +630,53 @@ public sealed class MutablePosition
         public readonly ulong Hash = hash;
         public readonly CastlingRights Castling = castle;
         public readonly byte EnPassant = ep;
+    }
+
+    [InlineArray(8)]
+    private struct DenseBitboards
+    {
+        private ulong _element0;
+
+        public ulong this[int i]
+        {
+            readonly get => this[i];
+            set => this[i] = value;
+        }
+
+        public ulong this[int color, int piece]
+        {
+            readonly get => this[color] & this[piece];
+            set
+            {
+                var mask = (this[color] & this[piece]) ^ value;
+                this[color] ^= mask;
+                this[piece] ^= mask;
+            }
+        }
+    }
+
+    [InlineArray(4)]
+    public struct PinData
+    {
+        private ulong _element0;
+
+        public ulong this[int i]
+        {
+            readonly get => this[i];
+            set => this[i] = value;
+        }
+
+        public PinData()
+        {
+        }
+        internal PinData(Vector256<ulong> v)
+        {
+            v.StoreUnsafe(ref _element0);
+        }
+
+        public static explicit operator Vector256<ulong>(PinData p)
+        {
+            return Vector256.LoadUnsafe(ref p[0]);
+        }
     }
 }

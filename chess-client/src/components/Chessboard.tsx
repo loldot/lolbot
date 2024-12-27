@@ -168,6 +168,12 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
         e.preventDefault();
     };
 
+    const serverUndoMove = (e : Event)=>{
+        connection.send('undo', { "gameId": seq });
+
+        e.preventDefault();
+    }
+
     const highlightColor = (id: string) => {
         if (highlight.includes(id))
             return 'red';
@@ -209,6 +215,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
             <button onClick={() => undoMove()} disabled={!canMoveBackwards} >Back</button>
             <button onClick={() => doMove()} disabled={!canMoveForward} >Next</button>
             <button onClick={() => sendDebug()}  >Debug</button>
+            <button onClick={() => serverUndoMove()}  >ServerUndo</button>
             <button onClick={() => alert(legalMoves.join(", "))}  >PrintLegal</button>
             <hr />
 

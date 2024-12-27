@@ -5,12 +5,12 @@ namespace Lolbot.Tests;
 [Category(TestSuites.Fast)]
 public class TrickyPosition
 {
-    private readonly Position position;
+    private readonly MutablePosition position;
     private readonly Move[] moves;
 
     public TrickyPosition()
     {
-        position = Position.FromFen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
+        position = MutablePosition.FromFen("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8");
         moves = position.GenerateLegalMoves().ToArray();
     }
 

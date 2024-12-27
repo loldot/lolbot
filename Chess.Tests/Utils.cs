@@ -1,4 +1,3 @@
-using System.Collections.Specialized;
 using System.Runtime.Intrinsics.X86;
 using Lolbot.Core;
 
@@ -6,7 +5,6 @@ namespace Lolbot.Tests;
 
 public class Utilities
 {
-    [TestCase(Piece.None, Colors.None)]
     [TestCase(Piece.WhitePawn, Colors.White)]
     [TestCase(Piece.WhiteKnight, Colors.White)]
     [TestCase(Piece.WhiteBishop, Colors.White)]
@@ -44,7 +42,7 @@ public class Utilities
     [TestCase(Colors.White, 33, ExpectedResult = 0x707070200000000ul)]
     public ulong PassedPawnMasks(Colors color, byte index)
     {
-        return MovePatterns.PassedPawnMasks[(int)color][index];
+        return MovePatterns.PassedPawnMasks[(int)color & 1][index];
     }
 
     [Test]
