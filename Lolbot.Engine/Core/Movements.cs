@@ -143,18 +143,18 @@ public static class MovePatterns
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong BishopAttacks(byte square, ref ulong occupied)
+    public static ulong BishopAttacks(byte square, ref readonly ulong occupied)
     {
         var index = BishopPextIndex[square]
-            + Bitboards.Pext(ref occupied, ref BishopPextMask[square]);
+            + Bitboards.Pext(in occupied, ref BishopPextMask[square]);
         return PextTable[index];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ulong RookAttacks(byte square, ref ulong occupied)
+    public static ulong RookAttacks(byte square, ref readonly ulong occupied)
     {
         var index = RookPextIndex[square]
-            + Bitboards.Pext(ref occupied, ref RookPextMask[square]);
+            + Bitboards.Pext(in occupied, ref RookPextMask[square]);
         return PextTable[index];
     }
 

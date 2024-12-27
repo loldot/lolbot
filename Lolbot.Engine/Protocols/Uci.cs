@@ -32,7 +32,7 @@ public class Uci
     {
         var fen = new FenSerializer().ToFenString(game.CurrentPosition.AsReadOnly());
 
-        Search.StaticEvaluation(game.CurrentPosition, debug: true);
+        Heuristics.StaticEvaluation(game.CurrentPosition, debug: true);
 
         Console.WriteLine();
         Console.WriteLine(fen);

@@ -75,7 +75,7 @@ public static class Bitboards
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ulong Pext(ref ulong bitboard, ref ulong mask)
+    internal static ulong Pext(ref readonly ulong bitboard, ref ulong mask)
     {
         return Bmi2.X64.ParallelBitExtract(bitboard, mask);
     }

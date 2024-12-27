@@ -1,10 +1,8 @@
-using System.Diagnostics;
 using static Lolbot.Core.Utils;
 namespace Lolbot.Core;
 
 public class MoveGenerator2
 {
-
     public static int Legal(MutablePosition position, ref Span<Move> moves)
     {
         var count = 0;
@@ -104,7 +102,7 @@ public class MoveGenerator2
         AddSlider<TMove>(ref piece, position, ref moves, bishops, MovePatterns.BishopAttacks, ref count, ref attackmask);
     }
 
-    private delegate ulong SligerGen(byte sq, ref ulong bitboard);
+    private delegate ulong SligerGen(byte sq, ref readonly ulong bitboard);
 
     private static void AddSlider<TMove>(
         ref Piece piece,

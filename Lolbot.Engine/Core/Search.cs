@@ -15,7 +15,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     private readonly MutablePosition rootPosition = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
 
-    private Move[] Killers = new Move[2 * Max_Depth];
+    private readonly Move[] Killers = new Move[2 * Max_Depth];
     private int rootScore = -Inf;
 
     private int nodes = 0;
@@ -206,7 +206,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         if (!TNode.IsPv && !position.IsCheck)
         {
-            var eval = StaticEvaluation(position);
+            var eval = Heuristics.StaticEvaluation(position);
             var margin = 117 * depth;
 
             if (depth <= 5 && eval - margin >= beta) return eval - margin;
@@ -228,7 +228,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         int i = 0;
         Span<Move> moves = stackalloc Move[256];
-        var movepicker = new MovePicker(ref Killers, ref historyHeuristic, ref moves, position, ttMove, ply);
+        var movepicker = new MovePicker(in Killers, ref historyHeuristic, ref moves, position, ttMove, ply);
         var move = movepicker.SelectMove(i);
 
         if (move.IsNull) return position.IsCheck ? -mateValue : 0;
@@ -302,12 +302,12 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         Span<Move> moves = stackalloc Move[256];
 
-        var standPat = StaticEvaluation(position);
+        var standPat = Heuristics.StaticEvaluation(position);
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;
 
-        var movepicker = new MovePicker(ref Killers, ref historyHeuristic, ref moves, position, Move.Null, 0);
+        var movepicker = new MovePicker(in Killers, ref historyHeuristic, ref moves, position, Move.Null, 0);
 
         while ((move = movepicker.PickCapture(i++)) != Move.Null)
         {
@@ -332,77 +332,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         qnodes += i;
 
         return alpha;
-    }
-
-    public static int StaticEvaluation(MutablePosition position, bool debug = false)
-    {
-        var whitePawns = Bitboards.CountOccupied(position.WhitePawns);
-        var whiteKnigts = Bitboards.CountOccupied(position.WhiteKnights);
-        var whiteBishops = Bitboards.CountOccupied(position.WhiteBishops);
-        var whiteRooks = Bitboards.CountOccupied(position.WhiteRooks);
-        var whiteQueens = Bitboards.CountOccupied(position.WhiteQueens);
-
-        var whitePieceMaterial
-            = whiteKnigts * Heuristics.KnightValue
-            + whiteBishops * Heuristics.BishopValue
-            + whiteRooks * Heuristics.RookValue
-            + whiteQueens * Heuristics.QueenValue;
-
-        var blackPawns = Bitboards.CountOccupied(position.BlackPawns);
-        var blackKnigts = Bitboards.CountOccupied(position.BlackKnights);
-        var blackBishops = Bitboards.CountOccupied(position.BlackBishops);
-        var blackRooks = Bitboards.CountOccupied(position.BlackRooks);
-        var blackQueens = Bitboards.CountOccupied(position.BlackQueens);
-
-        var blackPieceMaterial
-            = blackKnigts * Heuristics.KnightValue
-            + blackBishops * Heuristics.BishopValue
-            + blackRooks * Heuristics.RookValue
-            + blackQueens * Heuristics.QueenValue;
-
-        var phase = (Heuristics.StartMaterialValue - whitePieceMaterial - blackPieceMaterial)
-            / Heuristics.StartMaterialValue;
-
-        if (debug) Console.WriteLine("Phase {0}", phase);
-
-        int eval = 0, middle = 0, end = 0;
-
-        eval += whitePieceMaterial + (whitePawns * Heuristics.PawnValue);
-        if (debug) Console.WriteLine("White material: {0}", whitePieceMaterial + (whitePawns * Heuristics.PawnValue));
-
-        eval -= blackPieceMaterial + (blackPawns * Heuristics.PawnValue);
-        if (debug) Console.WriteLine("White material: {0}", blackPieceMaterial + (blackPawns * Heuristics.PawnValue));
-
-        for (Piece i = Piece.WhitePawn; i < Piece.WhiteKing; i++)
-        {
-            var (mgw, egw) = Heuristics.GetPieceValue(i, position[i]);
-
-            middle += mgw;
-            end += egw;
-        }
-
-        for (Piece i = Piece.BlackPawn; i < Piece.BlackKing; i++)
-        {
-            var (mgb, egb) = Heuristics.GetPieceValue(i, position[i]);
-            middle -= mgb;
-            end -= egb;
-        }
-
-        middle += Heuristics.KingSafety(position, Colors.White);
-        middle -= Heuristics.KingSafety(position, Colors.Black);
-
-        var color = position.CurrentPlayer == Colors.White ? 1 : -1;
-        eval = (int)float.Lerp(eval + middle, eval + end, phase);
-
-        if (position.IsCheck) eval -= color * 50;
-
-        eval += Heuristics.PawnStructure(position.WhitePawns, position.BlackPawns, Colors.White);
-        eval -= Heuristics.PawnStructure(position.BlackPawns, position.WhitePawns, Colors.Black);
-
-        eval += Heuristics.Mobility(position, Colors.White);
-        eval -= Heuristics.Mobility(position, Colors.Black);
-
-        return color * eval;
     }
 
     private ref readonly Move SelectMove(ref Span<Move> moves, in Move currentBest, in int k, int ply)
