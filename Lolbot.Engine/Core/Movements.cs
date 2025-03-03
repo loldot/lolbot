@@ -109,7 +109,7 @@ public static class MovePatterns
             ulong max = 1UL << Bitboards.CountOccupied(mask);
             for (ulong j = 0; j < max; j++)
             {
-                var blockers = Bitboards.Pepd(j, mask);
+                var blockers = Bitboards.Pdep(j, mask);
                 PextTable[currentIndex++] = GenerateRookAttacks(sq, ~blockers);
             }
         }
@@ -125,7 +125,7 @@ public static class MovePatterns
             ulong max = 1UL << Bitboards.CountOccupied(mask);
             for (ulong j = 0; j < max; j++)
             {
-                var blockers = Bitboards.Pepd(j, mask);
+                var blockers = Bitboards.Pdep(j, mask);
                 PextTable[currentIndex++] = GenerateBishopAttacks(sq, ~blockers);
             }
         }

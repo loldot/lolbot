@@ -81,7 +81,7 @@ public static class Bitboards
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ulong Pepd(ulong bitboard, ulong mask)
+    internal static ulong Pdep(ulong bitboard, ulong mask)
     {
         return Bmi2.X64.ParallelBitDeposit(bitboard, mask);
     }
