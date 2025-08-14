@@ -82,7 +82,7 @@ public class Uci
             if (tokens[i] == "startpos" || tokens[i] == "moves") continue;
             else if (tokens[i] == "fen")
             {
-                Engine.FromPosition(string.Join(' ', tokens[(i + 1)..(i + 6)]));
+                game = Engine.FromPosition(string.Join(' ', tokens[(i + 1)..(i + 6)]));
                 i += 6;
             }
             else
@@ -149,6 +149,21 @@ public class Uci
     private void Unknown(string command)
     {
         Console.WriteLine($"Unknown command: {command}");
+
+        Help();
+    }
+
+    private void Help()
+    {
+        Console.WriteLine("Available commands:");
+        Console.WriteLine("  uci - Initialize the engine");
+        Console.WriteLine("  isready - Check if the engine is ready");
+        Console.WriteLine("  position <fen|startpos> <?moves <moves>> - Set the position from a FEN string");
+        Console.WriteLine("  go - Start searching for the best move");
+        Console.WriteLine("  perft <depth> - Run perft for the given depth");
+        Console.WriteLine("  ucinewgame - Reset the engine for a new game");
+        Console.WriteLine("  eval - Evaluate the current position");
+        Console.WriteLine("  quit - Exit the engine");
     }
 
     public static void PrintProgress(SearchProgress progress)
