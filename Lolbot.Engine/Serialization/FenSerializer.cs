@@ -2,40 +2,36 @@ using System.Runtime.Intrinsics;
 using System.Text;
 namespace Lolbot.Core;
 
-public class FenSerializer
+public static class FenSerializer
 {
-    public string ToFenString(Position p)
+    public static string ToFenString(MutablePosition p)
     {
         var sb = new StringBuilder(72);
         for (char rank = '8'; rank > '0'; rank--)
         {
             for (char file = 'a'; file <= 'h'; file++)
             {
-                var sq = Squares.FromCoordinates("" + file + rank);
+                var sq = Squares.IndexFromCoordinate("" + file + rank);
 
-                foreach (var piece in Enum.GetValues<Piece>())
+                Piece piece = p.GetOccupant(ref sq);
+
+                if (piece != Piece.None)
                 {
-                    if ((sq & p[piece]) != 0)
-                    {
-                        if (piece != Piece.None)
-                        {
-                            sb.Append(Utils.PieceName(piece));
-                            continue;
-                        }
-
-                        if (sb.Length > 0 && char.IsDigit(sb[^1])) sb[^1]++;
-                        else sb.Append('1');
-                    }
+                    sb.Append(Utils.PieceName(piece));
+                    continue;
                 }
+
+                if (sb.Length > 0 && char.IsDigit(sb[^1])) sb[^1]++;
+                else sb.Append('1');
             }
             sb.Append('/');
         }
         return sb.ToString();
     }
 
-    public Position Parse(string fenString)
+    public static MutablePosition Parse(string fenString)
     {
-        var position = Position.EmptyBoard;
+        var position = MutablePosition.EmptyBoard;
 
         if (string.IsNullOrEmpty(fenString)) return position;
 
@@ -51,9 +47,7 @@ public class FenSerializer
             if ("pnbrqk".Contains(token, StringComparison.OrdinalIgnoreCase))
             {
                 var piece = Utils.FromName(token);
-                var bitboard = position[piece] | Squares.FromCoordinates($"{file}{rank}");
-
-                position = position.Update(piece, bitboard);
+                position[piece] = position[piece] | Squares.FromCoordinates($"{file}{rank}");
                 file++;
             }
 
@@ -63,34 +57,15 @@ public class FenSerializer
         var metaTokens = fenString[(i + 1)..].Split(' ');
         var currentPlayer = metaTokens[0] == "w" ? Colors.White : Colors.Black;
 
-        var white = Bitboards.Create(position.WhitePawns, position.WhiteRooks, position.WhiteKnights, position.WhiteBishops, position.WhiteQueens, position.WhiteKing);
-        var black = Bitboards.Create(position.BlackPawns, position.BlackRooks, position.BlackKnights, position.BlackBishops, position.BlackQueens, position.BlackKing);
-        var occupied = Bitboards.Create(white, black);
+        position.EnPassant = ParseEnPassantSquare(metaTokens[2]);
+        position.CastlingRights = ParseCastlingRights(metaTokens[1]);
+        position.CurrentPlayer = currentPlayer;
 
+        position.InitMasks();
 
+        position.Hash = Hashes.New(position);
 
-        position = position with
-        {
-            CurrentPlayer = currentPlayer,
-
-            White = white,
-            Black = black,
-            Occupied = occupied,
-            Empty = ~occupied,
-            CastlingRights = ParseCastlingRights(metaTokens[1]),
-            EnPassant = ParseEnPassantSquare(metaTokens[2]),
-        };
-        var (checkmask, checkers) = position.CreateCheckMask(currentPlayer);
-
-        var (isPinned, pinmasks) = position.CreatePinmasks(currentPlayer);
-        return position with
-        {
-            CheckerCount = checkers,
-            Checkmask = checkmask,
-            Pinmasks = isPinned ? pinmasks : Vector256<ulong>.Zero,
-            IsPinned = isPinned,
-            Hash = Hashes.New(position)
-        };
+        return position;
     }
 
     private static byte ParseEnPassantSquare(string epSquare)

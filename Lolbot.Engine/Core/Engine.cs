@@ -18,11 +18,11 @@ public static class Engine
         Console.WriteLine("info " + MovePatterns.PextTable.Length);
     }
 
-    public static Game NewGame() => new Game(new Position());
+    public static Game NewGame() => new Game(new MutablePosition());
 
     public static Game FromPosition(string fenstring)
     {
-        return new Game(Position.FromFen(fenstring));
+        return new Game(MutablePosition.FromFen(fenstring));
     }
 
     public static void Move(Game game, string from, string to)
@@ -53,8 +53,8 @@ public static class Engine
     public static void Move(Game game, Square from, Square to, char promotionPiece)
     {
         var move = game.GenerateLegalMoves()
-            .FirstOrDefault(x => 
-                x.FromIndex == Squares.ToIndex(from) 
+            .FirstOrDefault(x =>
+                x.FromIndex == Squares.ToIndex(from)
             && x.ToIndex == Squares.ToIndex(to)
             && x.PromotionPieceType == Utils.GetPieceType(promotionPiece));
 
@@ -75,100 +75,10 @@ public static class Engine
         return color * eval;
     }
 
-    public static int Perft(in Position position, int remainingDepth = 4, int split = 0)
-    {
-        Span<Move> moves = stackalloc Move[218];
-        var currentCount = MoveGenerator.Legal(in position, ref moves);
-        var count = 0;
-
-        if (remainingDepth == 1) return currentCount;
-
-        for (int i = 0; i < currentCount; i++)
-        {
-            var posCount = Perft(position.Move(moves[i]), remainingDepth - 1);
-            if (remainingDepth == split) Console.WriteLine($"{moves[i]}: {posCount}");
-            count += posCount;
-        }
-        return count;
-    }
-
-    public static int PerftDiff(in Position position, MutablePosition position2, int remainingDepth = 4, int split = 0)
-    {
-        Span<Move> moves1 = stackalloc Move[218];
-        Span<Move> moves2 = stackalloc Move[218];
-
-        var currentCount = MoveGenerator.Legal(in position, ref moves1);
-        var currentCount2 = MoveGenerator2.Legal(position2, ref moves2);
-
-        var count = 0;
-        if (currentCount != currentCount2)
-        {
-            var diff1 = moves1.ToArray().Except(moves2.ToArray());
-            var diff2 = moves2.ToArray().Except(moves1.ToArray());
-
-            Console.WriteLine("Err: pos1");
-            Console.WriteLine(position);
-            Console.WriteLine(position.EnPassant);
-            Console.WriteLine(position.CastlingRights);
-            Console.WriteLine(position.IsCheck);
-            Console.WriteLine(position.IsPinned);
-
-            Console.WriteLine();
-            Console.WriteLine("Err: pos2");
-            Console.WriteLine();
-            Console.WriteLine(position2);
-            Console.WriteLine(position2.EnPassant);
-            Console.WriteLine(position2.CastlingRights);
-            Console.WriteLine(position2.IsCheck);
-            Console.WriteLine(position2.IsPinned);
-
-            foreach (var m in diff1)
-            {
-                Console.WriteLine(m);
-            }
-            Console.WriteLine();
-            foreach (var m in diff2)
-            {
-                Console.WriteLine(m);
-            }
-
-            throw new Exception("err in pos");
-        }
-
-        if (remainingDepth == 1) return currentCount2;
-
-        for (int i = 0; i < currentCount; i++)
-        {
-            position2.Move(in moves1[i]);
-            var posCount = PerftDiff(position.Move(moves1[i]), position2, remainingDepth - 1);
-            position2.Undo(in moves1[i]);
-
-            // if (position.Hash != position2.Hash)
-            // {
-            //     Console.WriteLine("Err: pos1");
-            //     Console.WriteLine(position);
-            //     Console.WriteLine(position.EnPassant);
-            //     Console.WriteLine(position.CastlingRights);
-            //     Console.WriteLine(position.IsCheck);
-            //     Console.WriteLine(position.IsPinned);
-
-            //     Console.WriteLine();
-            //     Console.WriteLine("Err: pos2");
-            //     Console.WriteLine();
-            //     Console.WriteLine(position2);
-            //     Console.WriteLine(position2.EnPassant);
-            //     Console.WriteLine(position2.CastlingRights);
-            //     Console.WriteLine(position2.IsCheck);
-            //     Console.WriteLine(position2.IsPinned);
-            // }
-            count += posCount;
-        }
-        return count;
-    }
     public static int Perft2(MutablePosition position, int remainingDepth = 4, int split = 0)
     {
         Span<Move> moves = stackalloc Move[218];
-        var currentCount = MoveGenerator2.Legal(position, ref moves);
+        var currentCount = MoveGenerator.Legal(position, ref moves);
         var count = 0;
 
         if (remainingDepth == 1) return currentCount;

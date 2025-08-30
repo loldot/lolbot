@@ -117,7 +117,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
 
         Span<Move> moves = stackalloc Move[256];
-        var count = MoveGenerator2.Legal(rootPosition, ref moves);
+        var count = MoveGenerator.Legal(rootPosition, ref moves);
         moves = moves[..count];
 
         currentBest = currentBest.IsNull ? ttMove : currentBest;

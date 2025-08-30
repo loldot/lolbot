@@ -1,4 +1,3 @@
-using System.Data;
 using System.Text.RegularExpressions;
 
 namespace Lolbot.Core;
@@ -30,7 +29,7 @@ public class Uci
 
     private void Evaluate()
     {
-        var fen = new FenSerializer().ToFenString(game.CurrentPosition.AsReadOnly());
+        var fen = FenSerializer.ToFenString(game.CurrentPosition);
 
         Heuristics.StaticEvaluation(game.CurrentPosition, debug: true);
 

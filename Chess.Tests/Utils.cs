@@ -25,7 +25,7 @@ public class Utilities
     [Test]
     public void Test()
     {
-        var position = new Position();
+        var position = new MutablePosition();
         var fromBlack = Bitboards.FlipAlongVertical(position.BlackPawns);
 
         fromBlack.Should().Be(position.WhitePawns);

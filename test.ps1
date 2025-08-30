@@ -36,8 +36,8 @@ Push-Location "C:\Program Files (x86)\Cute Chess"
     -games 2 `
     -repeat 2 `
     -recover `
-    -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 `
-    -debug
+    -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 #`
+    #-debug
 
 Pop-Location
 Pop-Location

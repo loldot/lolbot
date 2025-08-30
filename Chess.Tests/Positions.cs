@@ -8,15 +8,14 @@ public class Positions
     [Test]
     public void To_FEN_String()
     {
-        var fen = new FenSerializer();
-        fen.ToFenString(new Position())
+        FenSerializer.ToFenString(new MutablePosition())
             .Should().StartWith("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
     }
 
     [Test]
     public void FromArray_Should_Set_A1_Squares()
     {
-        var a1 = Bitboards.Create((int[])([
+        var a1 = Bitboards.Create([
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
@@ -25,7 +24,7 @@ public class Positions
             0,0,0,0,0,0,0,0,
             0,0,0,0,0,0,0,0,
             1,0,0,0,0,0,0,0,
-        ]));
+        ]);
 
         a1.Should().Be(1);
     }
@@ -33,7 +32,7 @@ public class Positions
     [Test]
     public void FromArray_Should_Set_Squares()
     {
-        var occupiedAtStart = Bitboards.Create((int[])([
+        var occupiedAtStart = Bitboards.Create([
             1,1,1,1,1,1,1,1,
             1,1,1,1,1,1,1,1,
             0,0,0,0,0,0,0,0,
@@ -42,8 +41,8 @@ public class Positions
             0,0,0,0,0,0,0,0,
             1,1,1,1,1,1,1,1,
             1,1,1,1,1,1,1,1,
-        ]));
+        ]);
 
-        occupiedAtStart.Should().Be(new Position().Occupied);
+        occupiedAtStart.Should().Be(new MutablePosition().Occupied);
     }
 }

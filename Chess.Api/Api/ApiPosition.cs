@@ -2,7 +2,7 @@ namespace Lolbot.Core;
 
 public class ApiPosition : Dictionary<string, char>
 {
-    public ApiPosition(Position position)
+    public ApiPosition(MutablePosition position)
     {
         for (char file = 'a'; file <= 'h'; file++)
         {

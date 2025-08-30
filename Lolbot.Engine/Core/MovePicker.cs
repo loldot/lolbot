@@ -35,7 +35,7 @@ public ref struct MovePicker
         if (k == 0 && !ttMove.IsNull) return ttMove;
         if (!isGenerated)
         {
-            Count = MoveGenerator2.Legal(position, ref moves);
+            Count = MoveGenerator.Legal(position, ref moves);
             isGenerated = true;
 
             int index;
@@ -69,7 +69,7 @@ public ref struct MovePicker
     {
         if (!isGenerated)
         {
-            Count = MoveGenerator2.Captures(position, ref moves);
+            Count = MoveGenerator.Captures(position, ref moves);
             Span<int> scores = stackalloc int[Count];
             for (int i = 0; i < Count; i++)
             {
@@ -90,7 +90,7 @@ public ref struct MovePicker
 
         if (!isGenerated)
         {
-            Count = MoveGenerator2.Legal(position, ref moves);
+            Count = MoveGenerator.Legal(position, ref moves);
             Span<int> scores = stackalloc int[Count];
             for (int i = 0; i < Count; i++)
             {

@@ -217,7 +217,7 @@ public partial class Hashes
 
     public static readonly ulong Default = 0x463b96181691fc9c;
 
-    public static ulong New(Position position)
+    public static ulong New(MutablePosition position)
     {
         var pieces = Enum.GetValues<Piece>().Except([Piece.None]).ToArray();
         ulong zobrist = 0;

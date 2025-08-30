@@ -11,7 +11,7 @@ public class Knights
         var pos = MutablePosition.FromFen(fen);
 
         Span<Move> moves = new Move[255];
-        var count = MoveGenerator2.Captures(pos, ref moves);
+        var count = MoveGenerator.Captures(pos, ref moves);
 
         count.Should().Be(8);
     }

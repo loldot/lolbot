@@ -35,17 +35,17 @@ public class Checks
     [Test]
     public void Knight_Should_Not_Capture_Outside_Checkmask()
     {
-        var position = Position.FromFen("8/4k3/8/8/1Q2n3/6Q1/2KQ1Q2/8 b - - 0 1");
+        var position = MutablePosition.FromFen("8/4k3/8/8/1Q2n3/6Q1/2KQ1Q2/8 b - - 0 1");
         var moves = position
             .GenerateLegalMoves('n')
-            .ToArray(); ;
+            .ToArray();
         moves.Should().BeEquivalentTo([new Move('n', "e4", "c5"), new Move('n', "e4", "d6")]);
     }
 
     [Test]
     public void King_Cannot_Capture_Protected_Checker()
     {
-        var position = Position.FromFen("3rkr2/4pB2/8/4N3/8/8/8/8 b - - 0 1");
+        var position = MutablePosition.FromFen("3rkr2/4pB2/8/4N3/8/8/8/8 b - - 0 1");
         var moves = position
             .GenerateLegalMoves('k')
             .ToArray();

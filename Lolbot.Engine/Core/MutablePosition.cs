@@ -9,7 +9,7 @@ namespace Lolbot.Core;
 
 public sealed class MutablePosition
 {
-    public Colors CurrentPlayer { get; private set; } = Colors.White;
+    public Colors CurrentPlayer { get; internal set; } = Colors.White;
     public const int MaxDepth = 1024;
 
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
@@ -53,17 +53,17 @@ public sealed class MutablePosition
     public ulong BlackKing => bb[BlackIndex] & bb[KingsIndex];
     public ulong Black => bb[BlackIndex];
 
-    public byte EnPassant { get; private set; } = 0;
-    public CastlingRights CastlingRights { get; private set; } = CastlingRights.All;
+    public byte EnPassant { get; set; } = 0;
+    public CastlingRights CastlingRights { get; set; } = CastlingRights.All;
 
-    public ulong Checkmask { get; private set; } = ulong.MaxValue;
+    public ulong Checkmask { get; set; } = ulong.MaxValue;
     public PinData Pinmasks = new PinData();
-    public bool IsPinned { get; private set; } = false;
+    public bool IsPinned { get; set; } = false;
 
-    public byte CheckerCount { get; private set; } = 0;
+    public byte CheckerCount { get; set; } = 0;
 
     public ulong AttackMask = Bitboards.Masks.Rank_3;
-    public ulong BlackAttacks = Bitboards.Masks.Rank_6;
+    
     public ulong this[Piece piece]
     {
         get => bb[(byte)((byte)piece >> 4), (byte)piece & 0xf];
@@ -92,6 +92,14 @@ public sealed class MutablePosition
     public bool IsCheck => Checkmask != ulong.MaxValue;
 
     public bool IsEndgame => Occupied == (WhiteKing | WhitePawns | BlackKing | BlackPawns);
+
+    public static MutablePosition EmptyBoard => new()
+    {
+        bb = new DenseBitboards(),
+        CastlingRights = CastlingRights.All,
+        EnPassant = 0,
+        CurrentPlayer = Colors.White,
+    };
 
     public void Move(ref readonly Move m)
     {
@@ -258,13 +266,13 @@ public sealed class MutablePosition
 
         if ((from & rank2) == 0 || (to & rank4) == 0) return 0;
 
-        var adjacent = (to << 1 | to >> 1) & op;
+        var adjacent = rank4 & (to << 1 | to >> 1) & op;
         return adjacent == 0 ? (byte)0 : Squares.ToIndex(ep);
     }
 
     public static MutablePosition FromFen(string fen)
     {
-        return FromReadOnly(Position.FromFen(fen));
+        return FenSerializer.Parse(fen);
     }
 
     public bool CreatePinmasks(Colors color)
@@ -278,21 +286,12 @@ public sealed class MutablePosition
         var rank = Bitboards.Masks.GetRank(king);
         var file = Bitboards.Masks.GetFile(king);
 
-        var epTargetSquare = (color == Colors.White)
-            ? EnPassant - 8
-            : EnPassant + 8;
-
         Pinmasks = new PinData();
 
         while (enemyRooks != 0)
         {
             var sq = Bitboards.PopLsb(ref enemyRooks);
             var attack = MovePatterns.SquaresBetween[king][sq];
-
-            if (EnPassant != 0)
-            {
-                attack ^= Squares.FromIndex(epTargetSquare);
-            }
 
             if (Bitboards.CountOccupied(attack & this[color]) == 1
                 && Bitboards.CountOccupied(attack & this[enemy]) == 1)
@@ -459,6 +458,13 @@ public sealed class MutablePosition
             $"Checkmask: {Checkmask:X}";
     }
 
+    public void InitMasks()
+    {
+        AttackMask = CreateEnemyAttackMask(CurrentPlayer);
+        (Checkmask, CheckerCount) = CreateCheckMask(CurrentPlayer);
+        IsPinned = CreatePinmasks(CurrentPlayer);
+    }
+
     private ulong CreateEnemyAttackMask(Colors color)
     {
         var (king, enemyRooks, enemyBishops, enemyKnights, enemyPawns) = (color == Colors.White)
@@ -523,7 +529,7 @@ public sealed class MutablePosition
         const int max_moves = 218;
 
         Span<Move> moves = stackalloc Move[max_moves];
-        var count = MoveGenerator2.Legal(this, ref moves);
+        var count = MoveGenerator.Legal(this, ref moves);
 
 
         return moves[..count].ToArray()
@@ -536,7 +542,7 @@ public sealed class MutablePosition
         const int max_moves = 218;
 
         Span<Move> moves = stackalloc Move[max_moves];
-        var count = MoveGenerator2.Legal(this, ref moves);
+        var count = MoveGenerator.Legal(this, ref moves);
         return moves[..count].ToArray();
     }
 
@@ -546,67 +552,7 @@ public sealed class MutablePosition
 
         return GenerateLegalMoves(piece);
     }
-
-    public Position AsReadOnly()
-    {
-        return new Position() with
-        {
-            WhitePawns = WhitePawns,
-            WhiteKnights = WhiteKnights,
-            WhiteBishops = WhiteBishops,
-            WhiteRooks = WhiteRooks,
-            WhiteQueens = WhiteQueens,
-            WhiteKing = WhiteKing,
-            White = White,
-
-            BlackPawns = BlackPawns,
-            BlackKnights = BlackKnights,
-            BlackBishops = BlackBishops,
-            BlackRooks = BlackRooks,
-            BlackQueens = BlackQueens,
-            BlackKing = BlackKing,
-            Black = Black,
-
-            CastlingRights = CastlingRights,
-            EnPassant = EnPassant,
-
-            Empty = Empty,
-            Occupied = Occupied,
-
-            CheckerCount = CheckerCount,
-            Checkmask = Checkmask,
-            Pinmasks = (Vector256<ulong>)Pinmasks,
-            IsPinned = IsPinned,
-            CurrentPlayer = CurrentPlayer,
-        };
-    }
-
-    public static MutablePosition FromReadOnly(Position pos)
-    {
-        var mutable = new MutablePosition
-        {
-            CastlingRights = pos.CastlingRights,
-            EnPassant = pos.EnPassant,
-            CurrentPlayer = pos.CurrentPlayer,
-            CheckerCount = pos.CheckerCount,
-            Checkmask = pos.Checkmask,
-            Pinmasks = new PinData(pos.Pinmasks),
-            IsPinned = pos.IsPinned,
-            Hash = pos.Hash
-        };
-
-        mutable.bb[BlackIndex] = pos.Black;
-        mutable.bb[PawnIndex] = pos.WhitePawns | pos.BlackPawns;
-        mutable.bb[KnightsIndex] = pos.WhiteKnights | pos.BlackKnights;
-        mutable.bb[BishopsIndex] = pos.WhiteBishops | pos.BlackBishops;
-        mutable.bb[RooksIndex] = pos.WhiteRooks | pos.BlackRooks;
-        mutable.bb[QueensIndex] = pos.WhiteQueens | pos.BlackQueens;
-        mutable.bb[KingsIndex] = pos.WhiteKing | pos.BlackKing;
-        mutable.bb[WhiteIndex] = pos.White;
-
-        mutable.AttackMask = mutable.CreateEnemyAttackMask(mutable.CurrentPlayer);
-        return mutable;
-    }
+  
     public override string ToString()
     {
         var sb = new StringBuilder(72);

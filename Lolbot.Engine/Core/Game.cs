@@ -14,11 +14,6 @@ public sealed class Game
     public MutablePosition CurrentPosition => position;
     public RepetitionTable RepetitionTable => repetitions;
 
-    public Game(Position initialPosition)
-    {
-        position = MutablePosition.FromReadOnly(initialPosition);
-    }
-
     public Game(MutablePosition initialPosition)
     {
         position = initialPosition;
@@ -33,17 +28,7 @@ public sealed class Game
         }
     }
 
-
-    public Game(Position initialPosition, Move[] moves)
-    {
-        position = MutablePosition.FromReadOnly(initialPosition);
-        foreach (var move in moves)
-        {
-            Move(move);
-        }
-    }
-
-    public Game() : this(new Position())
+    public Game() : this(new MutablePosition())
     {
     }
     public Game(string fen)

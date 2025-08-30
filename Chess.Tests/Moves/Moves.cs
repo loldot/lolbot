@@ -155,7 +155,7 @@ public class Moves
         var pos = MutablePosition.FromFen(fen);
 
         Span<Move> moves = new Move[10];
-        var count = MoveGenerator2.Captures(pos, ref moves);
+        var count = MoveGenerator.Captures(pos, ref moves);
 
         count.Should().Be(1);
         moves[0].CapturePiece.Should().Be(Piece.WhiteQueen);
@@ -170,7 +170,7 @@ public class Moves
         var pos = MutablePosition.FromFen(fen);
 
         Span<Move> moves = new Move[256];
-        var count = MoveGenerator2.Captures(pos, ref moves);
+        var count = MoveGenerator.Captures(pos, ref moves);
 
         count.Should().Be(expectedCount);
         moves = moves[..count];
