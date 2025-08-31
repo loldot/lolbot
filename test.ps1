@@ -1,4 +1,10 @@
-$prev = (git rev-parse --short HEAD)
+# Optional parameter for previous commit hash:
+
+Param(
+    $prev = (git rev-parse --short HEAD~1)
+)
+
+Write-Host "Comparing against previous version: ($prev)"
 
 $buildDir = "C:\dev\lolbot\Lolbot.Engine\bin\Release\net9.0\win-x64\publish"
 $previousDir = "C:\dev\lolbot-versions\$prev"
@@ -36,8 +42,7 @@ Push-Location "C:\Program Files (x86)\Cute Chess"
     -games 2 `
     -repeat 2 `
     -recover `
-    -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 #`
-    #-debug
+    -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 #-debug
 
 Pop-Location
 Pop-Location

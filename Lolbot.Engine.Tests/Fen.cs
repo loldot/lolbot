@@ -63,4 +63,13 @@ public class Fen
         var e7 = Squares.IndexFromCoordinate("e7");
         pos.Checkmask.Should().Be(MovePatterns.SquaresBetween[b4][e7] | Squares.FromCoordinates("b4"));
     }
+
+    [Test]
+    public void SomeFen()
+    {
+        var pos = MutablePosition.FromFen("1k1r3q/1ppn3p/p4b2/4p3/8/P2N2P1/1PP1R1BP/2K1Q3 w - -");
+        pos.Occupied.Should().Be(0x8a8e21100049d614ul);
+        pos.Black.Should().Be(0x8a8e211000000000ul);
+        pos.White.Should().Be(0x49d614ul);
+    }
 }

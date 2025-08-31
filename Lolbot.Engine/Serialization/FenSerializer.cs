@@ -1,4 +1,3 @@
-using System.Runtime.Intrinsics;
 using System.Text;
 namespace Lolbot.Core;
 
@@ -61,7 +60,7 @@ public static class FenSerializer
         position.CastlingRights = ParseCastlingRights(metaTokens[1]);
         position.CurrentPlayer = currentPlayer;
 
-        position.InitMasks();
+        position.RecalculateAllMasks();
 
         position.Hash = Hashes.New(position);
 

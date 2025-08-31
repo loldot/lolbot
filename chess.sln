@@ -5,8 +5,6 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chess.Api", "Chess.Api\Chess.Api.csproj", "{A2A54706-AEA0-4C7D-AEDE-C0B8A538059D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chess.Benchmarks", "Chess.Benchmarks\Chess.Benchmarks.csproj", "{E38280AA-4464-4697-9163-2EDC36B23FF9}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lolbot.Engine", "Lolbot.Engine\Lolbot.Engine.csproj", "{A8634347-736B-488B-AF62-4AF1173B0512}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lolbot.Engine.Tests", "Lolbot.Engine.Tests\Lolbot.Engine.Tests.csproj", "{5B9E76AD-DC7D-4E74-83FF-D51B9F4B67CF}"

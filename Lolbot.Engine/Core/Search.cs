@@ -311,11 +311,13 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         while ((move = movepicker.PickCapture(i++)) != Move.Null)
         {
-
             if (standPat + deltas[(byte)move.CapturePieceType] < alpha)
                 continue;
 
             // Static Exchange Evaluation (SEE): Skip bad captures
+            if (position.SEE(move) < -45)
+                continue;
+            qnodes++;
 
             // Make the move
             position.Move(in move);
@@ -329,7 +331,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             alpha = Max(alpha, eval);
         }
         nodes += i;
-        qnodes += i;
 
         return alpha;
     }
@@ -367,22 +368,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         return ref moves[k];
     }
-
-    private int MoveComparer(Move x, Move y)
-    {
-        int score = 0;
-
-        score -= 1_000_000 * Heuristics.GetPieceValue(x.PromotionPiece);
-        score -= 100_000 * Heuristics.MVV_LVA(x.CapturePiece, x.FromPiece);
-        score -= historyHeuristic[x.value & 0xfff];
-
-        score += 1_000_000 * Heuristics.GetPieceValue(y.PromotionPiece);
-        score += 100_000 * Heuristics.MVV_LVA(y.CapturePiece, y.FromPiece);
-        score += historyHeuristic[y.value & 0xfff];
-
-        return score;
-    }
-
+   
     private int ScoreMove(Move m, int ply)
     {
         int score = 0;

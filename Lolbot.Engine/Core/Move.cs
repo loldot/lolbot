@@ -88,6 +88,8 @@ public readonly struct Move : IEquatable<Move>
 
     public readonly bool IsNull => value == 0;
 
+    public bool IsQuiet => ((CaptPieceMask | PromotionPieceMask) & value) == 0;
+
     public static Move Promote(char fromPiece, string fromCoordinate, string toCoordinate, char toPiece)
     {
         return new Move(

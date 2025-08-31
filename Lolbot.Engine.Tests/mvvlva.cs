@@ -1,5 +1,4 @@
 using Lolbot.Core;
-using FluentAssertions;
 
 namespace Lolbot.Tests;
 
