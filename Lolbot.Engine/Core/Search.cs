@@ -368,7 +368,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         return ref moves[k];
     }
-   
+
     private int ScoreMove(Move m, int ply)
     {
         int score = 0;

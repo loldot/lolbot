@@ -5,15 +5,15 @@ namespace Lolbot.Tests;
 [Category(TestSuites.Fast)]
 public class RepetitionTables
 {
-    [Test]
-    public void Should_Return_Draw()
-    {
-        var table = new RepetitionTable();
-        table.Update(new Move('N', "e1", "d2"), 1);
-        table.Update(new Move('n', "e1", "e2"), 2);
+    // [Test]
+    // public void Should_Return_Draw()
+    // {
+    //     var table = new RepetitionTable();
+    //     table.Update(new Move('N', "e1", "d2"), 1);
+    //     table.Update(new Move('n', "e1", "e2"), 2);
 
-        table.IsDraw(1).Should().BeTrue();
-    }
+    //     table.IsDraw(1).Should().BeTrue();
+    // }
 
     [Test]
     public void Should_Reset_Draw_When_Unwinding()

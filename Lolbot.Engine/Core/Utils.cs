@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace Lolbot.Core;
 
@@ -55,4 +56,14 @@ public static class Utils
         'k' => PieceType.King,
         _ => PieceType.None
     };
+
+    internal static string CastlingRightsToString(CastlingRights castlingRights)
+    {
+        StringBuilder sb = new(4);
+        if (castlingRights.HasFlag(CastlingRights.WhiteKing)) sb.Append('K');
+        if (castlingRights.HasFlag(CastlingRights.WhiteQueen)) sb.Append('Q');
+        if (castlingRights.HasFlag(CastlingRights.BlackKing)) sb.Append('k');
+        if (castlingRights.HasFlag(CastlingRights.BlackQueen)) sb.Append('q');
+        return sb.Length > 0 ? sb.ToString() : "-";
+    }
 }

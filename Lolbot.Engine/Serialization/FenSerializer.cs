@@ -25,6 +25,23 @@ public static class FenSerializer
             }
             sb.Append('/');
         }
+        sb.Length--; // remove last /
+        sb.Append(' ');
+
+        sb.Append(p.CurrentPlayer == Colors.White ? 'w' : 'b');
+        sb.Append(' ');
+
+        sb.Append(p.CastlingRights == CastlingRights.None ? "-" : Utils.CastlingRightsToString(p.CastlingRights));
+        sb.Append(' ');
+
+        sb.Append(p.EnPassant == 0 ? "-" : Squares.CoordinateFromIndex(p.EnPassant));
+        sb.Append(' ');
+
+        sb.Append(p.plyfromRoot / 2);
+        sb.Append(' ');
+
+        sb.Append(p.plyfromRoot);
+
         return sb.ToString();
     }
 

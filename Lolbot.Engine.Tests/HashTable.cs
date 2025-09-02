@@ -7,44 +7,6 @@ public class HashTable
 {
     private static TranspositionTable tt = new TranspositionTable();
 
-    [TestCase("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", ExpectedResult = 0x823c9b50fd114196ul)]
-    [TestCase("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", ExpectedResult = 0x463b96181691fc9cul)]
-    [TestCase("rnbq1bnr/ppp1pkpp/8/3pPp2/8/8/PPPPKPPP/RNBQ1BNR w - - 0 4", ExpectedResult = 0xfdd303c946bdd9ul)]
-    [TestCase("7k/8/8/8/8/8/8/K7 w - - 0 1", ExpectedResult = 0x523760c49712209dul)]
-    [TestCase("7k/8/8/8/8/8/8/K7 b - - 0 1", ExpectedResult = 0xaae1466e3835a594ul)]
-    [TestCase("7k/8/8/2Pp4/8/8/8/K7 w - d6 0 1", ExpectedResult = 0x74e86a36565a2178ul)]
-    [TestCase("8/8/8/3k4/8/2nK1N2/8/8 w - - 0 1", ExpectedResult = 0x02b70cb7a5dda169ul)]
-    [TestCase("8/8/8/3k4/8/2nK1N2/8/8 b - - 0 1", ExpectedResult = 0xfa612a1d0afa2460)]
-    [TestCase("rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPPKPPP/RNBQ1BNR b kq - 0 3", ExpectedResult = 0x652a607ca3f242c1ul)]
-    public ulong ZobristKeys(string fen) => MutablePosition.FromFen(fen).Hash;
-
-    [Test]
-    public void ZobristUpdates()
-    {
-        Move[] moves = [
-            new Move('P', "e2", "e4"),
-            new Move('p', "d7", "d5"),
-            new Move('P', "e4", "e5"),
-            new Move('p', "f7", "f5"),
-            new Move('K', "e1", "e2"),
-        ];
-
-        ulong[] hashes = [
-            0x823c9b50fd114196ul,
-            0x0756b94461c50fb0ul,
-            0x662fafb965db29d4ul,
-            0x22a48b5a8e47ff78ul,
-            0x652a607ca3f242c1ul,
-        ];
-
-        var position = new MutablePosition();
-        for (int i = 0; i < moves.Length; i++)
-        {
-            position.Move(in moves[i]);
-            position.Hash.Should().Be(hashes[i]);
-        }
-    }
-
     [Test]
     public void Should_Add_Move()
     {

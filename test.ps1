@@ -14,8 +14,13 @@ $buildVersion = "$buildDir\Lolbot.Engine.exe"
 
 Push-Location "$(git rev-parse --show-toplevel)\Lolbot.Engine\" 
 
+$stashed = $false
 if (-not (Test-Path $previousDir)) {
-    git stash
+    if (-not (git diff --quiet --exit-code)) {
+        git stash
+        $stashed = $true
+    }
+    
     git checkout $prev
 
     mkdir $previousDir
@@ -23,7 +28,12 @@ if (-not (Test-Path $previousDir)) {
     dotnet publish -c Release -r win-x64
     
     git checkout -
-    git stash pop
+
+    if ($stashed) {
+        $stashed = $false
+        git stash pop
+    }
+    
 
     Copy-Item "$buildDir\*" $previousDir
 }

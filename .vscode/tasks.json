@@ -1,0 +1,34 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "test: dotnet",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"--nologo",
+				"--verbosity",
+				"minimal"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			]
+		},
+		{
+			"label": "test: sln",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"c:\\dev\\lolbot\\chess.sln",
+				"--nologo",
+				"--verbosity",
+				"minimal"
+			],
+			"problemMatcher": [
+				"$msCompile"
+			]
+		}
+	]
+}
