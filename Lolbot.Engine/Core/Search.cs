@@ -27,7 +27,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     public Move? BestMove()
     {
         var timer = new CancellationTokenSource(2_000);
-
         return BestMove(timer.Token);
     }
 
@@ -48,7 +47,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
     public Move BestMove(Move bestMove, int depth)
     {
-        var delta = 64;
+        var delta = 64 / Clamp(depth - 3, 1, 4);
 
         var start = DateTime.Now;
 
@@ -67,7 +66,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             else if (rootScore >= beta) beta = rootScore + delta;
             else break;
 
-            delta *= delta;
+            // Change #1: grow aspiration window by doubling (not squaring)
+            delta <<= 1;
+            if (delta >= 100) (alpha, beta) = (-(Inf + delta), Inf + delta);
 
             Console.WriteLine($"DEBUG research cp {rootScore} depth {depth}"
                 + $" nodes {nodes} alpha {alpha} beta {beta} delta {delta}");
@@ -94,27 +95,29 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         {
             if (ttEntry.Depth >= depth)
             {
+                // Change #5: mate-distance normalization on TT probe (root ply = 0)
+                int ttEval = FromTT(ttEntry.Evaluation, 0);
+
                 if (ttEntry.Type == TranspositionTable.Exact)
                 {
-                    return (ttEntry.Move, ttEntry.Evaluation);
+                    return (ttEntry.Move, ttEval);
                 }
                 else if (ttEntry.Type == TranspositionTable.LowerBound)
                 {
-                    alpha = Max(alpha, ttEntry.Evaluation);
+                    alpha = Max(alpha, ttEval);
                 }
                 else if (ttEntry.Type == TranspositionTable.UpperBound)
                 {
-                    beta = Min(beta, ttEntry.Evaluation);
+                    beta = Min(beta, ttEval);
                 }
 
                 if (alpha >= beta)
                 {
-                    return (ttEntry.Move, ttEntry.Evaluation);
+                    return (ttEntry.Move, ttEval);
                 }
             }
             ttMove = ttEntry.Move;
         }
-
 
         Span<Move> moves = stackalloc Move[256];
         var count = MoveGenerator.Legal(rootPosition, ref moves);
@@ -126,7 +129,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         int i = 0;
         for (; i < count; i++)
         {
-
             var move = SelectMove(ref moves, currentBest, in i, 0);
             rootPosition.Move(in move);
 
@@ -158,8 +160,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (alpha <= originalAlpha) flag = TranspositionTable.UpperBound;
         else if (alpha >= beta) flag = TranspositionTable.LowerBound;
 
-        if (alpha != 0 && alpha > -Inf && alpha < Inf)
-            tt.Add(rootPosition.Hash, depth, alpha, flag, bestMove);
+        // Change #4 + #5: store even when score == 0, with mate-distance normalization
+        if (alpha > -Inf && alpha < Inf)
+            tt.Add(rootPosition.Hash, depth, ToTT(alpha, 0), flag, bestMove);
 
         return (bestMove, alpha);
     }
@@ -171,34 +174,37 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (position.IsCheck) depth++;
         if (depth <= 0) return QuiesenceSearch(position, alpha, beta);
 
-        var mateValue = Mate - ply;
         var originalAlpha = alpha;
 
-        if (alpha > mateValue) alpha = -mateValue;
-        if (beta > mateValue - 1) beta = mateValue - 1;
+        // Change #2: correct mate-window clipping
+        alpha = Max(alpha, -Mate + ply);
+        beta = Min(beta, Mate - ply - 1);
+        if (alpha >= beta) return alpha;
+
         if (history.IsDraw(position.Hash)) return 0;
 
-        // Checkmate or stalemate
-
+        // TT probe (with mate normalization)
         var ttMove = Move.Null;
         if (tt.TryGet(position.Hash, out var ttEntry))
         {
             if (ttEntry.Depth >= depth)
             {
+                int ttEval = FromTT(ttEntry.Evaluation, ply);
+
                 if (ttEntry.Type == TranspositionTable.Exact)
                 {
-                    return ttEntry.Evaluation;
+                    return ttEval;
                 }
                 else if (ttEntry.Type == TranspositionTable.LowerBound)
                 {
-                    alpha = Max(alpha, ttEntry.Evaluation);
+                    alpha = Max(alpha, ttEval);
                 }
                 else if (ttEntry.Type == TranspositionTable.UpperBound)
                 {
-                    beta = Min(beta, ttEntry.Evaluation);
+                    beta = Min(beta, ttEval);
                 }
 
-                if (alpha >= beta) return ttEntry.Evaluation;
+                if (alpha >= beta) return ttEval;
             }
             ttMove = ttEntry.Move;
         }
@@ -224,40 +230,43 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             }
         }
 
-        var value = -Inf;
+        // Change #3: track best separately; never clamp the child score
+        var best = -Inf;
 
         int i = 0;
         Span<Move> moves = stackalloc Move[256];
         var movepicker = new MovePicker(in Killers, ref historyHeuristic, ref moves, position, ttMove, ply);
         var move = movepicker.SelectMove(i);
 
-        if (move.IsNull) return position.IsCheck ? -mateValue : 0;
+        // No legal moves
+        if (move.IsNull) return position.IsCheck ? -Mate + ply : 0;
 
         while (!move.IsNull)
         {
             position.Move(in move);
             history.Update(move, position.Hash);
 
+            int score;
             if (TNode.IsPv && i == 0)
             {
-                value = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha);
+                score = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha);
             }
             else
             {
                 int reduction = Lmr(depth, i);
-                value = -EvaluateMove<NonPvNode>(position, depth - reduction, ply + 1, -alpha - 1, -alpha);
-                if (TNode.IsPv && value > alpha && value < beta)
-                    value = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search
+                score = -EvaluateMove<NonPvNode>(position, depth - reduction, ply + 1, -alpha - 1, -alpha);
+                if (TNode.IsPv && score > alpha && score < beta)
+                    score = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search
             }
 
             history.Unwind();
             position.Undo(in move);
 
-            value = Max(value, alpha);
+            if (score > best) best = score;
 
-            if (value > alpha)
+            if (score > alpha)
             {
-                alpha = value;
+                alpha = score;
                 if (alpha > originalAlpha) ttMove = move;
                 if (alpha >= beta)
                 {
@@ -285,13 +294,14 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         nodes += i;
 
         var flag = TranspositionTable.Exact;
-        if (value <= originalAlpha) flag = TranspositionTable.UpperBound;
-        else if (value >= beta) flag = TranspositionTable.LowerBound;
+        if (best <= originalAlpha) flag = TranspositionTable.UpperBound;
+        else if (best >= beta) flag = TranspositionTable.LowerBound;
 
-        if (value != 0 && value > -Inf && value < Inf)
-            tt.Add(position.Hash, depth, value, flag, ttMove);
+        // Change #4 + #5: store even for 0, with mate-distance normalization
+        if (best > -Inf && best < Inf)
+            tt.Add(position.Hash, depth, ToTT(best, ply), flag, ttMove);
 
-        return value;
+        return best;
     }
 
     private int QuiesenceSearch(MutablePosition position, int alpha, int beta)
@@ -333,6 +343,24 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         nodes += i;
 
         return alpha;
+    }
+
+    // Change #5: mate-distance normalization helpers for TT storage/probe
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ToTT(int score, int ply)
+    {
+        // Shift mate scores so closer mates are preferred from deeper nodes
+        if (score > Mate - Max_Depth) return score + ply;
+        if (score < -Mate + Max_Depth) return score - ply;
+        return score;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int FromTT(int score, int ply)
+    {
+        if (score > Mate - Max_Depth) return score - ply;
+        if (score < -Mate + Max_Depth) return score + ply;
+        return score;
     }
 
     private ref readonly Move SelectMove(ref Span<Move> moves, in Move currentBest, in int k, int ply)
