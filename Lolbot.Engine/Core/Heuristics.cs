@@ -5,7 +5,7 @@ namespace Lolbot.Core;
 
 public static class Heuristics
 {
-    public static readonly int[] DoubledPawnPenalties = [0, 0, -17, -29, -200, -300];
+    public static readonly int[] DoubledPawnPenalties = [0, 0, -17, -29, -200, -300, -300, -300];
     public const int IsolatedPawnPenalty = -15;
     public const int PassedPawnBonus = 27;
 
@@ -46,6 +46,31 @@ public static class Heuristics
                 mvvlva[i][j] = 10 * capture - attacker;
             }
         }
+    }
+
+    public static int MaterialOnly(MutablePosition position)
+    {
+        int eval = 0;
+
+        for (PieceType p = PieceType.Knight; p <= PieceType.Queen; p++)
+        {
+            var white = position[Colors.White, p];
+            while (white != 0)
+            {
+                Bitboards.PopLsb(ref white);
+                eval += PieceValues[(byte)p];
+            }
+
+            var black = position[Colors.Black, p];
+            while (black != 0)
+            {
+                Bitboards.PopLsb(ref black);
+                eval -= PieceValues[(byte)p];
+            }
+        }
+
+        var color = position.CurrentPlayer == Colors.White ? 1 : -1;
+        return color * eval;
     }
 
     public static int StaticEvaluation(MutablePosition position, bool debug = false)
@@ -113,15 +138,16 @@ public static class Heuristics
         var color = position.CurrentPlayer == Colors.White ? 1 : -1;
         if (position.IsCheck) eval -= color * 50;
 
+        eval = (short)float.Lerp(eval + middle, eval + end, phase);
+
         if (debug)
         {
             Console.WriteLine($"Base eval: {eval}");
             Console.WriteLine($"Middle PST: {middle}");
             Console.WriteLine($"End PST: {end}");
             Console.WriteLine($"Phase: {phase}");
+            Console.WriteLine($"Eval: {eval}");
         }
-
-        eval = (short)float.Lerp(eval + middle, eval + end, phase);
 
         return color * eval;
     }

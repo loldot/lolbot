@@ -26,20 +26,20 @@ public class TranspositionTable
     public readonly struct Entry
     {
         public readonly ulong Key;
+        public readonly Move Move;
+
         public readonly byte Type;
         public readonly byte Depth;
         public readonly short Evaluation;
         public readonly bool IsSet => Key != 0;
 
-        public readonly Move Move;
-
         public Entry(ulong key, int depth, int eval, byte type, Move move)
         {
             Key = key;
-            Depth = (byte)depth;
-            Evaluation = (short)eval;
-            Type = type;
             Move = move;
+            Type = type;
+            Depth = (byte)depth;
+            Evaluation = (short)eval;            
         }
     }
 

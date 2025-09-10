@@ -1,8 +1,9 @@
 using System.Buffers;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
+using static Lolbot.Core.NNUE;
 using static Lolbot.Core.Utils;
 
 namespace Lolbot.Core;
@@ -13,6 +14,8 @@ public sealed class MutablePosition
     public const int MaxDepth = 1024;
 
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
+    private readonly Accumulator Accumulator;
+
     public int plyfromRoot = 0;
 
     private const int BlackIndex = 0;
@@ -93,6 +96,7 @@ public sealed class MutablePosition
         bb[QueensIndex] = Bitboards.Create("D1", "D8");
         bb[KingsIndex] = Bitboards.Create("E1", "E8");
         bb[WhiteIndex] = Bitboards.Masks.Rank_1 | Bitboards.Masks.Rank_2;
+        Accumulator = NNUE.Accumulator.Create(this);
     }
 
     public static MutablePosition EmptyBoard => new()
@@ -103,9 +107,12 @@ public sealed class MutablePosition
         CurrentPlayer = Colors.White,
     };
 
+    public int Eval => Accumulator.Read(CurrentPlayer);
 
     public void Move(ref readonly Move m)
     {
+        Accumulator.Move(in m);
+
         var oponent = Enemy(CurrentPlayer);
 
         Diffs[plyfromRoot] = new DiffData(
@@ -205,6 +212,7 @@ public sealed class MutablePosition
         IsPinned = CreatePinmasks(us);
 
         CurrentPlayer = us;
+        Accumulator.Undo(in m);
     }
 
     public void SkipTurn()
@@ -372,13 +380,31 @@ public sealed class MutablePosition
         return adjacent == 0 ? (byte)0 : Squares.ToIndex(ep);
     }
 
+    internal void FillInput(ref short[] input)
+    {
+        Array.Clear(input, 0, input.Length);
+        for (int color = 0; color < 2; color++)
+        {
+            ulong mask = bb[color * 7]; // BlackIndex = 0, WhiteIndex = 7
+            for (int piece = 0; piece < 6; piece++)
+            {
+                ulong bitboard = bb[piece + 1] & mask;
+                while (bitboard != 0)
+                {
+                    int square = Bitboards.PopLsb(ref bitboard);
+                    input[(color * 6 + piece) * 64 + square] = 1;
+                }
+            }
+        }
+    }
 
     // Check and pin masks
-    public void RecalculateAllMasks()
+    public void Reevaluate()
     {
         AttackMask = CreateEnemyAttackMask(CurrentPlayer);
         (Checkmask, CheckerCount) = CreateCheckMask(CurrentPlayer);
         IsPinned = CreatePinmasks(CurrentPlayer);
+        Accumulator.Reevaluate(this);
     }
 
     private ulong CreateEnemyAttackMask(Colors color)
@@ -638,7 +664,7 @@ public sealed class MutablePosition
     }
 
     [InlineArray(8)]
-    private struct DenseBitboards
+    internal struct DenseBitboards
     {
         private ulong _element0;
 

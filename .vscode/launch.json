@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "C#: Lolbot Engine Debug",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/Lolbot Engine/Lolbot Engine.csproj"
+        },
+        {
             "name": "C#: lolbot Debug",
             "type": "dotnet",
             "request": "launch",

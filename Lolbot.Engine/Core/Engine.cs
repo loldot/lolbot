@@ -1,7 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
-using static System.Math;
-
 namespace Lolbot.Core;
 
 public static class Engine
@@ -16,7 +12,8 @@ public static class Engine
 
     public static void Init()
     {
-        Console.WriteLine("info " + MovePatterns.PextTable.Length);
+        var path = Path.Combine(AppContext.BaseDirectory, "nnue_weights_16.bin");
+        NNUE.Initialize(path);
     }
 
     public static Game NewGame() => new Game(new MutablePosition());

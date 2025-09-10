@@ -1,0 +1,18 @@
+[project]
+name = "nnue"
+version = "0.1.0"
+requires-python = ">=3.10"
+description = "NNUE training environment"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["nnue","chess","training"]
+authors = [ { name = "nnue-trainer" } ]
+
+# Keep minimal; uv resolves latest compatible
+dependencies = [
+  "torch",
+  "numpy"
+]
+
+[tool.uv]
+# Allow editable installs if needed later

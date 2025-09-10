@@ -33,6 +33,13 @@ public class Uci
 
         Heuristics.StaticEvaluation(game.CurrentPosition, debug: true);
 
+        game.CurrentPosition.FillInput(ref NNUE.input);
+        var output = NNUE.FeedForward();
+        Console.WriteLine($"NNUE output: {output}");
+
+        var acc = NNUE.Accumulator.Create(game.CurrentPosition);
+        Console.WriteLine($"NNUE output (from acc): {acc.Read(game.CurrentPlayer)}");
+
         Console.WriteLine();
         Console.WriteLine(fen);
     }
@@ -136,7 +143,9 @@ public class Uci
         Console.WriteLine($"bestmove {Move(move.Value)}");
     }
 
-    private void Unknown(string command)
+
+
+    private static void Unknown(string command)
     {
         Console.WriteLine($"Unknown command: {command}");
 

@@ -43,10 +43,13 @@ if (-not (Test-Path $previousDir)) {
     Copy-Item "$buildDir\*" $previousDir
 }
 
-
 dotnet publish -c Release -r win-x64
 
 Push-Location "C:\Program Files (x86)\Cute Chess"
+
+Write-Host "Tournament:"
+Write-Host "Experimental: $buildVersion"
+Write-Host "Previous: $previousVersion"
 
 ./cutechess-cli `
     -engine cmd=$buildVersion name=Experimental `
@@ -59,7 +62,7 @@ Push-Location "C:\Program Files (x86)\Cute Chess"
     -recover `
     -debug `
     -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 `
-| Tee-Object C:\temp\log-perf.txt
+| Tee-Object C:\temp\log.txt
 
 Pop-Location
 Pop-Location

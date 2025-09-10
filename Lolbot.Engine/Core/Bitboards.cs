@@ -102,7 +102,7 @@ public static class Bitboards
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static byte PopLsb(ref ulong board)
+    public static byte PopLsb(ref ulong board)
     {
         byte lsb = (byte)Bmi1.X64.TrailingZeroCount(board);
         board = Bmi1.X64.ResetLowestSetBit(board);
