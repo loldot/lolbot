@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lolbot.Engine", "Lolbot.Eng
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lolbot.Engine.Tests", "Lolbot.Engine.Tests\Lolbot.Engine.Tests.csproj", "{5B9E76AD-DC7D-4E74-83FF-D51B9F4B67CF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lolbot.UciTester", "Lolbot.UciTester\Lolbot.UciTester.csproj", "{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -67,6 +69,18 @@ Global
 		{5B9E76AD-DC7D-4E74-83FF-D51B9F4B67CF}.Release|x64.Build.0 = Release|x64
 		{5B9E76AD-DC7D-4E74-83FF-D51B9F4B67CF}.Release|x86.ActiveCfg = Release|Any CPU
 		{5B9E76AD-DC7D-4E74-83FF-D51B9F4B67CF}.Release|x86.Build.0 = Release|Any CPU
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Debug|x64.ActiveCfg = Debug|x64
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Debug|x64.Build.0 = Debug|x64
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Debug|x86.Build.0 = Debug|Any CPU
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Release|x64.ActiveCfg = Release|x64
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Release|x64.Build.0 = Release|x64
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Release|x86.ActiveCfg = Release|Any CPU
+		{7C2E8E3D-5F8A-4B2D-9A3E-1C4B5D6E7F8G}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

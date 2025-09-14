@@ -45,6 +45,21 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return bestMove;
     }
 
+    public Move? BestMove(int searchDepth)
+    {
+        this.ct = new CancellationTokenSource(60_000).Token;
+        var bestMove = Move.Null;
+
+        var depth = 1;
+        while (bestMove.IsNull || depth <= searchDepth && !ct.IsCancellationRequested)
+        {
+            bestMove = BestMove(bestMove, depth);
+            depth++;
+        }
+
+        return bestMove;
+    }
+
     public Move BestMove(Move bestMove, int depth)
     {
         var delta = 64 / Clamp(depth - 3, 1, 4);
