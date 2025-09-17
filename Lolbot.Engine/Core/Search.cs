@@ -66,7 +66,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             else if (rootScore >= beta) beta = rootScore + delta;
             else break;
 
-            // Change #1: grow aspiration window by doubling (not squaring)
             delta <<= 1;
             if (delta >= 100) (alpha, beta) = (-(Inf + delta), Inf + delta);
 
@@ -95,7 +94,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         {
             if (ttEntry.Depth >= depth)
             {
-                // Change #5: mate-distance normalization on TT probe (root ply = 0)
                 int ttEval = FromTT(ttEntry.Evaluation, 0);
 
                 if (ttEntry.Type == TranspositionTable.Exact)
@@ -160,7 +158,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (alpha <= originalAlpha) flag = TranspositionTable.UpperBound;
         else if (alpha >= beta) flag = TranspositionTable.LowerBound;
 
-        // Change #4 + #5: store even when score == 0, with mate-distance normalization
         if (alpha > -Inf && alpha < Inf)
             tt.Add(rootPosition.Hash, depth, ToTT(alpha, 0), flag, bestMove);
 
@@ -176,7 +173,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         var originalAlpha = alpha;
 
-        // Change #2: correct mate-window clipping
         alpha = Max(alpha, -Mate + ply);
         beta = Min(beta, Mate - ply - 1);
         if (alpha >= beta) return alpha;
@@ -230,7 +226,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             }
         }
 
-        // Change #3: track best separately; never clamp the child score
         var best = -Inf;
 
         int i = 0;
@@ -297,7 +292,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         if (best <= originalAlpha) flag = TranspositionTable.UpperBound;
         else if (best >= beta) flag = TranspositionTable.LowerBound;
 
-        // Change #4 + #5: store even for 0, with mate-distance normalization
         if (best > -Inf && best < Inf)
             tt.Add(position.Hash, depth, ToTT(best, ply), flag, ttMove);
 
@@ -308,7 +302,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     {
         int i = 0;
         Move move;
-        int[] deltas = { 0, 180, 390, 442, 718, 1332, 88888 }; // Piece values for delta pruning
+        int[] deltas = [0, 180, 390, 442, 718, 1332, 88888]; // Piece values for delta pruning
 
         Span<Move> moves = stackalloc Move[256];
 
@@ -345,7 +339,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         return alpha;
     }
 
-    // Change #5: mate-distance normalization helpers for TT storage/probe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int ToTT(int score, int ply)
     {
