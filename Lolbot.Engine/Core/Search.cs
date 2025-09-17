@@ -23,6 +23,14 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     private CancellationToken ct;
 
     public Action<SearchProgress>? OnSearchProgress { get; set; }
+    static readonly int[] LogTable = new int[256];
+    static Search()
+    {
+        for (int i = 1; i < 256; i++)
+        {
+            LogTable[i] = (int)MathF.Round(128f * MathF.Log(i));
+        }
+    }
 
     public Move? BestMove()
     {
@@ -96,7 +104,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static int Lmr(int depth, int move) => 1 + (int)(Log(depth) * Log(1 + move) / 2);
+    static int Lmr(byte depth, byte move) => 1 + ((LogTable[depth] * LogTable[move + 1]) >> 15);
 
     public (Move, int) SearchRoot(int depth, Move currentBest, int alpha = -Inf, int beta = Inf)
     {
@@ -153,7 +161,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             }
             else
             {
-                int reduction = Lmr(depth, i);
+                int reduction = Lmr((byte)depth, (byte)i);
                 value = -EvaluateMove<NonPvNode>(rootPosition, depth - reduction, 1, -alpha - 1, -alpha);
                 if (value > alpha)
                     value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha); // re-search
@@ -243,7 +251,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
 
         var best = -Inf;
 
-        int i = 0;
+        byte i = 0;
         Span<Move> moves = stackalloc Move[256];
         var movepicker = new MovePicker(in Killers, ref historyHeuristic, ref moves, position, ttMove, ply);
         var move = movepicker.SelectMove(i);
@@ -263,7 +271,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
             }
             else
             {
-                int reduction = Lmr(depth, i);
+                int reduction = Lmr((byte)depth, i);
                 score = -EvaluateMove<NonPvNode>(position, depth - reduction, ply + 1, -alpha - 1, -alpha);
                 if (TNode.IsPv && score > alpha && score < beta)
                     score = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search

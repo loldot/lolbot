@@ -96,7 +96,7 @@ public class Tactics
         bestmove.Should().Be(new Move('Q', "d8", "a8"));
     }
 
-    [Explicit]
+    // [Explicit]
     [TestCase("2rqk2r/pb1nbp1p/4p1p1/1B1n4/Np1N4/7Q/PP3PPP/R1B1R1K1 w kq -", "Rxe6")]
     [TestCase("r1bq1rk1/3nbppp/p2pp3/6PQ/1p1BP2P/2NB4/PPP2P2/2KR3R w - -", "Bxg7")]
     [TestCase("2kr4/ppq2pp1/2b1pn2/2P4r/2P5/3BQN1P/P4PP1/R4RK1 b - -", "Ng4")]

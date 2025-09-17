@@ -15,7 +15,7 @@ public class LmrBenchmark
         for (int i = 1; i < 256; i++)
         {
             LogTableF[i] = MathF.Log(i);
-            LogTable[i] = (uint)(1024 * MathF.Log(i));
+            LogTable[i] = (uint)(128 * MathF.Log(i));
         }
     }
 
@@ -27,7 +27,7 @@ public class LmrBenchmark
         {
             for (byte move = 0; move < 56; move++)
             {
-                sum += 1 + ((LogTable[depth] * LogTable[move + 1]) >> 11);
+                sum += 1 + ((LogTable[depth] * LogTable[move + 1]) >> 15);
             }
         }
         return (int)sum;
