@@ -1,14 +1,42 @@
 using System.Runtime.Intrinsics;
 using Lolbot.Api;
 using Lolbot.Core;
+using Chess.Api.Services;
+using Chess.Api.Testing;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Test results DB migration (one-time) ---
+// If an older test_results.db exists one level above (legacy location from UciTester),
+// copy it into the API content root so the API owns the database moving forward.
+try
+{
+    var contentRoot = builder.Environment.ContentRootPath;
+    var legacyPath = Path.GetFullPath(Path.Combine(contentRoot, "..", "test_results.db"));
+    var targetPath = Path.Combine(contentRoot, "test_results.db");
+    if (!File.Exists(targetPath) && File.Exists(legacyPath))
+    {
+        File.Copy(legacyPath, targetPath);
+        Console.WriteLine($"[TestResults] Migrated database from '{legacyPath}' to '{targetPath}'.");
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[TestResults] Database migration check failed: {ex.Message}");
+}
 
 builder.Services.AddSignalR();
 builder.Services.AddCors();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Configure path to test results database (configurable via appsettings or env)
+var testResultsDbPath = builder.Configuration.GetValue<string>("TestResults:DatabasePath")
+                        ?? Path.Combine(builder.Environment.ContentRootPath, "test_results.db");
+
+builder.Services.AddSingleton(sp => new TestResultsService(testResultsDbPath));
+builder.Services.AddSingleton(sp => new TestRunService(testResultsDbPath, sp.GetRequiredService<ILogger<TestRunService>>()));
 
 var app = builder.Build();
 
@@ -32,6 +60,27 @@ app.UseHttpsRedirection();
 // await GameDatabase.Instance.Seed();
 
 app.MapHub<GameHub>("/game/realtime");
+
+// Test results endpoints
+app.MapGet("/api/tests/engines", (TestResultsService svc) => Results.Ok(svc.GetEngineSummaries()))
+   .WithName("GetEngineTestSummaries").WithOpenApi();
+
+app.MapGet("/api/tests/positions/{commitHash}", (string commitHash, TestResultsService svc) =>
+{
+    var positions = svc.GetPositionResults(commitHash);
+    return positions is null ? Results.NotFound() : Results.Ok(positions);
+}).WithName("GetEnginePositionResults").WithOpenApi();
+
+// Run management
+app.MapGet("/api/tests/runs", (TestRunService svc) => Results.Ok(svc.GetRuns()))
+   .WithName("GetTestRuns").WithOpenApi();
+
+app.MapPost("/api/tests/runs", async ([FromBody] StartRunRequest req, TestRunService svc) =>
+{
+    var categories = req.Categories?.Length > 0 ? req.Categories : new[] { "CCC" };
+    var response = await svc.StartRunAsync(req.CommitHash, req.EnginePath, req.Depth, categories!);
+    return Results.Accepted($"/api/tests/runs/{response.Id}", response);
+}).WithName("StartTestRun").WithOpenApi();
 
 app.MapPost("/game/new", ([FromBody] string? fen) =>
 {
@@ -168,3 +217,5 @@ app.MapGet("/game/{seq}/debug", (int seq) =>
 });
 
 app.Run();
+
+public record StartRunRequest(string CommitHash, string EnginePath, int Depth = 12, string[]? Categories = null);

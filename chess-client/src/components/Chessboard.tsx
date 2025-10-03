@@ -46,7 +46,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     const ref = useRef(window);
     const mounted = useRef(false);
 
-    const [us, setUs] = useState<'w' | 'b'>('w');
+    // Perspective switching placeholder (unused for now)
     const [fen, setFen] = useState<string | undefined>();
 
     const [selectedSquare, setSelectedSquare] = useState<string>();
@@ -57,7 +57,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     const [moveNumber, setMoveNumber] = useState(0);
     const [position, setPosition] = useState<Position>(initialPosition);
 
-    const [connection, setConnection] = useState((prev: any) => {
+    const [connection] = useState((prev: any) => {
         return prev || new signalR.HubConnectionBuilder()
             .withUrl("https://localhost:7097/game/realtime")
             .build();
@@ -66,7 +66,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     useEffect(() => {
         if (!mounted.current) {
 
-            connection.on('movePlayed', (message) => {
+            connection.on('movePlayed', (message: any) => {
                 if (message.plyCount > moveNumber) {
                     console.log(message);
 
@@ -152,14 +152,14 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
 
     const m = new Map<string, string>(Object.entries(position));
 
-    const onDragStart = (e: DragEvent<HTMLDivElement>, id: string) => {
+    const onDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
         e.dataTransfer.setData("text/plain", id);
     };
 
-    const onDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    const onDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
     };
-    const onDrop = (e: DragEvent<HTMLDivElement>, id: string) => {
+    const onDrop = (e: React.DragEvent<HTMLDivElement>, id: string) => {
         const from = e.dataTransfer.getData("text/plain") as string;
         const to = id;
         executeMove(from, to);
@@ -168,11 +168,9 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
         e.preventDefault();
     };
 
-    const serverUndoMove = (e : Event)=>{
+    const serverUndoMove = ()=>{
         connection.send('undo', { "gameId": seq });
-
-        e.preventDefault();
-    }
+    };
 
     const highlightColor = (id: string) => {
         if (highlight.includes(id))

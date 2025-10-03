@@ -1,11 +1,73 @@
-import { Link, useNavigate } from "react-router-dom"
+import React, { lazy, Suspense } from "react"
+
+// TypeScript declarations for web components
+declare global {
+    namespace JSX {
+        interface IntrinsicElements {
+            'ui-tabs': any;
+            'ui-tab-panel': any;
+            'ui-card': any;
+        }
+    }
+}
+
+// Lazy load components
+const NewGame = lazy(() => import("./game/new"));
+const MasterGameView = lazy(() => import("./game/master"));
+const TestResults = lazy(() => import("./test-results"));
 
 const Home = () => {
-    const navigate = useNavigate();
     return (
-        <div>
-            <button onClick={() => navigate("/game/new")}>New Game</button>
-            <button onClick={() => navigate("/game/0")}>Watch a master Game</button>
+        <div style={{ padding: '1rem' }}>
+            <h1>Lolbot Chess Engine</h1>
+
+            <ui-tabs>
+                <ui-tab-panel title="New Game">
+                    <h3 slot="header">New Game</h3>
+                    <section slot="content" className="block md">
+                        
+                        <Suspense fallback={
+                            <ui-card>
+                                <span slot="icon">⏳</span>
+                                <span slot="header">Loading...</span>
+                                <div>Starting new game...</div>
+                            </ui-card>
+                        }>
+                            <NewGame />
+                        </Suspense>
+                    </section>
+                </ui-tab-panel>
+
+                <ui-tab-panel title="Master Game">
+                    <section slot="content" className="block md">
+                        <h3>Watch Master Game</h3>
+                        <Suspense fallback={
+                            <ui-card>
+                                <span slot="icon">⏳</span>
+                                <span slot="header">Loading...</span>
+                                <div>Loading game...</div>
+                            </ui-card>
+                        }>
+                            <MasterGameView />
+                        </Suspense>
+                    </section>
+                </ui-tab-panel>
+
+                <ui-tab-panel title="Test Results">
+                    <section slot="content" className="block md">
+                        <h3>Engine Test Results</h3>
+                        <Suspense fallback={
+                            <ui-card>
+                                <span slot="icon">⏳</span>
+                                <span slot="header">Loading...</span>
+                                <div>Loading test results...</div>
+                            </ui-card>
+                        }>
+                            <TestResults />
+                        </Suspense>
+                    </section>
+                </ui-tab-panel>
+            </ui-tabs>
         </div>
     );
 }
