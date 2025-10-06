@@ -58,7 +58,8 @@ if ($Report) {
     
     if ($DetailCommit -ne "") {
         & $UciTesterExe report --db "test_results.db" --detail $DetailCommit
-    } else {
+    }
+    else {
         & $UciTesterExe report --db "test_results.db" --limit $ReportLimit
     }
     
@@ -107,7 +108,8 @@ if ($TestAll) {
             if ($LASTEXITCODE -eq 0) {
                 $successfulTests++
                 Write-Host "✓ Successfully tested $commitHash" -ForegroundColor Green
-            } else {
+            }
+            else {
                 $failedTests++
                 Write-Host "✗ Failed to test $commitHash (exit code: $LASTEXITCODE)" -ForegroundColor Red
             }
@@ -147,7 +149,9 @@ Write-Host "Testing single engine version: $CommitHash" -ForegroundColor Yellow
 if ($CommitHash -eq "current") {
     # Build the engine
     Write-Host "Building Lolbot Engine..." -ForegroundColor Yellow
-    dotnet build "c:\dev\lolbot\Lolbot.Engine\Lolbot.Engine.csproj" --configuration Release
+    pushd "c:\dev\lolbot\Lolbot.Engine"
+    dotnet publish -c Release -r win-x64
+    popd
 
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Failed to build Lolbot Engine" -ForegroundColor Red
@@ -165,22 +169,12 @@ if ($CommitHash -eq "current") {
     if (!(Test-Path $CommitDir)) {
         New-Item -ItemType Directory -Path $CommitDir -Force | Out-Null
     }
-
-    # Copy the built engine to the test directory
-    $SourceEngine = "c:\dev\lolbot\Lolbot.Engine\bin\Release\net8.0\Lolbot.Engine.exe"
-    $TargetEngine = Join-Path $CommitDir "Lolbot.Engine.exe"
-
-    if (Test-Path $SourceEngine) {
-        Copy-Item $SourceEngine $TargetEngine -Force
-        Write-Host "Copied engine to: $TargetEngine" -ForegroundColor Green
-    } else {
-        Write-Host "Engine not found at: $SourceEngine" -ForegroundColor Red
-        Write-Host "Make sure the engine builds successfully in Release mode" -ForegroundColor Red
-        exit 1
-    }
+    
+    Copy-Item "c:\dev\lolbot\Lolbot.Engine\bin\Release\net10.0\win-x64\publish\*" $CommitDir -Recurse -Verbose
     
     $engineDir = "c:\dev\lolbot-versions"
-} else {
+}
+else {
     # Use the versions directory for existing commits
     $engineDir = $VersionsDir
 }
@@ -200,7 +194,8 @@ if ($EnableLogging) {
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Test completed successfully!" -ForegroundColor Green
     Write-Host "Results saved to test_results.db" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "Test failed with exit code: $LASTEXITCODE" -ForegroundColor Red
     exit 1
 }

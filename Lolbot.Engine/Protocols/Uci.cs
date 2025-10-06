@@ -37,12 +37,12 @@ public class Uci
         Console.WriteLine(fen);
     }
 
-    private void Reset()
+    private static void Reset()
     {
         Engine.Reset();
     }
 
-    private void Perft(string command)
+    private static void Perft(string command)
     {
         var tokens = Regex.Split(command, @"\s");
         int depth = 6;
@@ -56,7 +56,7 @@ public class Uci
         Console.WriteLine($"Total nodes: {count}, Elapsed: {ms:N0}ms, ({mNodesPerSec:N0} mnodes/s)");
     }
 
-    private void Init()
+    private static void Init()
     {
         Console.WriteLine("id name Lolbot 1.0 alpha");
         Console.WriteLine("id author loldot");
@@ -64,7 +64,7 @@ public class Uci
         Console.WriteLine("uciok");
     }
 
-    private void IsReady()
+    private static void IsReady()
     {
         Engine.Init();
         Console.WriteLine("readyok");
@@ -133,16 +133,7 @@ public class Uci
             return;
         }
 
-        var from = Squares.ToCoordinate(move.Value.FromSquare);
-        var to = Squares.ToCoordinate(move.Value.ToSquare);
-
-        if (move.Value.PromotionPiece != Piece.None)
-        {
-            var promotion = Utils.PieceName(move.Value.PromotionPiece);
-            Console.WriteLine($"bestmove {from}{to}{promotion}");
-        }
-
-        Console.WriteLine($"bestmove {from}{to}");
+        Console.WriteLine($"bestmove {Move(move.Value)}");
     }
 
     private void Unknown(string command)
@@ -152,7 +143,7 @@ public class Uci
         Help();
     }
 
-    private void Help()
+    private static void Help()
     {
         Console.WriteLine("Available commands:");
         Console.WriteLine("  uci - Initialize the engine");
@@ -165,12 +156,27 @@ public class Uci
         Console.WriteLine("  quit - Exit the engine");
     }
 
+    private static string Move(Move move)
+    {
+        var from = Squares.ToCoordinate(move.FromSquare);
+        var to = Squares.ToCoordinate(move.ToSquare);
+
+        if (move.PromotionPiece != Piece.None)
+        {
+            var promotion = Utils.PieceName(move.PromotionPiece);
+            return $"{from}{to}{char.ToLower(promotion)}";
+        }
+
+        return $"{from}{to}";
+    }
+
+
     public static void PrintProgress(SearchProgress progress)
     {
         var nps = (int)(progress.Nodes / progress.Time);
         Console.Write($"info score cp {progress.Eval} ");
         Console.Write($"depth {progress.Depth} ");
-        Console.Write($"bm {progress.BestMove} ");
+        Console.Write($"bm {Move(progress.BestMove)} ");
         Console.Write($"nodes {progress.Nodes} ");
         Console.Write($"nps {nps}");
         // pv {string.Join(' ', pv[..])}");
