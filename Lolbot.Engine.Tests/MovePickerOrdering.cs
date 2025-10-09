@@ -12,7 +12,7 @@ public class MovePickerOrdering
         Span<Move> buffer = stackalloc Move[256];
 
         var killers = new Move[64];
-        var history = new int[4096];
+        int[][] history = [new int[4096], new int[4096]];
 
         // pick two legal quiet moves, set one as killer, give another huge history to compete
         MovePicker mp = new MovePicker(ref killers, ref history, ref buffer, pos, Move.Null, ply: 0);
@@ -20,7 +20,7 @@ public class MovePickerOrdering
         var second = mp.SelectMove(2);
 
         killers[0] = first;
-        history[second.value & 0xfff] = 10_000; // large but should lose to killer bonus
+        history[second.Color][second.value & 0xfff] = 10_000; // large but should lose to killer bonus
 
         // re-create to force regeneration with scores
         mp = new MovePicker(ref killers, ref history, ref buffer, pos, Move.Null, ply: 0);
@@ -36,7 +36,7 @@ public class MovePickerOrdering
         var pos = MutablePosition.FromFen("r3k2r/ppp2ppp/2n5/3pp3/3PP3/2N5/PPP2PPP/R3K2R w KQkq - 0 1");
         Span<Move> buffer = stackalloc Move[256];
         var killers = new Move[64];
-        var history = new int[4096];
+        int[][] history = [new int[4096], new int[4096]];
 
         MovePicker mp = new MovePicker(ref killers, ref history, ref buffer, pos, Move.Null, ply: 0);
 
@@ -63,7 +63,8 @@ public class MovePickerOrdering
 
         Span<Move> buffer = stackalloc Move[256];
         var killers = new Move[64];
-        var history = new int[4096];
+        
+        int[][] history = [new int[4096], new int[4096]];
 
         // pick any legal evasion as tt move
         var evasions = pos.GenerateLegalMoves().ToArray();

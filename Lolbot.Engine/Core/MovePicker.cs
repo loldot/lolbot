@@ -8,7 +8,7 @@ public ref struct MovePicker
 
     private Move ttMove;
     private readonly Move[] killers;
-    private readonly int[] history;
+    private readonly int[][] history;
     private Span<Move> moves;
     private MutablePosition position;
     private int ply;
@@ -16,7 +16,7 @@ public ref struct MovePicker
 
     public MovePicker(
         ref readonly Move[] killers,
-        ref readonly int[] history,
+        ref readonly int[][] history,
         ref readonly Span<Move> moves,
         MutablePosition position,
         Move ttMove, int ply)
@@ -133,7 +133,7 @@ public ref struct MovePicker
         Debug.Assert(ply < killers.Length);
 
         score += killers[ply] == m ? 99_999 : 0;
-        score += history[m.value & 0xfffu];
+        score += history[m.Color][m.value & 0xfffu];
 
         return score;
     }

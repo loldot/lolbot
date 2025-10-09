@@ -3,7 +3,7 @@ using static System.Math;
 
 namespace Lolbot.Core;
 
-public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuristic)
+public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeuristic)
 {
     public const int Inf = short.MaxValue;
     public const int Mate = short.MaxValue / 2;
@@ -420,7 +420,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
         score += 1_000_000 * Heuristics.GetPieceValue(m.PromotionPiece);
         score += 100_000 * Heuristics.MVV_LVA(m.CapturePiece, m.FromPiece);
         score += Killers[ply] == m ? 99_999 : 0;
-        score += historyHeuristic[m.value & 0xfffu];
+        score += historyHeuristic[m.Color][m.value & 0xfffu];
 
         return score;
     }
@@ -430,7 +430,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[] historyHeuris
     {
         var index = m.value & 0xfff;
         bonus = Clamp(bonus, -Max_History, Max_History);
-        historyHeuristic[index] += bonus - historyHeuristic[index] * Abs(bonus) / Max_History;
+        historyHeuristic[m.Color][index] += bonus - historyHeuristic[m.Color][index] * Abs(bonus) / Max_History;
     }
 }
 

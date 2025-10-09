@@ -10,7 +10,9 @@ public static class Engine
     const int Mate = ushort.MaxValue;
 
     private static readonly TranspositionTable tt = new TranspositionTable();
-    private static readonly int[] historyHeuristic = new int[4096];
+    private static readonly int[][] historyHeuristic = [
+        new int[4096], new int[4096]
+    ];
     private static int nodes = 0;
 
     public static void Init()
@@ -104,8 +106,7 @@ public static class Engine
     public static Move? BestMove(Game game, int depth)
     {
         // Age history heuristic
-        for (int i = 0; i < historyHeuristic.Length; i++)
-            historyHeuristic[i] /= 8;
+        AgeHistory();
 
         var search = new Search(game, tt, historyHeuristic)
         {
@@ -114,11 +115,12 @@ public static class Engine
         return search.BestMove(depth);
     }
 
+
+
     public static Move? BestMove(Game game, CancellationToken ct)
     {
         // Age history heuristic
-        for (int i = 0; i < historyHeuristic.Length; i++)
-            historyHeuristic[i] /= 8;
+        AgeHistory();
 
         var search = new Search(game, tt, historyHeuristic)
         {
@@ -132,6 +134,15 @@ public static class Engine
         // tt.Clear();
         Array.Clear(historyHeuristic);
     }
-
-
+    
+    private static void AgeHistory()
+    {
+        for (int i = 0; i < historyHeuristic.Length; i++)
+        {
+            for (int j = 0; j < historyHeuristic[i].Length; j++)
+            {
+                historyHeuristic[i][j] /= 8;
+            }
+        }
+    }
 }

@@ -4,7 +4,7 @@ namespace Lolbot.Tests;
 
 public class MovePick
 {
-    private int[] empty_history = new int[4096];
+    private int[][] empty_history = [new int[4096], new int[4096]];
     private Move[] empty_killers = new Move[64];
 
     [Test]
@@ -51,8 +51,8 @@ public class MovePick
         var pos = new MutablePosition();
 
         Span<Move> moves = stackalloc Move[256];
-        var history = new int[4096];
-        history[historyMove.value & 0xfffu] = 64;
+        int[][] history = [new int[4096], new int[4096]];
+        history[historyMove.Color][historyMove.value & 0xfffu] = 64;
 
         var movePick = new MovePicker(
             ref empty_killers,
