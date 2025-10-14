@@ -132,9 +132,12 @@ public static class Engine
     internal static void Reset()
     {
         // tt.Clear();
-        Array.Clear(historyHeuristic);
+        for (int i = 0; i < historyHeuristic.Length; i++)
+        {
+            Array.Clear(historyHeuristic[i]);
+        }
     }
-    
+
     private static void AgeHistory()
     {
         for (int i = 0; i < historyHeuristic.Length; i++)
