@@ -99,20 +99,6 @@ public static class Engine
         return BestMove(game, timer.Token);
     }
 
-    public static Move? BestMove(Game game, int depth)
-    {
-        // Age history heuristic
-        AgeHistory();
-
-        var search = new Search(game, tt, historyHeuristic)
-        {
-            OnSearchProgress = Uci.PrintProgress
-        };
-        return search.BestMove(depth);
-    }
-
-
-
     public static Move? BestMove(Game game, CancellationToken ct)
     {
         // Age history heuristic

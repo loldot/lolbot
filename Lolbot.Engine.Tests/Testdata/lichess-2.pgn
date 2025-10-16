@@ -1,0 +1,25 @@
+[Event "Rated Blitz game"]
+[Date "????.??.??"]
+[Round "?"]
+[White "PICK18"]
+[Black "Matetricks"]
+[Result "0-1"]
+[BlackTitle "NM"]
+[WhiteElo "2243"]
+[BlackElo "2568"]
+[ECO "B57"]
+[Opening "Sicilian Defense: Sozin, not Scheveningen"]
+[TimeControl "180+0"]
+[UTCDate "2014.01.05"]
+[UTCTime "19:51:23"]
+[Termination "Normal"]
+[WhiteRatingDiff "-33"]
+[BlackRatingDiff "+5"]
+
+1. e4 c5 2. Nf3 d6 3. Nc3 Nc6 4. Bc4 Nf6 5. d4 cxd4 6. Nxd4 g6 7. Nxc6 bxc6
+8. O-O Bg7 9. Bf4 O-O 10. Re1 e5 11. Bg5 h6 12. Bh4 Qe7 13. a3 g5 14. Bg3
+Be6 15. Bd3 Rfd8 16. h4 g4 17. Be2 a5 18. f3 Nh5 19. Kh2 Bf6 20. fxg4 Nxg3
+21. Kxg3 Bxh4+ 22. Kh3 Bf2 23. g3 Bxe1 24. Qxe1 h5 25. Qd1 Qg5 26. Qf1
+hxg4+ 27. Kg2 Rab8 28. Qh1 Rxb2 29. Bd3 Rxc2+ 30. Bxc2 Qd2+ 31. Kf1 Qxc3
+32. Qg2 Qxa1+ 33. Kf2 Qc1 34. Bd3 Qd2+ 35. Kg1 Qxd3 36. Kh2 Kg7 37. Kg1 Rh8
+38. Qf2 Qd1+ 39. Kg2 Qh1# 0-1

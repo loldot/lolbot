@@ -66,6 +66,15 @@ public sealed class Game
     {
         return position.GenerateLegalMoves(piece).ToArray();
     }
+
+    public bool IsCheckMate()
+    {
+        return position.IsCheck && GenerateLegalMoves().Length == 0;
+    }
+    public bool IsStaleMate()
+    {
+        return !position.IsCheck && GenerateLegalMoves().Length == 0;
+    }
 }
 
 [Flags]

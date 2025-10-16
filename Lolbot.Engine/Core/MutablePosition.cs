@@ -1,6 +1,8 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
 using static Lolbot.Core.NNUE;
@@ -111,7 +113,7 @@ public sealed class MutablePosition
 
     public void Move(ref readonly Move m)
     {
-        Accumulator.Move(in m);
+        // Accumulator.Move(in m);
 
         var oponent = Enemy(CurrentPlayer);
 
@@ -212,7 +214,7 @@ public sealed class MutablePosition
         IsPinned = CreatePinmasks(us);
 
         CurrentPlayer = us;
-        Accumulator.Undo(in m);
+        // Accumulator.Undo(in m);
     }
 
     public void SkipTurn()
@@ -636,6 +638,20 @@ public sealed class MutablePosition
             $"Castle: {CastlingRights}\n" +
             $"EP: {EnPassant}\n" +
             $"Checkmask: {Checkmask:X}";
+    }
+
+    public const int BinarySize = 67;
+    public int CopyTo(Span<byte> buffer)
+    {
+        Debug.Assert(Unsafe.SizeOf<DenseBitboards>() + 3 == BinarySize);
+        if (buffer.Length < BinarySize) throw new ArgumentException($"Buffer too small, need at least {BinarySize} bytes");
+        
+        MemoryMarshal.Write(buffer, in bb);
+        buffer[Unsafe.SizeOf<DenseBitboards>()] = (byte)CurrentPlayer;
+        buffer[Unsafe.SizeOf<DenseBitboards>() + 1] = (byte)CastlingRights;
+        buffer[Unsafe.SizeOf<DenseBitboards>() + 2] = EnPassant;
+
+        return BinarySize;
     }
 
     public override string ToString()

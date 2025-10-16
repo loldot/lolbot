@@ -121,8 +121,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             delta <<= 1;
             if (delta >= 100) (alpha, beta) = (-(Inf + delta), Inf + delta);
 
-            Console.WriteLine($"DEBUG research cp {rootScore} depth {depth}"
-                + $" nodes {nodes} alpha {alpha} beta {beta} delta {delta}");
+            // Console.WriteLine($"DEBUG research cp {rootScore} depth {depth}"
+            //     + $" nodes {nodes} alpha {alpha} beta {beta} delta {delta}");
         }
 
         var s = (DateTime.Now - start).TotalSeconds;
@@ -366,8 +366,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         Span<Move> moves = stackalloc Move[256];
 
-        // var standPat = Heuristics.StaticEvaluation(position);
-        var standPat = position.Eval;
+        var standPat = Heuristics.StaticEvaluation(position);
+        // var standPat = position.Eval;
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;

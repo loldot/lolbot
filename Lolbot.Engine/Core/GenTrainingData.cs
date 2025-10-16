@@ -20,89 +20,70 @@ public partial class GenTrainingData
              Math.Abs(staticEval - score) < SearchMargin);
         var nnueEval = position.Eval;
         (staticEval, nnueEval, score) = position.CurrentPlayer == Colors.White
-            ? (staticEval, nnueEval, score) 
+            ? (staticEval, nnueEval, score)
             : (-staticEval, -nnueEval, -score);
         return (staticEval, nnueEval, score, isValid);
     }
 
     static int[][] history = [new int[4096], new int[4096]];
 
-    public sealed class GenOptions
+    public static async Task Generate(string path, string output)
     {
-        public int MaxPositions { get; set; } = 50_000_000;
+        Engine.Init();
 
-        public int Start { get; set; } = 0;
-        public int End { get; set; } = 50_000_000;
+        using var inputStream = File.OpenRead(path);
+        using var outputStream = File.OpenWrite(output);
 
-        public bool RandomSample { get; set; } = false;
-    }
-    public static async IAsyncEnumerable<(MutablePosition, int)> Generate(string path, GenOptions options)
-    {
-        string? line;
-        using var fs = File.OpenRead(path);
-        using var reader = new StreamReader(fs);
+        int max_depth = 8;
+        int games = 0;
+        int validPositions = 0;
+        int totalPositions = 0;
 
-        int readCount = 0;
-        int sampled = 0;
 
-        while (readCount < options.End && (line = await reader.ReadLineAsync()) != null)
+        await foreach (var (game, meta) in PgnSerializer.ReadMultiple(inputStream))
         {
-            if (readCount < options.Start)
+            games++;
+            for (int i = 0; i < history.Length; i++)
             {
-                readCount++;
-                continue;
+                Array.Clear(history[i]);
             }
 
-            if (options.RandomSample && sampled >= options.MaxPositions)
+            Console.WriteLine(meta["White"] + " vs " + meta["Black"]);
+
+            if (game.IsCheckMate() || game.IsStaleMate())
             {
-                yield break;
+                for (int i = 0; i < max_depth; i++)
+                {
+                    game.UndoLastMove();
+                }
             }
-
-            if (options.RandomSample && Random.Shared.NextDouble() > (options.MaxPositions - sampled) / (double)(options.End - readCount))
-            {
-                readCount++;
-                continue;
-            }
-
-            line = line[9..]; // skip {"fen": "}
-
-            var fenEnd = line.IndexOf('"');
-            var fen = line[..fenEnd];
-            var sfEval = int.Parse(DigitRegex().Match(line[fenEnd..]).Value);
-
-            var position = MutablePosition.FromFen(fen);
-            if (position.IsCheck || position.CurrentPlayer == Colors.Black)
-            {
-                readCount++;
-                continue;
-            }
-
-            var game = new Game(position, []);
 
             var search = new Search(game, Engine.tt, history);
 
-            var (stat, nnue, score, isValid) = TestPosition(search, position);
-            if (Math.Sign(score) != Math.Sign(sfEval) && Math.Abs(score - sfEval) > SearchMargin)
-            {
-                isValid = false;
-            }
 
-            if (isValid)
+            foreach (var _ in game.Moves)
             {
-                sampled++;
-                yield return (position, score);
-            }
-            else
-            {
-                continue;
-            }
+                var staticEval = Heuristics.StaticEvaluation(game.CurrentPosition);
+                var quiesenceEval = search.QuiesenceSearch(game.CurrentPosition, -Search.Inf, Search.Inf);
+                totalPositions++;
 
-            Console.WriteLine($"{fen} | {stat} | {nnue} | {score} | {sfEval}");
+                if (Math.Abs(staticEval - quiesenceEval) < QuiesenceMargin)
+                {
 
-            readCount++;
+                    var (_, eval) = search.BestMove(max_depth);
+
+                    if (Math.Abs(staticEval - eval) < SearchMargin)
+                    {
+                        float wdl = 1 / (1 + MathF.Exp(-eval / 410f));
+                        BinarySerializer.WritePosition(outputStream, game.CurrentPosition, (short)eval, wdl);
+
+                        validPositions++;
+                    }
+                }
+
+                game.UndoLastMove();
+            }
         }
+        Console.WriteLine($"Processed {games} games: {validPositions}/{totalPositions} valid positions");
     }
-
-    [GeneratedRegex(@"-?\d+")]
-    private static partial Regex DigitRegex();
 }
