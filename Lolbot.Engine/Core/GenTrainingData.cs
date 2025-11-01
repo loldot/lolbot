@@ -50,9 +50,9 @@ public partial class GenTrainingData
 
             Console.WriteLine(meta["White"] + " vs " + meta["Black"]);
 
-            if (game.IsCheckMate() || game.IsStaleMate())
+            if (game.GenerateLegalMoves().Length == 0)
             {
-                for (int i = 0; i < max_depth; i++)
+                for (int i = 0; i < max_depth && game.Moves.Any(); i++)
                 {
                     game.UndoLastMove();
                 }
@@ -67,7 +67,7 @@ public partial class GenTrainingData
                 var quiesenceEval = search.QuiesenceSearch(game.CurrentPosition, -Search.Inf, Search.Inf);
                 totalPositions++;
 
-                if (Math.Abs(staticEval - quiesenceEval) < QuiesenceMargin)
+                if (!game.CurrentPosition.IsCheck && Math.Abs(staticEval - quiesenceEval) < QuiesenceMargin)
                 {
 
                     var (_, eval) = search.BestMove(max_depth);
@@ -76,8 +76,32 @@ public partial class GenTrainingData
                     {
                         float wdl = 1 / (1 + MathF.Exp(-eval / 410f));
                         BinarySerializer.WritePosition(outputStream, game.CurrentPosition, (short)eval, wdl);
+                        Console.WriteLine("FEN: " + FenSerializer.ToFenString(game.CurrentPosition));
 
                         validPositions++;
+
+                        var mutation = game.CurrentPosition.Clone();
+                        mutation.DropRandomPiece();
+                        var mutatedGame = new Game(mutation);
+                        if (mutatedGame.GenerateLegalMoves().Length > 0)
+                        {
+                            var mutEval = Heuristics.StaticEvaluation(mutatedGame.CurrentPosition);
+                            var mutQuiesenceEval = search.QuiesenceSearch(mutatedGame.CurrentPosition, -Search.Inf, Search.Inf);
+
+                            if (!mutation.IsCheck && Math.Abs(mutEval - mutQuiesenceEval) < QuiesenceMargin)
+                            {
+                                var mutSearch = new Search(mutatedGame, Engine.tt, history);
+                                var (_, mutScore) = mutSearch.BestMove(max_depth);
+
+                                if (Math.Abs(mutEval - mutScore) < SearchMargin)
+                                {
+                                    float mutWdl = 1 / (1 + MathF.Exp(-mutScore / 410f));
+                                    BinarySerializer.WritePosition(outputStream, mutatedGame.CurrentPosition, (short)mutScore, mutWdl);
+                                    Console.WriteLine("FEN MUT: " + FenSerializer.ToFenString(mutatedGame.CurrentPosition));
+                                    validPositions++;
+                                }
+                            }
+                        }
                     }
                 }
 

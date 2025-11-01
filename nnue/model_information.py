@@ -74,7 +74,10 @@ def evaluate_model(model, test_loader, device):
             total_samples += len(batch_inputs)
             
             # Count "correct" predictions (within 0.1 WDL units)
-            correct_predictions += torch.sum(torch.abs(outputs - batch_targets) < 0.1).item()
+            # Flatten both to ensure same shape for comparison
+            outputs_flat = outputs.flatten()
+            targets_flat = batch_targets.flatten()
+            correct_predictions += torch.sum(torch.abs(outputs_flat - targets_flat) < 0.1).item()
     
     avg_loss = total_loss / total_samples
     accuracy = correct_predictions / total_samples

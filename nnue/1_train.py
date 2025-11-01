@@ -17,7 +17,7 @@ class NNUE(nn.Module):
     def forward(self, x):
         # Clipped ReLU (CReLU) like activation: clamp between 0 and 1
         x = torch.clamp(self.hidden(x), 0, 1)
-        return torch.sigmoid(self.output(x)).squeeze(-1)
+        return torch.sigmoid(self.output(x))
 
 def print_tensor_debug(tensor):
     for i in range(tensor.shape[0]):
@@ -29,11 +29,11 @@ if __name__ == "__main__":
 
     csv_filepath = r"C:\dev\chess-data\dataset.csv"
     hidden_size = 16
-    num_epochs = 25
+    num_epochs = 100
     batch_size = 8192
 
-    path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\combined.evals.bin"
-
+    #path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\combined.evals.bin"
+    path = "balanced_chess_data.bin"
 # Create dataset directly
     ds = ChessBitboardDataset(path)
     print("Number of positions:", len(ds))

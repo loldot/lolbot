@@ -113,7 +113,7 @@ public sealed class MutablePosition
 
     public void Move(ref readonly Move m)
     {
-        // Accumulator.Move(in m);
+        Accumulator.Move(in m);
 
         var oponent = Enemy(CurrentPlayer);
 
@@ -214,7 +214,7 @@ public sealed class MutablePosition
         IsPinned = CreatePinmasks(us);
 
         CurrentPlayer = us;
-        // Accumulator.Undo(in m);
+        Accumulator.Undo(in m);
     }
 
     public void SkipTurn()
@@ -398,6 +398,9 @@ public sealed class MutablePosition
                 }
             }
         }
+        
+        // Add side-to-move feature at index 768
+        input[768] = (CurrentPlayer == Colors.White) ? (short)1 : (short)0;
     }
 
     // Check and pin masks
@@ -645,7 +648,7 @@ public sealed class MutablePosition
     {
         Debug.Assert(Unsafe.SizeOf<DenseBitboards>() + 3 == BinarySize);
         if (buffer.Length < BinarySize) throw new ArgumentException($"Buffer too small, need at least {BinarySize} bytes");
-        
+
         MemoryMarshal.Write(buffer, in bb);
         buffer[Unsafe.SizeOf<DenseBitboards>()] = (byte)CurrentPlayer;
         buffer[Unsafe.SizeOf<DenseBitboards>() + 1] = (byte)CastlingRights;
@@ -672,6 +675,55 @@ public sealed class MutablePosition
         return sb.ToString();
     }
 
+    internal MutablePosition Clone()
+    {
+        return new MutablePosition
+        {
+            bb = this.bb,
+            CurrentPlayer = this.CurrentPlayer,
+            CastlingRights = this.CastlingRights,
+            EnPassant = this.EnPassant,
+            Hash = this.Hash,
+            Checkmask = this.Checkmask,
+            Pinmasks = this.Pinmasks,
+            IsPinned = this.IsPinned,
+            CheckerCount = this.CheckerCount,
+            AttackMask = this.AttackMask,
+            plyfromRoot = this.plyfromRoot,
+        };
+    }
+
+    internal void DropRandomPiece()
+    {
+        var bitboard = CurrentPlayer == Colors.White ? White : Black;
+        bitboard &= ~bb[KingsIndex]; // cannot drop king
+        var pieceCount = Bitboards.CountOccupied(bitboard);
+        
+        if (pieceCount == 0) return;
+        
+        var targetIndex = Random.Shared.Next(pieceCount);
+        var currentIndex = 0;
+
+        while (bitboard != 0)
+        {
+            var fromIndex = Bitboards.PopLsb(ref bitboard);
+            
+            if (currentIndex == targetIndex)
+            {
+                var piece = GetOccupant(ref fromIndex);
+                var pieceType = (PieceType)((byte)piece & 0xf);
+
+                bb[(int)CurrentPlayer] ^= Squares.FromIndex(fromIndex);
+                bb[(int)pieceType] ^= Squares.FromIndex(fromIndex);
+
+                Hash ^= Hashes.GetValue(piece, fromIndex);
+                Reevaluate();
+                return;
+            }
+            
+            currentIndex++;
+        }
+    }
     private readonly struct DiffData(ulong hash, CastlingRights castle, byte ep)
     {
         public readonly ulong Hash = hash;

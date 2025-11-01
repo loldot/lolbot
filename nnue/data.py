@@ -70,14 +70,31 @@ def _u64_to_bits_le(u64: np.uint64) -> np.ndarray:
     # bitorder='little' makes bit 0 of each byte go first
     return np.unpackbits(b, bitorder="little")
 
+def _flip_bitboard_vertically(bb: np.uint64) -> np.uint64:
+    """
+    Flip a bitboard vertically (rank 1 <-> rank 8, etc.)
+    This is used to convert black-to-move positions to white perspective.
+    """
+    # Convert to bits, reshape to 8x8, flip vertically, then back to uint64
+    bits = _u64_to_bits_le(bb)
+    board = bits.reshape(8, 8)
+    flipped_board = np.flip(board, axis=0)  # Flip rows
+    flipped_bits = flipped_board.flatten()
+    
+    # Pack back to uint64
+    bytes_array = np.packbits(flipped_bits.reshape(8, 8), bitorder='little', axis=1).flatten()
+    return np.uint64(int.from_bytes(bytes_array.tobytes(), 'little'))
+
 def _planes_from_record(rec) -> np.ndarray:
     """
     Build the 12x64 feature planes in the order:
-    BP, WP, BN, WN, BB, WB, BR, WR, BQ, WQ, BK, WK.
+    WP, BP, WN, BN, WB, BB, WR, BR, WQ, BQ, WK, BK.
+    Always from WHITE perspective (white pieces first).
     Returns (768,) float32.
     """
     B = rec["bb_black"]
     W = rec["bb_white"]
+    stm = rec["stm"]  # side to move: 0 = black, 7 = white
 
     P = rec["bb_pawns"]
     N = rec["bb_knights"]
@@ -86,14 +103,14 @@ def _planes_from_record(rec) -> np.ndarray:
     Q = rec["bb_queens"]
     K = rec["bb_kings"]
 
-    # Mask piece-type bitboards by color
+    # Mask piece-type bitboards by color (white first, then black)
     chans = (
-        (P & B), (P & W),
-        (N & B), (N & W),
-        (Bp & B), (Bp & W),
-        (R & B), (R & W),
-        (Q & B), (Q & W),
-        (K & B), (K & W),
+        (P & W), (P & B),   # White pawns, Black pawns
+        (N & W), (N & B),   # White knights, Black knights
+        (Bp & W), (Bp & B), # White bishops, Black bishops
+        (R & W), (R & B),   # White rooks, Black rooks
+        (Q & W), (Q & B),   # White queens, Black queens
+        (K & W), (K & B),   # White king, Black king
     )
 
     # Convert each masked u64 to 64 bits and stack
@@ -129,9 +146,13 @@ class ChessBitboardDataset(Dataset):
         rec = self.mm[idx]  # structured scalar
         x = _planes_from_record(rec)                     # (768,) float32
         y = np.float32(rec["wdl_f32"])                   # label
+        
+        # WDL values are always WHITE's winning probability
+        # No flipping needed - the position normalization handles perspective
+        
         # Return torch tensors without extra copies
         x_t = torch.from_numpy(x)                        # float32
-        y_t = torch.tensor(y, dtype=torch.float32)
+        y_t = torch.tensor([y], dtype=torch.float32)     # Shape [1] to match model output
         return x_t, y_t
 
 def make_dataloader(

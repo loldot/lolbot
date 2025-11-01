@@ -6,10 +6,11 @@ namespace Lolbot.Core;
 
 public static class NNUE
 {
-    const int Scale = 410;
+    const int Scale = 400;
     const short QA = 255;
     const short QB = 64;
     const short HiddenSize = 16;
+    const int InputSize = 769; // 768 piece features + 1 side-to-move feature
 
     public readonly struct Accumulator
     {
@@ -41,7 +42,7 @@ public static class NNUE
                     var sq = Bitboards.PopLsb(ref pb);
                     for (int h = 0; h < HiddenSize; h++)
                     {
-                        v[h] += hiddenWeights[h * 768 + FeatureIndex(black, p, sq)];
+                        v[h] += hiddenWeights[h * InputSize + FeatureIndex(black, p, sq)];
                     }
                 }
                 while (pw != 0)
@@ -50,7 +51,7 @@ public static class NNUE
                     var sq = Bitboards.PopLsb(ref pw);
                     for (int h = 0; h < HiddenSize; h++)
                     {
-                        v[h] += hiddenWeights[h * 768 + FeatureIndex(white, p, sq)];
+                        v[h] += hiddenWeights[h * InputSize + FeatureIndex(white, p, sq)];
                     }
                 }
             }
@@ -89,7 +90,7 @@ public static class NNUE
 
             for (int h = 0; h < HiddenSize; h++)
             {
-                int ix = h * 768;
+                int ix = h * InputSize;
                 v[h] -= hiddenWeights[ix + w_From];
                 v[h] += hiddenWeights[ix + w_To];
 
@@ -119,7 +120,7 @@ public static class NNUE
 
             for (int h = 0; h < HiddenSize; h++)
             {
-                var ix = h * 768;
+                var ix = h * InputSize;
 
                 v[h] += hiddenWeights[ix + w_From];
                 v[h] -= hiddenWeights[ix + w_to];
@@ -136,25 +137,46 @@ public static class NNUE
             }
         }
 
-        public short Read(Colors perspective)
+        public short Read(Colors sideToMove)
         {
-            // Output calculation with sigmoid activation
+            // Calculate the hidden layer values including side-to-move feature
+            short[] hiddenValues = new short[HiddenSize];
+            
+            // Copy accumulator values (piece features)
+            v.CopyTo(hiddenValues, 0);
+            
+            // Add side-to-move contribution to each hidden node
+            // Side-to-move feature is at index 768: 1 if white to move, 0 if black to move
+            short stmValue = (sideToMove == Colors.White) ? (short)1 : (short)0;
+            
+            for (int i = 0; i < HiddenSize; i++)
+            {
+                // Add contribution from side-to-move feature (index 768)
+                // Cap STM contribution to prevent the over-trained effect
+                short rawStmContrib = (short)(stmValue * hiddenWeights[i * InputSize + 768]);
+                short cappedStmContrib = Math.Clamp(rawStmContrib, (short)-20, (short)20);
+                hiddenValues[i] += cappedStmContrib;
+            }
+            
+            // Output calculation
             int output = outputBias;
             for (int i = 0; i < HiddenSize; i++)
             {
-                output += ClipRelu(v[i]) * outputWeights[i];
+                output += ClipRelu(hiddenValues[i]) * outputWeights[i];
             }
             var eval = (short)((Scale * output) / (QA * QB));
-            return (perspective == Colors.Black) ? (short)-eval : eval;
+            
+            // Evaluation is always from White's perspective
+            return eval;
         }
     }
 
 
-    internal static short[] input = new short[768];
+    internal static short[] input = new short[InputSize];
     static short[] hidden = new short[HiddenSize];
 
-    static short[] hiddenWeights = new short[HiddenSize * 768];
-    static float[] hiddenWeightsf = new float[HiddenSize * 768];
+    static short[] hiddenWeights = new short[HiddenSize * InputSize];
+    static float[] hiddenWeightsf = new float[HiddenSize * InputSize];
     static short[] hiddenBias = new short[HiddenSize];
     static float[] hiddenBiasf = new float[HiddenSize];
     static int[] outputWeights = new int[HiddenSize];
@@ -204,9 +226,9 @@ public static class NNUE
         for (int i = 0; i < HiddenSize; i++)
         {
             hidden[i] = hiddenBias[i];
-            for (int j = 0; j < 768; j++)
+            for (int j = 0; j < InputSize; j++)
             {
-                hidden[i] += (short)(input[j] * hiddenWeights[i * 768 + j]);
+                hidden[i] += (short)(input[j] * hiddenWeights[i * InputSize + j]);
             }
             hidden[i] = ClipRelu(hidden[i]);
         }

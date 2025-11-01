@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.InteropServices;
 
 namespace Lolbot.Core;
@@ -8,7 +9,7 @@ public class BinarySerializer
     {
         int size = MutablePosition.BinarySize + sizeof(short) + sizeof(float);
         
-        Span<byte> span = stackalloc byte[size];
+        Span<byte> span = ArrayPool<byte>.Shared.Rent(size).AsSpan(0, size);
         int written = position.CopyTo(span);
 
         MemoryMarshal.Write(span[written..], in eval);
