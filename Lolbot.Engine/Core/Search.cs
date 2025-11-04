@@ -204,11 +204,12 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         // TT probe (with mate normalization)
         var ttMove = Move.Null;
+        var ttEval = 0;
         if (tt.TryGet(position.Hash, out var ttEntry))
         {
             if (ttEntry.Depth >= depth)
             {
-                int ttEval = FromTT(ttEntry.Evaluation, ply);
+                ttEval = FromTT(ttEntry.Evaluation, ply);
 
                 if (ttEntry.Type == TranspositionTable.Exact)
                 {
@@ -231,7 +232,17 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         if (!TNode.IsPv && !position.IsCheck)
         {
-            var eval = Heuristics.StaticEvaluation(position);
+            int eval = ttEntry.IsSet && ttEntry.Type == TranspositionTable.Exact 
+                ? ttEntry.Evaluation 
+                : Heuristics.StaticEvaluation(position);
+            // ttEntry switch
+            // {
+            //     { IsSet: true, Type: TranspositionTable.Exact } => ttEval,
+            //     { IsSet: true, Type: TranspositionTable.LowerBound } => Max(Heuristics.StaticEvaluation(position), ttEval),
+            //     { IsSet: true, Type: TranspositionTable.UpperBound } => Min(Heuristics.StaticEvaluation(position), ttEval),
+            //     _ => 
+            // };
+
             var margin = 117 * depth;
 
             if (depth <= 5 && eval - margin >= beta) return eval - margin;

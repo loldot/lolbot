@@ -5,9 +5,14 @@ Param(
 )
 
 Write-Host "Comparing against previous version: ($prev)"
-
-$buildDir = "C:\dev\lolbot\Lolbot.Engine\bin\Release\net9.0\win-x64\publish"
+$sourceDir =  Join-Path -path $(git rev-parse --show-toplevel) -ChildPath "Lolbot.Engine"
+$buildDir = Join-Path -path $sourceDir -ChildPath "bin\Release\net10.0\win-x64\publish"
 $previousDir = "C:\dev\lolbot-versions\$prev"
+
+Write-Host("Source dir: $sourceDir")
+Write-Host("Build dir: $buildDir")
+Write-Host("Previous dir: $previousDir")
+
 
 $previousVersion = "$previousDir\Lolbot.Engine.exe"
 $buildVersion = "$buildDir\Lolbot.Engine.exe"
@@ -53,7 +58,7 @@ Push-Location "C:\Program Files (x86)\Cute Chess"
     -repeat 2 `
     -recover `
     -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 `
-| Tee-Object C:\temp\log.txt
+| Tee-Object C:\temp\log-perf.txt
 
 Pop-Location
 Pop-Location

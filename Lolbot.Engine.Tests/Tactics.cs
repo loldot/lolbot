@@ -1,6 +1,7 @@
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
+
 public class Tactics
 {
     [Test]
@@ -109,6 +110,20 @@ public class Tactics
     [TestCase("1k2r2r/pbb2p2/2qn2p1/8/PP6/2P2N2/1Q2NPB1/R4RK1 b - -", "Qxf3")]
     [TestCase("r6k/6R1/p4p1p/2p2P1P/1pq1PN2/6P1/1PP5/2KR4 w - -", "b3")]
     public void CCC_TestPositions_Should_Find_Move(string fen, string best)
+    {
+        var timer = new CancellationTokenSource(1 * 6_000);
+
+        var position = MutablePosition.FromFen(fen);
+        var game = new Game(position, []);
+        var bestmove = Engine.BestMove(game, timer.Token);
+
+        bestmove.Should().Be(PgnSerializer.ParseMove(game, best));
+    }
+
+    [TestCase("1r1r2k1/Q2p1R1p/2p2R2/1p3pB1/1P4q1/8/5K2/8 w - - 0 1", "Rg6")]
+    [TestCase("1q4rk/ppr1PQpp/1b3R2/3R4/1P6/4P3/P5PP/6K1 w - - 0 1", "Rd8")]
+    [TestCase("8/4p3/p4pk1/P1K2b2/BP1p4/2P1n3/3P2P1/8 w - - 0 1", "cxd4")]
+    public void DeepMind_TestPositions_Should_Find_Move(string fen, string best)
     {
         var timer = new CancellationTokenSource(1 * 6_000);
 
