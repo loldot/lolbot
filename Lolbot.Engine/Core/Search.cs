@@ -342,20 +342,13 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         var standPat = Heuristics.StaticEvaluation(position);
 
-        if (standPat >= beta && !position.IsCheck) return beta;
+        if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;
 
         var movepicker = new MovePicker(in Killers, ref historyHeuristic, ref moves, position, Move.Null, 0);
 
-        while (true)
+        while ((move = movepicker.PickCapture(i++)) != Move.Null)
         {
-            move = position.IsCheck switch
-            {
-                true => movepicker.PickEvasion(i++),
-                false => movepicker.PickCapture(i++)
-            };
-            if (move.IsNull) break;
-
             if (standPat + deltas[(byte)move.CapturePieceType] < alpha)
                 continue;
 

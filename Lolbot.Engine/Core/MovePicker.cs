@@ -63,7 +63,7 @@ public ref struct MovePicker
             (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
         }
         return moves[k];
-    }   
+    }
 
     public Move PickCapture(int k)
     {
