@@ -6,11 +6,11 @@ namespace Lolbot.Core;
 
 public static class NNUE
 {
-    const int Scale = 400;
+    const int Scale = 410;
     const short QA = 255;
     const short QB = 64;
     const short HiddenSize = 16;
-    const int InputSize = 769; // 768 piece features + 1 side-to-move feature
+    const int InputSize = 768; // 768 piece features + 1 side-to-move feature
 
     public readonly struct Accumulator
     {
@@ -139,35 +139,19 @@ public static class NNUE
 
         public short Read(Colors sideToMove)
         {
-            // Calculate the hidden layer values including side-to-move feature
             short[] hiddenValues = new short[HiddenSize];
-            
-            // Copy accumulator values (piece features)
             v.CopyTo(hiddenValues, 0);
-            
-            // Add side-to-move contribution to each hidden node
-            // Side-to-move feature is at index 768: 1 if white to move, 0 if black to move
-            short stmValue = (sideToMove == Colors.White) ? (short)1 : (short)0;
-            
-            for (int i = 0; i < HiddenSize; i++)
-            {
-                // Add contribution from side-to-move feature (index 768)
-                // Cap STM contribution to prevent the over-trained effect
-                short rawStmContrib = (short)(stmValue * hiddenWeights[i * InputSize + 768]);
-                short cappedStmContrib = Math.Clamp(rawStmContrib, (short)-20, (short)20);
-                hiddenValues[i] += cappedStmContrib;
-            }
-            
+
+
             // Output calculation
             int output = outputBias;
             for (int i = 0; i < HiddenSize; i++)
             {
                 output += ClipRelu(hiddenValues[i]) * outputWeights[i];
             }
-            var eval = (short)((Scale * output) / (QA * QB));
-            
-            // Evaluation is always from White's perspective
-            return eval;
+            var eval = Scale * output / (QA * QB);
+
+            return (short)(sideToMove == Colors.White ? eval : -eval); 
         }
     }
 
@@ -197,7 +181,7 @@ public static class NNUE
         for (int i = 0; i < hiddenWeights.Length; i++)
         {
             hiddenWeightsf[i] = reader.ReadSingle();
-            hiddenWeights[i] = (short)Math.Clamp(QA *  hiddenWeightsf[i], -127, 127);
+            hiddenWeights[i] = (short)Math.Clamp(QA * hiddenWeightsf[i], -127, 127);
         }
 
         // Read hidden bias
@@ -239,7 +223,6 @@ public static class NNUE
         {
             output += hidden[i] * outputWeights[i];
         }
-
 
         return (short)((Scale * output) / (QA * QB));
     }

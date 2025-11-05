@@ -398,9 +398,6 @@ public sealed class MutablePosition
                 }
             }
         }
-        
-        // Add side-to-move feature at index 768
-        input[768] = (CurrentPlayer == Colors.White) ? (short)1 : (short)0;
     }
 
     // Check and pin masks

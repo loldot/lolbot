@@ -11,8 +11,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     public const int Mate = short.MaxValue / 2;
 
     const int Max_History = 38_400;
-    const int Max_Depth = 128;
-    const int Max_Extensions = 32;
+    const int Max_Depth = 64;
 
     private const int FutilityMargin = 130;
     private const int ReverseFutilityMargin = 117;
@@ -27,6 +26,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     private int qnodes = 0;
     private CancellationToken ct;
 
+    NNUE.Accumulator[] accumulators = new NNUE.Accumulator[Max_Depth];
     public Action<SearchProgress>? OnSearchProgress { get; set; }
     public int CentiPawnEvaluation => rootScore;
 
@@ -120,9 +120,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
             delta <<= 1;
             if (delta >= 100) (alpha, beta) = (-(Inf + delta), Inf + delta);
-
-            // Console.WriteLine($"DEBUG research cp {rootScore} depth {depth}"
-            //     + $" nodes {nodes} alpha {alpha} beta {beta} delta {delta}");
         }
 
         var s = (DateTime.Now - start).TotalSeconds;
