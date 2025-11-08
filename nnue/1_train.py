@@ -164,11 +164,11 @@ if __name__ == "__main__":
     batch_size = 8192
     
     # Phase 1: Material-based training (more epochs to learn basic evaluation)
-    phase1_epochs = 5
+    phase1_epochs = 2
     phase1_lr = 0.003  # Higher learning rate for initial learning
     
     # Phase 2: Fine-tuning with accurate WDL (fewer epochs to refine)
-    phase2_epochs = 25
+    phase2_epochs = 50
     phase2_lr = 0.0005  # Lower learning rate for fine-tuning
 
     path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\preprocessed_positions.bin"

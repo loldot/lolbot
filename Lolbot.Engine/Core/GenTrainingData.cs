@@ -12,7 +12,7 @@ public partial class GenTrainingData
     public static (int staticEval, int nnueEval, int score, bool isValid) TestPosition(Search search, MutablePosition position)
     {
         var staticEval = Heuristics.StaticEvaluation(position);
-        var quiesenceEval = search.QuiesenceSearch(position, -Search.Inf, Search.Inf);
+        var quiesenceEval = search.QuiesenceSearchPv(position, -Search.Inf, Search.Inf);
         var score = search.EvaluateMove<PvNode>(position, 7, 0, -Search.Inf, Search.Inf, true);
 
         var isValid = position.IsEndgame ||
@@ -64,7 +64,7 @@ public partial class GenTrainingData
             foreach (var _ in game.Moves)
             {
                 var staticEval = Heuristics.StaticEvaluation(game.CurrentPosition);
-                var quiesenceEval = search.QuiesenceSearch(game.CurrentPosition, -Search.Inf, Search.Inf);
+                var quiesenceEval = search.QuiesenceSearchPv(game.CurrentPosition, -Search.Inf, Search.Inf);
                 totalPositions++;
 
                 if (!game.CurrentPosition.IsCheck && Math.Abs(staticEval - quiesenceEval) < QuiesenceMargin)
@@ -86,7 +86,7 @@ public partial class GenTrainingData
                         if (mutatedGame.GenerateLegalMoves().Length > 0)
                         {
                             var mutEval = Heuristics.StaticEvaluation(mutatedGame.CurrentPosition);
-                            var mutQuiesenceEval = search.QuiesenceSearch(mutatedGame.CurrentPosition, -Search.Inf, Search.Inf);
+                            var mutQuiesenceEval = search.QuiesenceSearchPv(mutatedGame.CurrentPosition, -Search.Inf, Search.Inf);
 
                             if (!mutation.IsCheck && Math.Abs(mutEval - mutQuiesenceEval) < QuiesenceMargin)
                             {

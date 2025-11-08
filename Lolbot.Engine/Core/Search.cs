@@ -345,6 +345,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         return best;
     }
+    public int QuiesenceSearchPv(MutablePosition position, int alpha, int beta) => QuiesenceSearch<PvNode>(position, alpha, beta);
 
     private int QuiesenceSearch<TNode>(MutablePosition position, int alpha, int beta) where TNode : struct, NodeType
     {

@@ -151,7 +151,12 @@ public static class NNUE
             }
             var eval = Scale * output / (QA * QB);
 
-            return (short)(sideToMove == Colors.White ? eval : -eval); 
+            return (short)(sideToMove == Colors.White ? eval : -eval);
+        }
+        
+        public void CopyTo(Accumulator target)
+        {
+            v.CopyTo(target.v, 0);
         }
     }
 
