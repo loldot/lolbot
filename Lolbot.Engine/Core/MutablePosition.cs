@@ -111,15 +111,6 @@ public sealed class MutablePosition
            Hash, CastlingRights, EnPassant
         );
 
-        // // 1) Remove previous en-passant hash if it was actually valid (use pre-move pawn attacks)
-        // if (EnPassant != 0)
-        // {
-        //     var preMovePawnAttacks = CurrentPlayer == Colors.White
-        //         ? MovePatterns.CalculateAllPawnAttacksWhite(WhitePawns)
-        //         : MovePatterns.CalculateAllPawnAttacksBlack(BlackPawns);
-        //     Hash ^= Hashes.GetValue(preMovePawnAttacks, EnPassant);
-        // }
-
         bb[(int)Colors.White * m.Color] ^= m.FromSquare | m.ToSquare;
         bb[(int)m.FromPieceType] ^= m.FromSquare | m.ToSquare;
 
@@ -155,7 +146,6 @@ public sealed class MutablePosition
 
         var newCastling = ApplyCastlingRights(in m);
 
-        // 3) Castling rights: toggle only if rights changed
         if (newCastling != CastlingRights)
         {
             Hash ^= Hashes.GetValue(CastlingRights);
@@ -166,7 +156,6 @@ public sealed class MutablePosition
         Hash ^= Hashes.GetValue(EnPassant);
         EnPassant = GetEnPassantSquare(in m);
         Hash ^= Hashes.GetValue(EnPassant);
-        // 5) Side to move
         Hash ^= Hashes.GetValue(Colors.White);
 
         AttackMask = CreateEnemyAttackMask(oponent);
