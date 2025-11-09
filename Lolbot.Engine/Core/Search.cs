@@ -192,7 +192,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     {
         if (ct.IsCancellationRequested) return Inf;
         if (position.IsCheck) depth++;
-        if (depth <= 0) return QuiesenceSearch(position, alpha, beta);
+        if (depth <= 0) return QuiesenceSearch<TNode>(position, alpha, beta);
 
         var originalAlpha = alpha;
 
@@ -232,8 +232,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         if (!TNode.IsPv && !position.IsCheck)
         {
-            int eval = ttEntry.IsSet && ttEntry.Type == TranspositionTable.Exact 
-                ? ttEntry.Evaluation 
+            int eval = ttEntry.IsSet && ttEntry.Type == TranspositionTable.Exact
+                ? ttEntry.Evaluation
                 : Heuristics.StaticEvaluation(position);
             // ttEntry switch
             // {
@@ -332,11 +332,32 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         return best;
     }
 
-    private int QuiesenceSearch(MutablePosition position, int alpha, int beta)
+    private int QuiesenceSearch<TNode>(MutablePosition position, int alpha, int beta) where TNode : struct, NodeType
     {
         int i = 0;
-        Move move;
+        Move move, ttMove = Move.Null;
         int[] deltas = [0, 180, 390, 442, 718, 1332, 88888]; // Piece values for delta pruning
+
+        if (!TNode.IsPv && tt.TryGet(position.Hash, out var ttEntry))
+        {
+
+            if (ttEntry.Type == TranspositionTable.Exact)
+            {
+                return ttEntry.Evaluation;
+            }
+            else if (ttEntry.Type == TranspositionTable.LowerBound)
+            {
+                alpha = Max(alpha, ttEntry.Evaluation);
+            }
+            else if (ttEntry.Type == TranspositionTable.UpperBound)
+            {
+                beta = Min(beta, ttEntry.Evaluation);
+            }
+
+            if (alpha >= beta) return ttEntry.Evaluation;
+            ttMove = ttEntry.Move;
+
+        }
 
         Span<Move> moves = stackalloc Move[256];
 
@@ -345,27 +366,27 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;
 
-        var movepicker = new MovePicker(in Killers, ref historyHeuristic, ref moves, position, Move.Null, 0);
+        var movepicker = new MovePicker(in Killers, ref historyHeuristic, ref moves, position, ttMove, 0);
 
         while ((move = movepicker.PickCapture(i++)) != Move.Null)
         {
             if (standPat + deltas[(byte)move.CapturePieceType] < alpha)
-                continue;
+            {
+                if (!TNode.IsPv) return alpha;
+                else continue;
+            }
 
-            // Static Exchange Evaluation (SEE): Skip bad captures
             if (position.SEE(move) < -45)
                 continue;
+
             qnodes++;
 
-            // Make the move
             position.Move(in move);
-            int eval = -QuiesenceSearch(position, -beta, -alpha);
+            int eval = -QuiesenceSearch<TNode>(position, -beta, -alpha);
             position.Undo(in move);
 
-            // Beta cutoff
             if (eval >= beta) return beta;
 
-            // Update alpha
             alpha = Max(alpha, eval);
         }
         nodes += i;
