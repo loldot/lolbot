@@ -12,6 +12,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     const int Max_Depth = 128;
     const int Max_Extensions = 32;
 
+    private const int FutilityMargin = 130;
+    private const int ReverseFutilityMargin = 117;
+
     private readonly MutablePosition rootPosition = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
 
@@ -230,9 +233,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         }
         // else if (remainingDepth > 3) remainingDepth--;
 
+        int eval = 0;
         if (!TNode.IsPv && !position.IsCheck)
         {
-            int eval = ttEntry.IsSet && ttEntry.Type == TranspositionTable.Exact
+            eval = ttEntry.IsSet && ttEntry.Type == TranspositionTable.Exact
                 ? ttEntry.Evaluation
                 : Heuristics.StaticEvaluation(position);
             // ttEntry switch
@@ -243,7 +247,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             //     _ => 
             // };
 
-            var margin = 117 * depth;
+            var margin = ReverseFutilityMargin * depth;
 
             if (depth <= 5 && eval - margin >= beta) return eval - margin;
             else if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
@@ -284,6 +288,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             {
                 int reduction = Lmr((byte)depth, i);
                 score = -EvaluateMove<NonPvNode>(position, depth - reduction, ply + 1, -alpha - 1, -alpha);
+
                 if (TNode.IsPv && score > alpha && score < beta)
                     score = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search
             }
@@ -317,6 +322,12 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
                     break;
                 }
             }
+
+            // Futility pruning
+            if (!TNode.IsPv && depth <= 3 
+                && !position.IsCheck
+                && move.CapturePiece == Piece.None
+                && eval + FutilityMargin * depth <= alpha) break;
 
             move = movepicker.SelectMove(++i);
         }
