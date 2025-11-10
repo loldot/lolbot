@@ -205,59 +205,57 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         if (history.IsDraw(position.Hash)) return 0;
 
-        // TT probe (with mate normalization)
         var ttMove = Move.Null;
-        var ttEval = 0;
+        var eval = 0;
+
         if (tt.TryGet(position.Hash, out var ttEntry))
         {
             if (ttEntry.Depth >= depth)
             {
-                ttEval = FromTT(ttEntry.Evaluation, ply);
+                eval = FromTT(ttEntry.Evaluation, ply);
 
                 if (ttEntry.Type == TranspositionTable.Exact)
                 {
-                    return ttEval;
+                    return eval;
                 }
                 else if (ttEntry.Type == TranspositionTable.LowerBound)
                 {
-                    alpha = Max(alpha, ttEval);
+                    alpha = Max(alpha, eval);
                 }
                 else if (ttEntry.Type == TranspositionTable.UpperBound)
                 {
-                    beta = Min(beta, ttEval);
+                    beta = Min(beta, eval);
                 }
 
-                if (alpha >= beta) return ttEval;
+                if (alpha >= beta) return eval;
             }
             ttMove = ttEntry.Move;
         }
         // else if (remainingDepth > 3) remainingDepth--;
 
-        int eval = 0;
-        if (!TNode.IsPv && !position.IsCheck)
+        bool isPruningAllowed = !TNode.IsPv && !position.IsCheck;
+
+        if (isPruningAllowed)
         {
-            eval = ttEntry.IsSet && ttEntry.Type == TranspositionTable.Exact
-                ? ttEntry.Evaluation
-                : Heuristics.StaticEvaluation(position);
-            // ttEntry switch
-            // {
-            //     { IsSet: true, Type: TranspositionTable.Exact } => ttEval,
-            //     { IsSet: true, Type: TranspositionTable.LowerBound } => Max(Heuristics.StaticEvaluation(position), ttEval),
-            //     { IsSet: true, Type: TranspositionTable.UpperBound } => Min(Heuristics.StaticEvaluation(position), ttEval),
-            //     _ => 
-            // };
+            if (!ttEntry.IsSet || ttEntry.Type != TranspositionTable.Exact)
+            {
+                eval = Heuristics.StaticEvaluation(position);
+            }
 
             var margin = ReverseFutilityMargin * depth;
 
+            // Reverse futility pruning
             if (depth <= 5 && eval - margin >= beta) return eval - margin;
-            else if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
+            
+            // Adaptive null move pruning
+            if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
             {
                 position.SkipTurn();
                 var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
-                eval = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
+                var score = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
                 position.UndoSkipTurn();
 
-                if (eval >= beta)
+                if (score >= beta)
                 {
                     return eval;
                 }
@@ -324,8 +322,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             }
 
             // Futility pruning
-            if (!TNode.IsPv && depth <= 3 
-                && !position.IsCheck
+            if (isPruningAllowed && depth <= 3 
                 && move.CapturePiece == Piece.None
                 && eval + FutilityMargin * depth <= alpha) break;
 
