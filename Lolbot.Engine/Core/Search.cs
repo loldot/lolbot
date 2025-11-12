@@ -35,43 +35,65 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         }
     }
 
-    public Move? BestMove()
+    public Move BestMove()
     {
         var timer = new CancellationTokenSource(2_000);
         return BestMove(timer.Token);
     }
-
-    public Move? BestMove(CancellationToken ct)
+    public Move BestMove(CancellationToken ct)
     {
         this.ct = ct;
-        var bestMove = Move.Null;
-
-        var depth = 1;
-        while (bestMove.IsNull || depth <= Max_Depth && !ct.IsCancellationRequested)
-        {
-            bestMove = BestMove(bestMove, depth);
-            depth++;
-        }
-
-        return bestMove;
+        return IterativeDeepening(Max_Depth, ct);
     }
 
-    public Move? BestMove(int searchDepth)
+    public Move BestMove(int searchDepth)
     {
         this.ct = new CancellationTokenSource(60_000).Token;
-        var bestMove = Move.Null;
-
-        var depth = 1;
-        while (bestMove.IsNull || depth <= searchDepth && !ct.IsCancellationRequested)
-        {
-            bestMove = BestMove(bestMove, depth);
-            depth++;
-        }
-
-        return bestMove;
+        return IterativeDeepening(searchDepth, ct);
     }
 
-    public Move BestMove(Move bestMove, int depth)
+    private Move[] rootMoves = new Move[256];
+    private int[] rootMoveScores = new int[256];
+
+    public Move IterativeDeepening(int maxSearchDepth, CancellationToken ct)
+    {
+        this.ct = ct;
+
+        Span<Move> moves = rootMoves;
+        var count = MoveGenerator.Legal(rootPosition, ref moves);
+        Array.Resize(ref rootMoves, count);
+        Array.Resize(ref rootMoveScores, count);
+
+        int offset = 0;
+
+        if (tt.TryGet(rootPosition.Hash, out var ttEntry))
+        {
+            var ttMove = ttEntry.Move;
+            var index = Array.IndexOf(rootMoves, ttMove);
+            if (index >= 0)
+            {
+                (rootMoves[0], rootMoves[index]) = (rootMoves[index], rootMoves[0]);
+                offset = 1;
+            }
+        }
+
+        for (int i = offset; i < count; i++)
+        {
+            rootMoveScores[i] = -ScoreMove(rootMoves[i], 0);
+        }
+        Array.Sort(rootMoveScores, rootMoves, offset, count - offset);
+
+        var depth = 1;
+
+        while (depth <= maxSearchDepth && !ct.IsCancellationRequested)
+        {
+            AspirationWindows(depth);
+            depth++;
+        }
+        return rootMoves[0];
+    }
+
+    public void AspirationWindows(int depth)
     {
         var delta = 64 / Clamp(depth - 3, 1, 4);
 
@@ -86,7 +108,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         while (true)
         {
-            (bestMove, rootScore) = SearchRoot(depth, bestMove, alpha, beta);
+            SearchRoot(depth, alpha, beta);
 
             if (rootScore <= alpha) alpha = rootScore - delta;
             else if (rootScore >= beta) beta = rootScore + delta;
@@ -100,64 +122,57 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         }
 
         var s = (DateTime.Now - start).TotalSeconds;
-        OnSearchProgress?.Invoke(new SearchProgress(depth, bestMove, rootScore, nodes, s));
-        Console.WriteLine($"DEBUG qnodes: {qnodes} ({qnodes * 100 / Max(nodes, 1)} %)");
-
-        return bestMove;
+        OnSearchProgress?.Invoke(new SearchProgress(depth, rootMoves[0], rootScore, nodes, s));
+        // Console.WriteLine($"DEBUG qnodes: {qnodes} ({qnodes * 100 / Max(nodes, 1)} %)");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int Lmr(byte depth, byte move) => 1 + ((LogTable[depth] * LogTable[move + 1]) >> 15);
 
-    public (Move, int) SearchRoot(int depth, Move currentBest, int alpha = -Inf, int beta = Inf)
+
+    public void SearchRoot(int depth, int alpha = -Inf, int beta = Inf)
     {
         if (rootPosition.IsCheck) depth++;
 
+        rootScore = -Inf;
         var originalAlpha = alpha;
+        Move bestMove = rootMoves[0];
 
-        var ttMove = Move.Null;
         if (tt.TryGet(rootPosition.Hash, out var ttEntry))
         {
             if (ttEntry.Depth >= depth)
             {
                 int ttEval = FromTT(ttEntry.Evaluation, 0);
 
-                if (ttEntry.Type == TranspositionTable.Exact)
+                switch (ttEntry.Type)
                 {
-                    return (ttEntry.Move, ttEval);
-                }
-                else if (ttEntry.Type == TranspositionTable.LowerBound)
-                {
-                    alpha = Max(alpha, ttEval);
-                }
-                else if (ttEntry.Type == TranspositionTable.UpperBound)
-                {
-                    beta = Min(beta, ttEval);
+                    case TranspositionTable.Exact:
+                        rootScore = ttEval;
+                        return;
+                    case TranspositionTable.LowerBound:
+                        alpha = Max(alpha, ttEval);
+                        break;
+                    case TranspositionTable.UpperBound:
+                        beta = Min(beta, ttEval);
+                        break;
                 }
 
                 if (alpha >= beta)
                 {
-                    return (ttEntry.Move, ttEval);
+                    rootScore = ttEval;
+                    return;
                 }
             }
-            ttMove = ttEntry.Move;
         }
 
-        Span<Move> moves = stackalloc Move[256];
-        var count = MoveGenerator.Legal(rootPosition, ref moves);
-        moves = moves[..count];
-
-        currentBest = currentBest.IsNull ? ttMove : currentBest;
-        var bestMove = currentBest.IsNull ? moves[0] : currentBest;
-
         int i = 0;
-        for (; i < count; i++)
+        for (; i < rootMoves.Length; i++)
         {
-            var move = SelectMove(ref moves, currentBest, in i, 0);
+            var move = rootMoves[i];
             rootPosition.Move(in move);
-
-            int value = -Inf;
             history.Update(move, rootPosition.Hash);
+
+            int value;
             if (i == 0)
             {
                 value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha);
@@ -166,7 +181,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             {
                 int reduction = Lmr((byte)depth, (byte)i);
                 value = -EvaluateMove<NonPvNode>(rootPosition, depth - reduction, 1, -alpha - 1, -alpha);
-                if (value > alpha)
+                if (value > alpha && Abs(value) != Inf)
                     value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha); // re-search
             }
             rootPosition.Undo(in move);
@@ -174,8 +189,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
             if (value > alpha && value < Inf)
             {
-                alpha = value;
-                bestMove = move;
+                if (i != 0) Array.Copy(rootMoves, 0, rootMoves, 1, rootMoves.Length - 1);
+                rootScore = alpha = value;
+                rootMoves[0] = bestMove = move;
             }
         }
         nodes += i;
@@ -186,8 +202,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         if (alpha > -Inf && alpha < Inf)
             tt.Add(rootPosition.Hash, depth, ToTT(alpha, 0), flag, bestMove);
-
-        return (bestMove, alpha);
     }
 
     public int EvaluateMove<TNode>(MutablePosition position, int depth, int ply, int alpha, int beta, bool isNullAllowed = true)
@@ -214,17 +228,16 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             {
                 eval = FromTT(ttEntry.Evaluation, ply);
 
-                if (ttEntry.Type == TranspositionTable.Exact)
+                switch (ttEntry.Type)
                 {
-                    return eval;
-                }
-                else if (ttEntry.Type == TranspositionTable.LowerBound)
-                {
-                    alpha = Max(alpha, eval);
-                }
-                else if (ttEntry.Type == TranspositionTable.UpperBound)
-                {
-                    beta = Min(beta, eval);
+                    case TranspositionTable.Exact:
+                        return eval;
+                    case TranspositionTable.LowerBound:
+                        alpha = Max(alpha, eval);
+                        break;
+                    case TranspositionTable.UpperBound:
+                        beta = Min(beta, eval);
+                        break;
                 }
 
                 if (alpha >= beta) return eval;
@@ -246,7 +259,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
             // Reverse futility pruning
             if (depth <= 5 && eval - margin >= beta) return eval - margin;
-            
+
             // Adaptive null move pruning
             if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
             {
@@ -322,7 +335,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             }
 
             // Futility pruning
-            if (isPruningAllowed && depth <= 3 
+            if (isPruningAllowed && depth <= 3
                 && move.CapturePiece == Piece.None
                 && eval + FutilityMargin * depth <= alpha) break;
 
@@ -348,18 +361,16 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         if (!TNode.IsPv && tt.TryGet(position.Hash, out var ttEntry))
         {
-
-            if (ttEntry.Type == TranspositionTable.Exact)
+            switch (ttEntry.Type)
             {
-                return ttEntry.Evaluation;
-            }
-            else if (ttEntry.Type == TranspositionTable.LowerBound)
-            {
-                alpha = Max(alpha, ttEntry.Evaluation);
-            }
-            else if (ttEntry.Type == TranspositionTable.UpperBound)
-            {
-                beta = Min(beta, ttEntry.Evaluation);
+                case TranspositionTable.Exact:
+                    return ttEntry.Evaluation;
+                case TranspositionTable.LowerBound:
+                    alpha = Max(alpha, ttEntry.Evaluation);
+                    break;
+                case TranspositionTable.UpperBound:
+                    beta = Min(beta, ttEntry.Evaluation);
+                    break;
             }
 
             if (alpha >= beta) return ttEntry.Evaluation;

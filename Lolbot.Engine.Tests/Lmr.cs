@@ -25,7 +25,7 @@ public class Lmr
                 var result = Lmr(depth, move);
                 var resultLn = LmrLn(depth, move);
 
-                Console.WriteLine($"Depth: {depth}, Move: {move}, {LogTable[depth]}, {LogTable[move + 1]}, Result: {result}, ResultLn: {resultLn}");
+                // Console.WriteLine($"Depth: {depth}, Move: {move}, {LogTable[depth]}, {LogTable[move + 1]}, Result: {result}, ResultLn: {resultLn}");
 
                 result.Should().BeCloseTo(resultLn, 1, $"Lmr and LmrLn for depth {depth} and move {move} should be the same");
             }

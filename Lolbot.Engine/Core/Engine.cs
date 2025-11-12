@@ -13,7 +13,6 @@ public static class Engine
     private static readonly int[][] historyHeuristic = [
         new int[4096], new int[4096]
     ];
-    private static int nodes = 0;
 
     public static void Init()
     {

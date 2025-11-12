@@ -57,6 +57,7 @@ Push-Location "C:\Program Files (x86)\Cute Chess"
     -games 2 `
     -repeat 2 `
     -recover `
+    -debug `
     -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 `
 | Tee-Object C:\temp\log-perf.txt
 
