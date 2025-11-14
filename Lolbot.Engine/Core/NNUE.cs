@@ -1,4 +1,5 @@
 
+using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -10,12 +11,12 @@ public static class NNUE
     const short QA = 255;
     const short QB = 64;
     const short HiddenSize = 16;
-    const int InputSize = 768; // 768 piece features + 1 side-to-move feature
+    const int InputSize = 768;
 
     public readonly struct Accumulator
     {
         const int white = 1, black = 0;
-        private readonly short[] v = new short[HiddenSize];
+        private readonly float[] v = new float[HiddenSize];
         public Accumulator()
         {
         }
@@ -29,7 +30,7 @@ public static class NNUE
 
         public void Reevaluate(MutablePosition pos)
         {
-            hiddenBias.CopyTo(v, 0);
+            hiddenBiasf.CopyTo(v, 0);
 
             for (int piece = 0; piece < 6; piece++)
             {
@@ -42,7 +43,7 @@ public static class NNUE
                     var sq = Bitboards.PopLsb(ref pb);
                     for (int h = 0; h < HiddenSize; h++)
                     {
-                        v[h] += hiddenWeights[h * InputSize + FeatureIndex(black, p, sq)];
+                        v[h] += hiddenWeightsf[h * InputSize + FeatureIndex(black, p, sq)];
                     }
                 }
                 while (pw != 0)
@@ -51,7 +52,7 @@ public static class NNUE
                     var sq = Bitboards.PopLsb(ref pw);
                     for (int h = 0; h < HiddenSize; h++)
                     {
-                        v[h] += hiddenWeights[h * InputSize + FeatureIndex(white, p, sq)];
+                        v[h] += hiddenWeightsf[h * InputSize + FeatureIndex(white, p, sq)];
                     }
                 }
             }
@@ -88,21 +89,32 @@ public static class NNUE
             var w_castle = FeatureIndex(m.Color, m.CapturePieceType, m.CastleIndex);
             // var b_castle_to = FeatureIndexBlack(m.Color, m.CapturePieceType, m.CastleIndex);
 
-            for (int h = 0; h < HiddenSize; h++)
+            TensorPrimitives.Subtract(v, hiddenWeightsTensor[w_From], v);
+            TensorPrimitives.Add(v, hiddenWeightsTensor[w_To], v);
+            if (m.CapturePieceType != PieceType.None)
             {
-                int ix = h * InputSize;
-                v[h] -= hiddenWeights[ix + w_From];
-                v[h] += hiddenWeights[ix + w_To];
-
-                if (m.CapturePieceType != PieceType.None)
-                {
-                    v[h] -= hiddenWeights[ix + w_capture];
-                }
-                if (m.CastleFlag != 0)
-                {
-                    v[h] += hiddenWeights[ix + w_castle];
-                }
+                TensorPrimitives.Subtract(v, hiddenWeightsTensor[w_capture], v);
             }
+            if (m.CastleFlag != 0)
+            {
+                TensorPrimitives.Add(v, hiddenWeightsTensor[w_castle], v);
+            }
+
+            // for (int h = 0; h < HiddenSize; h++)
+            // {
+            //     int ix = h * InputSize;
+            //     v[h] -= hiddenWeightsf[ix + w_From];
+            //     v[h] += hiddenWeightsf[ix + w_To];
+
+            //     if (m.CapturePieceType != PieceType.None)
+            //     {
+            //         v[h] -= hiddenWeightsf[ix + w_capture];
+            //     }
+            //     if (m.CastleFlag != 0)
+            //     {
+            //         v[h] += hiddenWeightsf[ix + w_castle];
+            //     }
+            // }
         }
 
         public void Undo(ref readonly Move m)
@@ -118,42 +130,53 @@ public static class NNUE
 
             var w_castle = FeatureIndex(m.Color, m.CapturePieceType, m.CastleIndex);
 
-            for (int h = 0; h < HiddenSize; h++)
+            TensorPrimitives.Add(v, hiddenWeightsTensor[w_From], v);
+            TensorPrimitives.Subtract(v, hiddenWeightsTensor[w_to], v);
+            if (m.CapturePieceType != PieceType.None)
             {
-                var ix = h * InputSize;
-
-                v[h] += hiddenWeights[ix + w_From];
-                v[h] -= hiddenWeights[ix + w_to];
-
-                if (m.CapturePieceType != PieceType.None)
-                {
-                    v[h] += hiddenWeights[ix + w_capture];
-                }
-
-                if (m.CastleFlag != 0)
-                {
-                    v[h] -= hiddenWeights[ix + w_castle];
-                }
+                TensorPrimitives.Add(v, hiddenWeightsTensor[w_capture], v);
             }
+            if (m.CastleFlag != 0)
+            {
+                TensorPrimitives.Subtract(v, hiddenWeightsTensor[w_castle], v);
+            }
+
+            // for (int h = 0; h < HiddenSize; h++)
+            // {
+            //     var ix = h * InputSize;
+
+            //     v[h] += hiddenWeightsf[ix + w_From];
+            //     v[h] -= hiddenWeightsf[ix + w_to];
+
+            //     if (m.CapturePieceType != PieceType.None)
+            //     {
+            //         v[h] += hiddenWeightsf[ix + w_capture];
+            //     }
+
+            //     if (m.CastleFlag != 0)
+            //     {
+            //         v[h] -= hiddenWeightsf[ix + w_castle];
+            //     }
+            // }
         }
 
         public short Read(Colors sideToMove)
         {
-            short[] hiddenValues = new short[HiddenSize];
-            v.CopyTo(hiddenValues, 0);
+            // Span<float> hiddenValues = stackalloc float[HiddenSize];
+            // TensorPrimitives.Clamp(v, 0f, QA, hiddenValues);
+            var eval = Scale * (outputBiasf + TensorPrimitives.Dot(v, outputWeightsf));
 
+            // int output = outputBias;
+            // for (int i = 0; i < HiddenSize; i++)
+            // {
+            //     output += ClipRelu(hiddenValues[i]) * outputWeights[i];
+            // }
+            // var eval = Scale * output / (QA * QB);
 
-            // Output calculation
-            int output = outputBias;
-            for (int i = 0; i < HiddenSize; i++)
-            {
-                output += ClipRelu(hiddenValues[i]) * outputWeights[i];
-            }
-            var eval = Scale * output / (QA * QB);
 
             return (short)(sideToMove == Colors.White ? eval : -eval);
         }
-        
+
         public void CopyTo(Accumulator target)
         {
             v.CopyTo(target.v, 0);
@@ -166,6 +189,7 @@ public static class NNUE
 
     static short[] hiddenWeights = new short[HiddenSize * InputSize];
     static float[] hiddenWeightsf = new float[HiddenSize * InputSize];
+    static float[][] hiddenWeightsTensor = new float[InputSize][];
     static short[] hiddenBias = new short[HiddenSize];
     static float[] hiddenBiasf = new float[HiddenSize];
     static int[] outputWeights = new int[HiddenSize];
@@ -201,6 +225,15 @@ public static class NNUE
         {
             outputWeightsf[i] = reader.ReadSingle();
             outputWeights[i] = (int)(QB * outputWeightsf[i]);
+        }
+
+        for (int i = 0; i < InputSize; i++)
+        {
+            hiddenWeightsTensor[i] = new float[HiddenSize];
+            for (int h = 0; h < HiddenSize; h++)
+            {
+                hiddenWeightsTensor[i][h] = hiddenWeightsf[h * InputSize + i];
+            }
         }
 
         // Read output bias
