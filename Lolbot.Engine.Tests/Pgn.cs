@@ -52,22 +52,6 @@ public class Pgn
     }
 
     [Test]
-    public async Task CanParseGame2()
-    {
-        var pgnFile = File.OpenRead(@"./Testdata/lichess-2.pgn");
-        var reader = new PgnSerializer();
-        var (game, _) = await reader.ReadSingle(pgnFile);
-    }
-
-    [Test]
-    public async Task CanParseGameWhenLongCastleChecks()
-    {
-        var pgnFile = File.OpenRead(@"./Testdata/Castle-With-Check.pgn");
-        var reader = new PgnSerializer();
-        var (game, _) = await reader.ReadSingle(pgnFile);
-    }
-
-    [Test]
     public async Task CanParseMultipleGames()
     {
         var pgnFile = File.OpenRead(@"./Testdata/lichess-multi.pgn");
@@ -83,6 +67,14 @@ public class Pgn
     public async Task CanParseGamesWithoutError(string gamePath)
     {
         var pgnFile = File.OpenRead(gamePath);
+        var reader = new PgnSerializer();
+        var (game, _) = await reader.ReadSingle(pgnFile);
+    }
+
+    [Test]
+    public async Task CanParseGameWhenLongCastleChecks()
+    {
+        var pgnFile = File.OpenRead(@"./Testdata/Castle-With-Check.pgn");
         var reader = new PgnSerializer();
         var (game, _) = await reader.ReadSingle(pgnFile);
     }
