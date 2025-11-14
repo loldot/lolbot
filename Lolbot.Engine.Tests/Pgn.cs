@@ -1,3 +1,4 @@
+using System.Diagnostics.Contracts;
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -37,6 +38,46 @@ public class Pgn
         game.Moves[19].Should().Be(new Move('n', "b8", "d7"));
         game.Moves[22].Should().Be(new Move('P', "c4", "b5", 'p'));
 
-        game.Moves[47].Should().Be(new Move('r',"f8","f7",'B'));
+        game.Moves[47].Should().Be(new Move('r', "f8", "f7", 'B'));
     }
+
+    [Test]
+    public async Task CanParseGameWithPromotion()
+    {
+        var pgnFile = File.OpenRead(@"./Testdata/lichess.pgn");
+        var reader = new PgnSerializer();
+        var (game, _) = await reader.ReadSingle(pgnFile);
+
+        game.Moves.Should().Contain(Move.Promote('p', "h2", "h1", 'q'));
+    }
+
+    [Test]
+    public async Task CanParseMultipleGames()
+    {
+        var pgnFile = File.OpenRead(@"./Testdata/lichess-multi.pgn");
+        var games = await PgnSerializer.ReadMultiple(pgnFile).ToListAsync();
+
+        games.Count.Should().Be(17);
+    }
+
+    
+    [TestCase("./Testdata/lichess-2.pgn")]
+    [TestCase("./Testdata/lichess-3.pgn")]
+    [TestCase("./Testdata/lichess-4.pgn")]
+    public async Task CanParseGamesWithoutError(string gamePath)
+    {
+        var pgnFile = File.OpenRead(gamePath);
+        var reader = new PgnSerializer();
+        var (game, _) = await reader.ReadSingle(pgnFile);
+    }
+
+    [Test]
+    public async Task CanParseGameWhenLongCastleChecks()
+    {
+        var pgnFile = File.OpenRead(@"./Testdata/Castle-With-Check.pgn");
+        var reader = new PgnSerializer();
+        var (game, _) = await reader.ReadSingle(pgnFile);
+    }
+
+
 }

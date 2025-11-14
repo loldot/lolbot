@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static System.Math;
 
@@ -26,6 +28,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     private CancellationToken ct;
 
     public Action<SearchProgress>? OnSearchProgress { get; set; }
+    public int CentiPawnEvaluation => rootScore;
+
     static readonly int[] LogTable = new int[256];
     static Search()
     {
@@ -54,35 +58,34 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
     private Move[] rootMoves = new Move[256];
     private int[] rootMoveScores = new int[256];
+    private int rootMoveCount = 0;
 
     public Move IterativeDeepening(int maxSearchDepth, CancellationToken ct)
     {
         this.ct = ct;
+        Array.Clear(rootMoves);
 
         Span<Move> moves = rootMoves;
-        var count = MoveGenerator.Legal(rootPosition, ref moves);
-        Array.Resize(ref rootMoves, count);
-        Array.Resize(ref rootMoveScores, count);
+        rootMoveCount = MoveGenerator.Legal(rootPosition, ref moves);
 
         int offset = 0;
 
         if (tt.TryGet(rootPosition.Hash, out var ttEntry))
         {
             var ttMove = ttEntry.Move;
-            var index = Array.IndexOf(rootMoves, ttMove);
-            if (index >= 0)
+            int index;
+            if (!ttMove.IsNull && (index = moves.IndexOf(ttMove)) >= 0)
             {
                 (rootMoves[0], rootMoves[index]) = (rootMoves[index], rootMoves[0]);
                 offset = 1;
             }
         }
 
-        for (int i = offset; i < count; i++)
+        for (int i = offset; i < rootMoveCount; i++)
         {
             rootMoveScores[i] = -ScoreMove(rootMoves[i], 0);
         }
-        Array.Sort(rootMoveScores, rootMoves, offset, count - offset);
-
+        Array.Sort(rootMoveScores, rootMoves, offset, rootMoveCount - offset);
         var depth = 1;
 
         while (depth <= maxSearchDepth && !ct.IsCancellationRequested)
@@ -90,6 +93,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             AspirationWindows(depth);
             depth++;
         }
+
         return rootMoves[0];
     }
 
@@ -166,7 +170,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         }
 
         int i = 0;
-        for (; i < rootMoves.Length; i++)
+        for (; i < rootMoveCount; i++)
         {
             var move = rootMoves[i];
             rootPosition.Move(in move);
@@ -189,7 +193,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
             if (value > alpha && value < Inf)
             {
-                if (i != 0) Array.Copy(rootMoves, 0, rootMoves, 1, rootMoves.Length - 1);
+                if (i != 0) Array.Copy(rootMoves, 0, rootMoves, 1, rootMoveCount - 1);
                 rootScore = alpha = value;
                 rootMoves[0] = bestMove = move;
             }
@@ -274,9 +278,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
                 }
             }
         }
-
         var best = -Inf;
-
         byte i = 0;
         Span<Move> moves = stackalloc Move[256];
         var movepicker = new MovePicker(in Killers, ref historyHeuristic, ref moves, position, ttMove, ply);
@@ -307,12 +309,15 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             history.Unwind();
             position.Undo(in move);
 
-            if (score > best) best = score;
+            if (score > best)
+            {
+                best = score;
+                ttMove = (ttMove.IsNull || best > originalAlpha) ? move : ttMove;
+            } 
 
             if (score > alpha)
             {
                 alpha = score;
-                if (alpha > originalAlpha) ttMove = move;
                 if (alpha >= beta)
                 {
                     if (move.CapturePiece == Piece.None)

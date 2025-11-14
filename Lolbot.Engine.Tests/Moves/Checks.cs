@@ -8,12 +8,9 @@ public class Checks
     [Test]
     public async Task Should_Find_Evasions()
     {
-        var pgn = @"
-
-1. e4 d5 2. Bb5+";
-
-        var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
-        var moves = game.CurrentPosition.GenerateLegalMoves().ToArray();
+        var fen = "rnbqkbnr/ppp1pppp/8/1B1p4/4P3/8/PPPP1PPP/RNBQK1NR b KQkq - 1 2";
+        var position = MutablePosition.FromFen(fen);
+        var moves = position.GenerateLegalMoves().ToArray();
 
         moves.Should().HaveCount(5);
         moves.Should().Contain(new Move('p', "c7", "c6"));
@@ -22,12 +19,9 @@ public class Checks
     [Test]
     public async Task Should_Find_Capture_Checking_Piece()
     {
-        var pgn = @"
-
-1. e4 d5 2. Bb5+ c6 3. Nf3";
-
-        var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
-        var moves = game.CurrentPosition.GenerateLegalMoves().ToArray();
+        var fen = "rnbqkbnr/pp2pppp/2p5/1B1p4/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 1 3";
+        var position = MutablePosition.FromFen(fen);
+        var moves = position.GenerateLegalMoves().ToArray();
 
         moves.Should().Contain(new Move('p', "c6", "b5", 'B'));
     }
@@ -85,7 +79,7 @@ public class Checks
     {
         var position = MutablePosition.FromFen("4k1nr/6p1/8/2bNNp2/5Q2/1P6/5P2/R5K1 w - - 0 1");
         var game = new Game(position, []);
-        
+
         Engine.Move(game, "a1", "a8");
         var legalMoves = game.CurrentPosition.GenerateLegalMoves().ToArray();
         legalMoves.Should().BeEmpty();

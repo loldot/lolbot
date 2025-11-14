@@ -9,7 +9,7 @@ public static class Engine
     const int Inf = 999_999;
     const int Mate = ushort.MaxValue;
 
-    private static readonly TranspositionTable tt = new TranspositionTable();
+    internal static readonly TranspositionTable tt = new TranspositionTable();
     private static readonly int[][] historyHeuristic = [
         new int[4096], new int[4096]
     ];

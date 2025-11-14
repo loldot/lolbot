@@ -1,28 +1,54 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Lolbot.Core;
 
 public sealed partial class PgnSerializer
 {
-    public async Task<(Game, GameMetadata)> Read(Stream stream)
+    public static async IAsyncEnumerable<(Game, GameMetadata)> ReadMultiple(Stream stream)
     {
         using var reader = new StreamReader(stream);
-        return await Read(reader);
+        var pgnSerializer = new PgnSerializer();
+        while (true)
+        {
+
+            var (game, meta) = await pgnSerializer.ReadSingle(reader);
+            if (game == null) yield break;
+            yield return (game, meta);
+        }
     }
 
-    public async Task<(Game, GameMetadata)> Read(TextReader reader)
+    public async Task<(Game?, GameMetadata)> ReadSingle(Stream stream)
     {
-        var metadata = await ReadTagPairs(reader);
 
-        var game = ReadMoves(metadata, reader);
+        using var reader = new StreamReader(stream);
+        return await ReadSingle(reader);
+    }
 
-        return (game, metadata);
+    StringBuilder sb = new StringBuilder(1024);
+
+    public async Task<(Game?, GameMetadata)> ReadSingle(TextReader reader)
+    {
+        try
+        {
+            var metadata = await ReadTagPairs(reader);
+
+            var game = ReadMoves(metadata, reader);
+            sb.Clear();
+            return (game, metadata);
+        }
+        catch (Exception)
+        {
+            Console.WriteLine(sb);
+            throw;
+        }
     }
 
     public static Move ParseMove(Game game, string token)
     {
         Move move;
+        token = token.TrimEnd('+', '#');
         if (token == "O-O" || token == "0-0") move = Move.Castle(game.CurrentPlayer);
         else if (token == "O-O-O" || token == "0-0-0") move = Move.QueenSideCastle(game.CurrentPlayer);
         else
@@ -35,15 +61,18 @@ public sealed partial class PgnSerializer
 
             var disambiguation = match.Groups["disambiguation"].ValueSpan;
             var coords = match.Groups["square"].ValueSpan;
+            var promotion = match.Groups["promotion"].Success
+                ? match.Groups["promotion"].ValueSpan[1..]
+                : ReadOnlySpan<char>.Empty;
 
             var to = Squares.FromCoordinates(coords);
 
-            move = Disambiguate(game, to, piece, disambiguation);
+            move = Disambiguate(game, to, piece, disambiguation, promotion);
         }
         return move;
     }
 
-    private static Game ReadMoves(GameMetadata meta, TextReader reader)
+    private Game? ReadMoves(GameMetadata meta, TextReader reader)
     {
         var position = meta.GetInitialPosition();
         var game = new Game(position);
@@ -51,12 +80,13 @@ public sealed partial class PgnSerializer
         string? line;
         while ((line = reader.ReadLine()) != null)
         {
+            sb.AppendLine(line);
             foreach (var token in PgnScanners.NonToken().Split(line))
             {
                 if (string.IsNullOrEmpty(token)) continue;
                 if (PgnScanners.MoveNumber().IsMatch(token)) continue;
                 if (PgnScanners.Comment().IsMatch(token)) continue;
-                if (PgnScanners.Result().IsMatch(token)) continue;
+                if (PgnScanners.Result().IsMatch(token)) return game;
 
                 var move = ParseMove(game, token);
 
@@ -64,14 +94,15 @@ public sealed partial class PgnSerializer
             }
         }
 
-        return game;
+        return null;
     }
 
     private static Move Disambiguate(
         Game game,
         Square to,
         ReadOnlySpan<char> pieceName,
-        ReadOnlySpan<char> disambiguation)
+        ReadOnlySpan<char> disambiguation,
+        ReadOnlySpan<char> promotion)
     {
 
         var piece = (game.CurrentPlayer == Colors.White)
@@ -81,6 +112,7 @@ public sealed partial class PgnSerializer
 
         char? fileAmbiguity = null;
         byte? rankAmbiguity = null;
+        char? promotionPiece = promotion.Length > 0 ? promotion[0] : null;
 
         for (int i = 0; i < disambiguation.Length; i++)
         {
@@ -92,7 +124,8 @@ public sealed partial class PgnSerializer
             .ToArray()
             .Where(move => move.ToSquare == to)
             .Where(move => fileAmbiguity == null || fileAmbiguity == Squares.GetFile(move.FromSquare))
-            .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(move.FromSquare));
+            .Where(move => rankAmbiguity == null || rankAmbiguity == Squares.GetRank(move.FromSquare))
+            .Where(move => promotionPiece == null || move.PromotionPieceType == Utils.GetPieceType(promotionPiece.Value));
 
         if (disambiguated.Count() != 1) Debugger.Break();
 
@@ -103,14 +136,18 @@ public sealed partial class PgnSerializer
     {
         var metadata = new GameMetadata();
         string? line;
-        while (!string.IsNullOrWhiteSpace(line = await reader.ReadLineAsync()))
+
+        // skip empty lines
+        while (string.IsNullOrWhiteSpace(line = await reader.ReadLineAsync()) && line != null) ;
+
+        do
         {
             if (TagPair.CanParse(line))
             {
                 var tag = TagPair.Parse(line!);
                 metadata.Add(tag.Name, tag.Value);
             }
-        }
+        } while (!string.IsNullOrWhiteSpace(line = await reader.ReadLineAsync()));
 
         return metadata;
     }
@@ -154,7 +191,7 @@ public sealed partial class PgnSerializer
         [GeneratedRegex(@"\s+|\{.+\}|^;.+$")]
         public static partial Regex NonToken();
 
-        [GeneratedRegex(@"^(?<piece>[NBRQK]{1})?(?<disambiguation>[a-h]?\d?)?(?<cap>x)?(?<square>[a-h][0-8]).*$")]
+        [GeneratedRegex(@"^(?<piece>[NBRQK]{1})?(?<disambiguation>[a-h]?\d?)?(?<cap>x)?(?<square>[a-h][0-8])(?<promotion>=[NBRQ])?.*$")]
         public static partial Regex SanToken();
     }
 }

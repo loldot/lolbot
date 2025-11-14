@@ -77,7 +77,7 @@ public static class FenSerializer
         position.CastlingRights = ParseCastlingRights(metaTokens[1]);
         position.CurrentPlayer = currentPlayer;
 
-        position.RecalculateAllMasks();
+        position.Reevaluate();
 
         position.Hash = Hashes.New(position);
 
@@ -93,19 +93,17 @@ public static class FenSerializer
 
     private static CastlingRights ParseCastlingRights(string fenCastlingRights)
     {
-        Dictionary<char, CastlingRights> map = new()
-        {
-            ['-'] = CastlingRights.None,
-            ['K'] = CastlingRights.WhiteKing,
-            ['Q'] = CastlingRights.WhiteQueen,
-            ['k'] = CastlingRights.BlackKing,
-            ['q'] = CastlingRights.BlackQueen,
-        };
-
         var castlingRights = CastlingRights.None;
         foreach (var c in fenCastlingRights)
         {
-            castlingRights |= map[c];
+            castlingRights |= c switch
+            {
+                'K' => CastlingRights.WhiteKing,
+                'Q' => CastlingRights.WhiteQueen,
+                'k' => CastlingRights.BlackKing,
+                'q' => CastlingRights.BlackQueen,
+                _ => CastlingRights.None
+            };
         }
         return castlingRights;
     }

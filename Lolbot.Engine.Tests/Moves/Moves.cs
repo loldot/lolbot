@@ -178,6 +178,18 @@ public class Moves
         moves.ToArray().Should().AllSatisfy(x => x.CapturePieceType.Should().NotBe(PieceType.None));
     }
 
+    [Test]
+    public void wtf()
+    {
+        var fen = "8/3r3k/6p1/2Q1p2p/4P1PP/5P1K/8/q7 w - - 59 118";
+        Game game = new Game(MutablePosition.FromFen(fen), []);
+        game.Move(new Move('P', "g4", "h5", 'p'));
+        game.Move(new Move('p', "g6", "h5", 'P'));
+
+        game.CurrentPosition.GenerateLegalMoves().ToArray()
+        .Should().NotContain(new Move('Q', "a1", "e5", 'P'));
+    }
+
     internal static void VerifyMovePattern(ulong[] pattern, string square, string[] expectedSquares)
     {
         var from = Squares.IndexFromCoordinate(square);

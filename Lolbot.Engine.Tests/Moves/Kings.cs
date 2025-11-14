@@ -112,8 +112,10 @@ public class Kings
     public async Task Rook_Should_Have_Legal_After_Castling()
     {
         var pgn = """
-        
-        1. e4 d5 2. Nf3 d4 3. Bc4 e5
+        [White "w"]
+        [Black "b"]
+
+        1. e4 d5 2. Nf3 d4 3. Bc4 e5 *
         """;
         var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
 
@@ -131,8 +133,10 @@ public class Kings
     public async Task Rook_Should_Have_Legal_Moves_From_e1_After_Castle()
     {
         var pgn = """
-        
-        1. e4 d5 2. Nf3 d4 3. Bc4 e5 4. O-O
+        [White "w"]
+        [Black "b"]
+
+        1. e4 d5 2. Nf3 d4 3. Bc4 e5 4. O-O * 
         """;
         var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
         Engine.Move(game, "c8", "e6");
