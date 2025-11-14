@@ -77,7 +77,7 @@ public static class FenSerializer
         position.CastlingRights = ParseCastlingRights(metaTokens[1]);
         position.CurrentPlayer = currentPlayer;
 
-        position.Reevaluate();
+        // position.Reevaluate();
 
         position.Hash = Hashes.New(position);
 
