@@ -1,13 +1,15 @@
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using static System.Math;
 
 namespace Lolbot.Core;
 
 public class TranspositionTable
 {
-    public const uint Size = 0x100_0000;
-    public const uint Mask = 0xff_ffff;
+    public const int Size = 0x100_0000;
+    public const int Mask = Size - 1;
     public const byte UpperBound = 1;
     public const byte LowerBound = 2;
     public const byte Exact = 3;
@@ -41,8 +43,7 @@ public class TranspositionTable
         }
     }
 
-    private readonly Entry[] entries = new Entry[Size];
-
+    private readonly Entry[] entries = GC.AllocateArray<Entry>(Size, pinned: true);
 
     public Entry Add(ulong hash, int depth, int eval, byte type, Move move)
     {
@@ -63,10 +64,13 @@ public class TranspositionTable
 
     public Entry Get(ulong hash)
     {
-        var index = hash & Mask;
+        var index = hash & (ulong)(entries.LongLength - 1);
 
         return entries[index];
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref Entry GetRef(int hash) => ref entries[hash & Mask];
 
     public bool Probe(ulong hash,
         int depth,
@@ -102,7 +106,6 @@ public class TranspositionTable
         entry = Get(hash);
         return hash == entry.Key;
     }
-
 
     public bool TryGet(ulong hash, int depth, out Entry entry)
     {

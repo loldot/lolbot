@@ -45,7 +45,7 @@ var testCommand = new Command("test", "Run UCI tests against an engine")
 var reportDbOption = new Option<string>(
     name: "--db",
     description: "Path to SQLite database file",
-    getDefaultValue: () => "test_results.db");
+    getDefaultValue: () => "C:\\dev\\chess-data\\test_results.db");
 
 var limitOption = new Option<int>(
     name: "--limit",

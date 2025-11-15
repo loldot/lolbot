@@ -226,27 +226,18 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         var ttMove = Move.Null;
         var eval = 0;
 
-        if (tt.TryGet(position.Hash, out var ttEntry))
+        ref var ttEntry = ref tt.GetRef((int)position.Hash);
+
+        if (ttEntry.Key == position.Hash)
         {
-            if (ttEntry.Depth >= depth)
-            {
-                eval = FromTT(ttEntry.Evaluation, ply);
-
-                switch (ttEntry.Type)
-                {
-                    case TranspositionTable.Exact:
-                        return eval;
-                    case TranspositionTable.LowerBound:
-                        alpha = Max(alpha, eval);
-                        break;
-                    case TranspositionTable.UpperBound:
-                        beta = Min(beta, eval);
-                        break;
-                }
-
-                if (alpha >= beta) return eval;
-            }
             ttMove = ttEntry.Move;
+            eval = FromTT(ttEntry.Evaluation, ply);
+
+            if (ttEntry.Depth >= depth && (
+                ttEntry.Type == TranspositionTable.Exact
+                || (ttEntry.Type == TranspositionTable.LowerBound && eval >= beta)
+                || (ttEntry.Type == TranspositionTable.UpperBound && eval <= alpha))
+            ) return eval;
         }
         // else if (remainingDepth > 3) remainingDepth--;
 
@@ -352,8 +343,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         if (best <= originalAlpha) flag = TranspositionTable.UpperBound;
         else if (best >= beta) flag = TranspositionTable.LowerBound;
 
-        if (best > -Inf && best < Inf)
-            tt.Add(position.Hash, depth, ToTT(best, ply), flag, ttMove);
+        ttEntry = new TranspositionTable.Entry(position.Hash, depth, ToTT(best, ply), flag, ttMove);
 
         return best;
     }
@@ -366,21 +356,11 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         if (!TNode.IsPv && tt.TryGet(position.Hash, out var ttEntry))
         {
-            switch (ttEntry.Type)
-            {
-                case TranspositionTable.Exact:
-                    return ttEntry.Evaluation;
-                case TranspositionTable.LowerBound:
-                    alpha = Max(alpha, ttEntry.Evaluation);
-                    break;
-                case TranspositionTable.UpperBound:
-                    beta = Min(beta, ttEntry.Evaluation);
-                    break;
-            }
-
-            if (alpha >= beta) return ttEntry.Evaluation;
             ttMove = ttEntry.Move;
-
+            if (ttEntry.Type == TranspositionTable.Exact
+                || (ttEntry.Type == TranspositionTable.LowerBound && ttEntry.Evaluation >= beta)
+                || (ttEntry.Type == TranspositionTable.UpperBound && ttEntry.Evaluation <= alpha)
+            ) return ttEntry.Evaluation;
         }
 
         Span<Move> moves = stackalloc Move[256];
@@ -434,41 +414,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         if (score < -Mate + Max_Depth) return score + ply;
         return score;
     }
-
-    private ref readonly Move SelectMove(ref Span<Move> moves, in Move currentBest, in int k, int ply)
-    {
-        if (k == 0 && !currentBest.IsNull)
-        {
-            var index = moves.IndexOf(currentBest);
-            if (index >= 0)
-            {
-                moves[index] = moves[0];
-                moves[0] = currentBest;
-                return ref moves[0];
-            }
-        }
-
-        var n = moves.Length;
-        if (k <= 8)
-        {
-            int bestScore = 0;
-            int bestIndex = k;
-            for (var i = k; i < n; i++)
-            {
-                var score = ScoreMove(moves[i], ply);
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestIndex = i;
-                }
-            }
-
-            (moves[bestIndex], moves[k]) = (moves[k], moves[bestIndex]);
-        }
-
-        return ref moves[k];
-    }
-
+   
     private int ScoreMove(Move m, int ply)
     {
         int score = 0;
