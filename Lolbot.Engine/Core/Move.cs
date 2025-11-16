@@ -29,6 +29,10 @@ public readonly struct Move : IEquatable<Move>
     public const int CastleOffset = 28;
     public const int CastleMask = 0xf << CastleOffset;
 
+    private const int SpecialMask = CaptPieceMask | PromotionPieceMask | CastleMask;
+
+    public bool IsSpecial => (value & SpecialMask) != 0;
+
 
     public readonly uint value;
 

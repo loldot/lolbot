@@ -33,7 +33,7 @@ public class Evaluations
         using var fs = File.OpenRead("./Testdata/lolbot-lolbot.pgn");
 
         var pgn = new PgnSerializer();
-        var (game, _) = await pgn.Read(fs);
+        var (game, _) = await pgn.ReadSingle(fs);
 
         var ct = new CancellationTokenSource(20_000);
         var bestMove = Engine.BestMove(game, ct.Token);

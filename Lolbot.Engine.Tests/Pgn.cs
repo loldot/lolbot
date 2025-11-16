@@ -11,7 +11,7 @@ public class Pgn
     {
         var pgnFile = File.OpenRead(@"./Testdata/Fischer-Spassky-92.pgn");
         var reader = new PgnSerializer();
-        var (_, meta) = await reader.Read(pgnFile);
+        var (_, meta) = await reader.ReadSingle(pgnFile);
 
         meta["White"].Should().Be("Fischer, Robert J.");
         meta["Black"].Should().Be("Spassky, Boris V.");
@@ -22,7 +22,7 @@ public class Pgn
     {
         var pgnFile = File.OpenRead(@"./Testdata/Fischer-Spassky-92.pgn");
         var reader = new PgnSerializer();
-        var (game, _) = await reader.Read(pgnFile);
+        var (game, _) = await reader.ReadSingle(pgnFile);
 
         Move[] expectedMoves = [
             new Move('P', "e2", "e4"),

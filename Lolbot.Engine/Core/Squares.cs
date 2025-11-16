@@ -17,6 +17,10 @@ public static class Squares
     public const byte A7 = 48, B7 = 49, C7 = 50, D7 = 51, E7 = 52, F7 = 53, G7 = 54, H7 = 55;
     public const byte A8 = 56, B8 = 57, C8 = 58, D8 = 59, E8 = 60, F8 = 61, G8 = 62, H8 = 63;
 
+
+    public const ulong MayDropCastlingRightsMask 
+        = (1ul << A1) | (1ul << E1) | (1ul << H1) 
+        | (1ul << A8) | (1ul << E8) | (1ul << H8); 
     static char[] FileNames = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

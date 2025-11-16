@@ -30,7 +30,7 @@ public class RepetitionTables
     public async ValueTask Should_Find_Draw()
     {
         var pgn = new PgnSerializer();
-        var (game, _) = await pgn.Read(File.OpenRead("./TestData/Berlin-Draw.pgn"));
+        var (game, _) = await pgn.ReadSingle(File.OpenRead("./TestData/Berlin-Draw.pgn"));
 
         game.CurrentPosition.Move(new Move(Piece.BlackQueen, Squares.E6, Squares.D6));
         game.RepetitionTable.IsDraw(game.CurrentPosition.Hash).Should().BeTrue();

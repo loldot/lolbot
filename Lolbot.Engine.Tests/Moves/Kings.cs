@@ -117,7 +117,7 @@ public class Kings
 
         1. e4 d5 2. Nf3 d4 3. Bc4 e5 *
         """;
-        var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
+        var (game, _) = await new PgnSerializer().ReadSingle(new StringReader(pgn));
 
         game.CurrentPosition.GenerateLegalMoves('K')
             .ToArray().Should().Contain(x => x.CastleIndex != 0);
@@ -138,7 +138,7 @@ public class Kings
 
         1. e4 d5 2. Nf3 d4 3. Bc4 e5 4. O-O * 
         """;
-        var (game, _) = await new PgnSerializer().Read(new StringReader(pgn));
+        var (game, _) = await new PgnSerializer().ReadSingle(new StringReader(pgn));
         Engine.Move(game, "c8", "e6");
         Engine.Move(game, "f1", "e1");
         Engine.Move(game, "h7", "h6");
