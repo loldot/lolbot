@@ -343,7 +343,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         if (best <= originalAlpha) flag = TranspositionTable.UpperBound;
         else if (best >= beta) flag = TranspositionTable.LowerBound;
 
-        ttEntry = new TranspositionTable.Entry(position.Hash, depth, ToTT(best, ply), flag, ttMove);
+        if (best > -Inf && best < Inf)
+            ttEntry = new TranspositionTable.Entry(position.Hash, depth, ToTT(best, ply), flag, ttMove);
 
         return best;
     }
