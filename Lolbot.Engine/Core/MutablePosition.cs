@@ -16,7 +16,7 @@ public sealed class MutablePosition
     public const int MaxDepth = 1024;
 
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
-    // private readonly Accumulator Accumulator;
+    private readonly Accumulator Accumulator;
 
     public int plyfromRoot = 0;
 
@@ -98,7 +98,7 @@ public sealed class MutablePosition
         bb[QueensIndex] = Bitboards.Create("D1", "D8");
         bb[KingsIndex] = Bitboards.Create("E1", "E8");
         bb[WhiteIndex] = Bitboards.Masks.Rank_1 | Bitboards.Masks.Rank_2;
-        // Accumulator = NNUE.Accumulator.Create(this);
+        Accumulator = NNUE.Accumulator.Create(this);
     }
 
     public static MutablePosition EmptyBoard => new()
@@ -109,11 +109,11 @@ public sealed class MutablePosition
         CurrentPlayer = Colors.White,
     };
 
-    // public int Eval => Accumulator.Read(CurrentPlayer);
+    public int Eval => Accumulator.Read(CurrentPlayer);
 
     public void Move(ref readonly Move m)
     {
-        // Accumulator.Move(in m);|
+        Accumulator.Move(in m);
 
         var oponent = Enemy(CurrentPlayer);
 
@@ -214,7 +214,7 @@ public sealed class MutablePosition
         IsPinned = CreatePinmasks(us);
 
         CurrentPlayer = us;
-        // Accumulator.Undo(in m);
+        Accumulator.Undo(in m);
     }
 
     public void SkipTurn()
@@ -406,7 +406,7 @@ public sealed class MutablePosition
         AttackMask = CreateEnemyAttackMask(CurrentPlayer);
         (Checkmask, CheckerCount) = CreateCheckMask(CurrentPlayer);
         IsPinned = CreatePinmasks(CurrentPlayer);
-        // Accumulator.Reevaluate(this);
+        Accumulator.Reevaluate(this);
     }
 
     private ulong CreateEnemyAttackMask(Colors color)

@@ -5,7 +5,7 @@ namespace Lolbot.Core;
 public class Uci
 {
     private string command = null!;
-    private Game game = Engine.NewGame();
+    private Game? game ;
 
     public void Run()
     {

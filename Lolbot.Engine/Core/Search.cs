@@ -99,7 +99,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
     public void AspirationWindows(int depth)
     {
-        var delta = 64 / Clamp(depth - 3, 1, 4);
+        var delta = 128 / Clamp(depth - 3, 1, 4);
 
         var start = DateTime.Now;
 
@@ -119,7 +119,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             else break;
 
             delta <<= 1;
-            if (delta >= 100) (alpha, beta) = (-(Inf + delta), Inf + delta);
+            if (delta >= 256) (alpha, beta) = (-(Inf + delta), Inf + delta);
         }
 
         var s = (DateTime.Now - start).TotalSeconds;
@@ -244,8 +244,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         {
             if (!ttEntry.IsSet || ttEntry.Type != TranspositionTable.Exact)
             {
-                eval = Heuristics.StaticEvaluation(position);
-                // eval = position.Eval;
+                // eval = Heuristics.StaticEvaluation(position);
+                eval = position.Eval;
             }
 
             var margin = ReverseFutilityMargin * depth;
@@ -365,8 +365,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         Span<Move> moves = stackalloc Move[256];
 
-        var standPat = Heuristics.StaticEvaluation(position);
-        // var standPat = position.Eval;
+        // var standPat = Heuristics.StaticEvaluation(position);
+        var standPat = position.Eval;
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;

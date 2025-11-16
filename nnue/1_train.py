@@ -12,8 +12,8 @@ class NNUE(nn.Module):
     def __init__(self, input_size: int, hidden_size: int = 32):
         super().__init__()
         self.input_size = input_size
-        self.hidden = nn.Linear(input_size, hidden_size)
-        self.output = nn.Linear(hidden_size, 1)
+        self.hidden = nn.Linear(input_size, hidden_size, dtype=torch.float32)
+        self.output = nn.Linear(hidden_size, 1, dtype=torch.float32)
 
     def forward(self, x):
         # Clipped ReLU (CReLU) like activation: clamp between 0 and 1
@@ -114,7 +114,7 @@ def train_phase(model, train_loader, test_loader, device, phase_name, num_epochs
     """
     print(f"\n=== Starting {phase_name} ===")
     
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-5)
     loss_function = nn.MSELoss()
     
     best_test_loss = float('inf')
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     phase1_lr = 0.003  # Higher learning rate for initial learning
     
     # Phase 2: Fine-tuning with accurate WDL (fewer epochs to refine)
-    phase2_epochs = 50
+    phase2_epochs = 25
     phase2_lr = 0.0005  # Lower learning rate for fine-tuning
 
     path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\preprocessed_positions.bin"
@@ -199,24 +199,6 @@ if __name__ == "__main__":
 
     print(f"Training on {train_size} positions, testing on {test_size} positions...")
     
-    # === PHASE 1: Material-based WDL Training ===
-    print("\n" + "="*60)
-    print("PHASE 1: Training with Material-based WDL")
-    print("This helps the network learn basic material evaluation quickly")
-    print("="*60)
-    
-    # Create material-based datasets
-    material_train_ds = MaterialWDLDataset(base_ds, train_indices)
-    material_test_ds = MaterialWDLDataset(base_ds, test_indices)
-    
-    material_train_loader = make_dataloader(material_train_ds, batch_size=batch_size, shuffle=True)
-    material_test_loader = make_dataloader(material_test_ds, batch_size=batch_size, shuffle=False)
-    
-    # Train phase 1
-    phase1_loss = train_phase(
-        model, material_train_loader, material_test_loader, device,
-        "Phase 1 - Material WDL", phase1_epochs, phase1_lr
-    )
     
     # === PHASE 2: Fine-tuning with Accurate WDL ===
     print("\n" + "="*60)
@@ -241,9 +223,8 @@ if __name__ == "__main__":
     print("\n" + "="*60)
     print("TRAINING COMPLETE")
     print("="*60)
-    print(f"Phase 1 (Material WDL) best loss: {phase1_loss:.6f}")
+
     print(f"Phase 2 (Accurate WDL) best loss: {phase2_loss:.6f}")
-    print(f"Improvement from fine-tuning: {((phase1_loss - phase2_loss) / phase1_loss * 100):+.2f}%")
     
     # Save final weights
     save_f32_weights(model, "nnue_weights.bin")

@@ -41,19 +41,15 @@ public static class NNUE
                 while (pb != 0)
                 {
                     var sq = Bitboards.PopLsb(ref pb);
-                    for (int h = 0; h < HiddenSize; h++)
-                    {
-                        v[h] += hiddenWeightsf[h * InputSize + FeatureIndex(black, p, sq)];
-                    }
+                    var idx = FeatureIndex(black, p, sq);
+                    TensorPrimitives.Add(v, hiddenWeightsTensor[idx], v);
                 }
                 while (pw != 0)
                 {
                     // (color * 6 + piece) * 64 + square
                     var sq = Bitboards.PopLsb(ref pw);
-                    for (int h = 0; h < HiddenSize; h++)
-                    {
-                        v[h] += hiddenWeightsf[h * InputSize + FeatureIndex(white, p, sq)];
-                    }
+                    var idx = FeatureIndex(white, p, sq);
+                    TensorPrimitives.Add(v, hiddenWeightsTensor[idx], v);
                 }
             }
         }
@@ -162,9 +158,9 @@ public static class NNUE
 
         public short Read(Colors sideToMove)
         {
-            // Span<float> hiddenValues = stackalloc float[HiddenSize];
-            // TensorPrimitives.Clamp(v, 0f, QA, hiddenValues);
-            var eval = Scale * (outputBiasf + TensorPrimitives.Dot(v, outputWeightsf));
+            Span<float> hiddenValues = stackalloc float[HiddenSize];
+            TensorPrimitives.Clamp(v, 0f, 1f, hiddenValues);
+            var eval = Scale * (outputBiasf + TensorPrimitives.Dot(hiddenValues, outputWeightsf));
 
             // int output = outputBias;
             // for (int i = 0; i < HiddenSize; i++)
@@ -187,7 +183,7 @@ public static class NNUE
     internal static short[] input = new short[InputSize];
     static short[] hidden = new short[HiddenSize];
 
-    static short[] hiddenWeights = new short[HiddenSize * InputSize];
+    static sbyte[] hiddenWeights = new sbyte[HiddenSize * InputSize];
     static float[] hiddenWeightsf = new float[HiddenSize * InputSize];
     static float[][] hiddenWeightsTensor = new float[InputSize][];
     static short[] hiddenBias = new short[HiddenSize];
@@ -210,7 +206,7 @@ public static class NNUE
         for (int i = 0; i < hiddenWeights.Length; i++)
         {
             hiddenWeightsf[i] = reader.ReadSingle();
-            hiddenWeights[i] = (short)Math.Clamp(QA * hiddenWeightsf[i], -127, 127);
+            hiddenWeights[i] = (sbyte)Math.Clamp(QA * hiddenWeightsf[i], -127, 127);
         }
 
         // Read hidden bias

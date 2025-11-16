@@ -1,6 +1,27 @@
 using System.CommandLine;
 using Lolbot.UciTester;
 
+using Lolbot.Core;
+
+using UciDriver uci = new UciDriver(@"C:\dev\lolbot\Lolbot.Engine\bin\Release\net10.0\win-x64\publish\Lolbot.Engine.exe");
+uci.Uci();
+uci.IsReady();
+uci.SetPosition("2rqk2r/pb1nbp1p/4p1p1/1B1n4/Np1N4/7Q/PP3PPP/R1B1R1K1 w kq - 0 1");
+uci.Go(new()
+{
+    WhiteTime = 50_000,
+    BlackTime = 50_000,
+    WhiteInc = 100,
+    BlackInc = 100,
+});
+
+while (true)
+{
+    Thread.Sleep(1000);
+}
+
+Environment.Exit(0);
+
 // Test command
 var commitHashArgument = new Argument<string>(
     name: "commit",
@@ -101,7 +122,7 @@ return rootCommand.Invoke(args);
 static void RunTests(string commitHash, int depth, string dbPath, string engineDir, string[] categories, bool enableLogging)
 {
     var enginePath = Path.Combine(engineDir, commitHash, "Lolbot.Engine.exe");
-    
+
     if (!File.Exists(enginePath))
     {
         throw new FileNotFoundException($"Engine not found at: {enginePath}");
@@ -132,7 +153,7 @@ static void RunTests(string commitHash, int depth, string dbPath, string engineD
     var testRunId = database.StartTestRun(commitHash, enginePath, positionsToTest.Count);
 
     Console.WriteLine($"Started test run {testRunId}");
-    
+
     var completedPositions = 0;
     var correctPositions = 0;
     var startTime = DateTime.UtcNow;
@@ -147,21 +168,21 @@ static void RunTests(string commitHash, int depth, string dbPath, string engineD
         try
         {
             Console.Write($"Testing {position.Name}... ");
-            
+
             var result = engine.SearchPosition(position.Fen, depth);
-            
+
             // Check if the engine found the correct move
             result.IsCorrectMove = !string.IsNullOrEmpty(position.ExpectedBestMoveUci) &&
                                   string.Equals(result.BestMove, position.ExpectedBestMoveUci, StringComparison.OrdinalIgnoreCase);
-            
+
             database.SaveTestResult(testRunId, position.Name, result);
-            
+
             completedPositions++;
             if (result.IsCorrectMove) correctPositions++;
-            
+
             var correctIndicator = result.IsCorrectMove ? "✓" : "✗";
             Console.WriteLine($"Done {correctIndicator}");
-            
+
             if (!string.IsNullOrEmpty(position.ExpectedBestMoveUci))
             {
                 Console.WriteLine($"  Best move: {result.BestMove} {(result.IsCorrectMove ? "(correct)" : "(expected: " + position.ExpectedBestMove + " = " + position.ExpectedBestMoveUci + ")")}");
@@ -170,20 +191,20 @@ static void RunTests(string commitHash, int depth, string dbPath, string engineD
             {
                 Console.WriteLine($"  Best move: {result.BestMove}");
             }
-            
+
             Console.WriteLine($"  Depth: {result.ActualDepth}");
             Console.WriteLine($"  Nodes: {result.Nodes:N0}");
             Console.WriteLine($"  NPS: {result.CalculatedNps:N0}");
             Console.WriteLine($"  Time: {result.SearchTimeSeconds:F2}s");
-            
+
             if (result.ScoreCp.HasValue)
                 Console.WriteLine($"  Score: {result.ScoreCp.Value}cp");
             else if (result.ScoreMate.HasValue)
                 Console.WriteLine($"  Score: Mate in {result.ScoreMate.Value}");
-            
+
             if (!string.IsNullOrEmpty(result.PrincipalVariation))
                 Console.WriteLine($"  PV: {result.PrincipalVariation}");
-                
+
             Console.WriteLine();
         }
         catch (Exception ex)
@@ -194,7 +215,7 @@ static void RunTests(string commitHash, int depth, string dbPath, string engineD
     }
 
     database.CompleteTestRun(testRunId, completedPositions);
-    
+
     var totalTime = DateTime.UtcNow - startTime;
     Console.WriteLine($"Test run completed!");
     Console.WriteLine($"Completed {completedPositions}/{positionsToTest.Count} positions");
@@ -212,7 +233,7 @@ static void GenerateReport(string dbPath, int limit, string? detailCommit)
     }
 
     using var database = new TestDatabase(dbPath);
-    
+
     if (!string.IsNullOrEmpty(detailCommit))
     {
         GenerateDetailedReport(database, detailCommit);
@@ -227,43 +248,43 @@ static void GenerateTopEnginesReport(TestDatabase database, int limit)
 {
     Console.WriteLine($"=== TOP {limit} PERFORMING ENGINE VERSIONS ===");
     Console.WriteLine();
-    
+
     var topEngines = database.GetTopPerformingEngines(limit);
-    
+
     if (!topEngines.Any())
     {
         Console.WriteLine("No completed test runs found in database.");
         return;
     }
-    
+
     Console.WriteLine($"{"Rank",-4} {"Commit",-8} {"Correct",-10} {"Positions",-9} {"Avg NPS",-12} {"Avg Nodes",-12} {"Avg Time",-10} {"Avg Depth",-10} {"Latest Test",-12}");
     Console.WriteLine(new string('-', 95));
-    
+
     for (int i = 0; i < topEngines.Count; i++)
     {
         var engine = topEngines[i];
         var correctDisplay = $"{engine.CorrectPositions}/{engine.TotalPositions}";
         Console.WriteLine($"{i + 1,-4} {engine.CommitHash,-8} {correctDisplay,-10} {engine.TotalPositions,-9} {engine.AverageNps,-12:N0} {engine.AverageNodes,-12:N0} {engine.AverageTimeMs,-10:F0}ms {engine.AverageDepth,-10:F1} {engine.LatestTestTime,-12:MM/dd HH:mm}");
     }
-    
+
     Console.WriteLine();
     Console.WriteLine("Performance Insights:");
-    
+
     var bestCorrect = topEngines.OrderByDescending(e => e.CorrectPositions).ThenByDescending(e => e.CorrectPercentage).First();
     Console.WriteLine($"• Most correct: {bestCorrect.CommitHash} with {bestCorrect.CorrectPositions}/{bestCorrect.TotalPositions} ({bestCorrect.CorrectPercentage:F1}%)");
-    
+
     var bestNps = topEngines.OrderByDescending(e => e.AverageNps).First();
     Console.WriteLine($"• Fastest: {bestNps.CommitHash} with {bestNps.AverageNps:N0} NPS");
-    
+
     var bestDepth = topEngines.OrderByDescending(e => e.AverageDepth).First();
     Console.WriteLine($"• Deepest: {bestDepth.CommitHash} with {bestDepth.AverageDepth:F1} average depth");
-    
+
     var mostEfficient = topEngines.OrderBy(e => e.AverageNodes).First();
     Console.WriteLine($"• Most efficient: {mostEfficient.CommitHash} with {mostEfficient.AverageNodes:N0} average nodes");
-    
+
     var mostTested = topEngines.OrderByDescending(e => e.TotalPositions).First();
     Console.WriteLine($"• Most tested: {mostTested.CommitHash} with {mostTested.TotalPositions} positions");
-    
+
     Console.WriteLine();
     Console.WriteLine("Use --detail <commit> to see detailed results for a specific engine version.");
 }
@@ -272,27 +293,27 @@ static void GenerateDetailedReport(TestDatabase database, string commitHash)
 {
     Console.WriteLine($"=== DETAILED REPORT FOR ENGINE {commitHash.ToUpper()} ===");
     Console.WriteLine();
-    
+
     var positions = database.GetPositionPerformance(commitHash);
-    
+
     if (!positions.Any())
     {
         Console.WriteLine($"No test results found for commit: {commitHash}");
         return;
     }
-    
+
     Console.WriteLine($"{"Position",-15} {"Best Move",-10} {"Correct",-7} {"Depth",-6} {"Nodes",-10} {"NPS",-10} {"Time",-8} {"Score",-12}");
     Console.WriteLine(new string('-', 82));
-    
+
     foreach (var pos in positions)
     {
-        var scoreStr = pos.ScoreCp?.ToString() + "cp" ?? 
+        var scoreStr = pos.ScoreCp?.ToString() + "cp" ??
                       (pos.ScoreMate?.ToString() + "M" ?? "N/A");
         var correctStr = pos.IsCorrectMove ? "✓" : "✗";
-        
+
         Console.WriteLine($"{pos.PositionName,-15} {pos.BestMove,-10} {correctStr,-7} {pos.ActualDepth,-6} {pos.Nodes,-10:N0} {pos.Nps,-10:N0} {pos.TimeMs,-8}ms {scoreStr,-12}");
     }
-    
+
     Console.WriteLine();
     Console.WriteLine("Summary Statistics:");
     var correctCount = positions.Count(p => p.IsCorrectMove);
@@ -302,7 +323,7 @@ static void GenerateDetailedReport(TestDatabase database, string commitHash)
     Console.WriteLine($"• Average NPS: {positions.Average(p => p.Nps):N0}");
     Console.WriteLine($"• Average depth: {positions.Average(p => p.ActualDepth):F1}");
     Console.WriteLine($"• Average time: {positions.Average(p => p.TimeMs):F0}ms");
-    
+
     var withScores = positions.Where(p => p.ScoreCp.HasValue).ToList();
     if (withScores.Any())
     {
