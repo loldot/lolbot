@@ -6,11 +6,12 @@ public class Clock
 {
     private DateTime startTime;
     private int hardLimitMs;
+    private int timeLeft;
 
     public CancellationToken Start(int timeleft, int increment)
     {
         this.startTime = DateTime.Now;
-
+        timeLeft = timeleft;
         hardLimitMs = timeleft / 24 + increment / 2;
 
         var timer = new CancellationTokenSource(hardLimitMs);
@@ -27,4 +28,6 @@ public class Clock
 
         return elapsed + (expectedNodes / expectedNpms) <= hardLimitMs;
     }
+    public int MillisecondsElapsedThisTurn => (int)(DateTime.Now - startTime).TotalMilliseconds;
+    public int MillisecondsRemaining =>  Max(0, timeLeft - MillisecondsElapsedThisTurn);
 }

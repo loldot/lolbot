@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <UserSecretsId>fa56a956-ad73-4d73-9626-8f54ae9e5809</UserSecretsId>
   </PropertyGroup>
-
+<!-- 
   <PropertyGroup>
     <PublishAot>true</PublishAot>
     <IlcInstructionSet>x86-64-v3</IlcInstructionSet>
@@ -16,6 +16,6 @@
     <DebuggerSupport>false</DebuggerSupport>
     <InvariantGlobalization>true</InvariantGlobalization>
     <StackTraceSupport>false</StackTraceSupport>
-  </PropertyGroup>
+  </PropertyGroup> -->
 
 </Project>

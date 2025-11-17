@@ -8,7 +8,7 @@
             "name": "C#: lolbot Debug",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/Chess.Api/Chess.Api.csproj"
+            "projectPath": "${workspaceFolder}/Lolbot.Engine/Lolbot.Engine.csproj"
         },
         {
             "name": ".NET Core Attach",
