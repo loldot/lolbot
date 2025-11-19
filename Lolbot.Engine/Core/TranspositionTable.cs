@@ -70,7 +70,8 @@ public class TranspositionTable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref Entry GetRef(int hash) => ref entries[hash & Mask];
+    public ref Entry GetRef(int hash) 
+        => ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), hash & Mask);
 
     public bool Probe(ulong hash,
         int depth,

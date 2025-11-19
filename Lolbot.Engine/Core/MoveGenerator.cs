@@ -47,14 +47,14 @@ public class MoveGenerator
 
         var pseudoAttacks = MovePatterns.Kings[fromIndex];
         var attacks = pseudoAttacks & targets & ~enemyAttacks;
-        while (TMove.HasCaptures && attacks != 0)
+        while (TMove.HasCaptures && attacks != 0 && count < moves.Length)
         {
             var attack = Bitboards.PopLsb(ref attacks);
             moves[count++] = new Move(piece, fromIndex, attack, position.GetOccupant(ref attack));
         }
 
         var quiets = MovePatterns.Kings[fromIndex] & ~(position.Occupied | enemyAttacks);
-        while (TMove.HasQuiets && quiets != 0)
+        while (TMove.HasQuiets && quiets != 0 && count < moves.Length)
         {
             var toIndex = Bitboards.PopLsb(ref quiets);
             moves[count++] = new Move(piece, fromIndex, toIndex);
@@ -123,14 +123,14 @@ public class MoveGenerator
             var valid = pseudoAttacks & ~friendlies & position.Checkmask & position.PinnedPiece(in fromIndex);
 
             var attacks = valid & targets;
-            while (TMove.HasCaptures && attacks != 0)
+            while (TMove.HasCaptures && attacks != 0 && count < moves.Length)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
                 moves[count++] = new Move(piece, fromIndex, attack, position.GetOccupant(ref attack));
             }
 
             var quiets = valid & ~position.Occupied;
-            while (TMove.HasQuiets && quiets != 0)
+            while (TMove.HasQuiets && quiets != 0 && count < moves.Length)
             {
                 var toIndex = Bitboards.PopLsb(ref quiets);
                 moves[count++] = new Move(piece, fromIndex, toIndex);
@@ -153,7 +153,7 @@ public class MoveGenerator
             if (TMove.HasCaptures)
             {
                 var attacks = MovePatterns.Knights[fromIndex] & targets & position.Checkmask & position.PinnedPiece(in fromIndex);
-                while (attacks != 0)
+                while (attacks != 0 && count < moves.Length)
                 {
                     var attack = Bitboards.PopLsb(ref attacks);
                     var occupant = position.GetOccupant(ref attack);
@@ -165,7 +165,7 @@ public class MoveGenerator
             if (TMove.HasQuiets)
             {
                 var quiets = pseudoAttacks & ~position.Occupied & position.Checkmask & position.PinnedPiece(in fromIndex);
-                while (quiets != 0)
+                while (quiets != 0 && count < moves.Length)
                 {
                     var toIndex = Bitboards.PopLsb(ref quiets);
                     if (TMove.HasQuiets)
@@ -192,7 +192,7 @@ public class MoveGenerator
             var pseudoAttacks = attackPattern[sq];
             var attacks = pseudoAttacks & targets & position.Checkmask & position.PinnedPiece(ref sq);
 
-            while (TMove.HasCaptures && attacks != 0)
+            while (TMove.HasCaptures && attacks != 0 && count < moves.Length)
             {
                 var attack = Bitboards.PopLsb(ref attacks);
 
@@ -205,7 +205,7 @@ public class MoveGenerator
                 count = DoEnPassant(position, ref moves, count, ref sq, position.EnPassant);
                 
             var pushes = pushPattern[sq] & position.Checkmask & position.PinnedPiece(in sq) & position.Empty;
-            while (TMove.HasQuiets && pushes != 0)
+            while (TMove.HasQuiets && pushes != 0 && count < moves.Length)
             {
                 var push = Bitboards.PopLsb(ref pushes);
                 if ((MovePatterns.SquaresBetween[sq][push] & position.Occupied) == 0)
