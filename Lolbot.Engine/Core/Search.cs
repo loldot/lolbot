@@ -244,8 +244,11 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         {
             if (!ttEntry.IsSet || ttEntry.Type != TranspositionTable.Exact)
             {
-                // eval = Heuristics.StaticEvaluation(position);
+#if NNUE
                 eval = position.Eval;
+#else
+                eval = Heuristics.StaticEvaluation(position);
+#endif
             }
 
             var margin = ReverseFutilityMargin * depth;
@@ -302,7 +305,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             {
                 best = score;
                 ttMove = (ttMove.IsNull || best > originalAlpha) ? move : ttMove;
-            } 
+            }
 
             if (score > alpha)
             {
@@ -365,8 +368,11 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         Span<Move> moves = stackalloc Move[256];
 
-        // var standPat = Heuristics.StaticEvaluation(position);
+#if NNUE
         var standPat = position.Eval;
+#else
+        var standPat = Heuristics.StaticEvaluation(position);
+#endif
 
         if (standPat >= beta) return beta;
         if (alpha < standPat) alpha = standPat;
@@ -415,7 +421,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         if (score < -Mate + Max_Depth) return score + ply;
         return score;
     }
-   
+
     private int ScoreMove(Move m, int ply)
     {
         int score = 0;

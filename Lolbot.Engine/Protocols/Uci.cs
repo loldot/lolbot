@@ -5,7 +5,7 @@ namespace Lolbot.Core;
 public class Uci
 {
     private string command = null!;
-    private Game? game ;
+    private Game? game;
 
     public void Run()
     {
@@ -65,9 +65,13 @@ public class Uci
 
     private static void Init()
     {
-        Console.WriteLine("id name Lolbot 1.0 alpha");
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        var version = assembly.GetName().Version?.ToString() ?? "unknown";
+        Console.WriteLine($"id name Lolbot {version}");
         Console.WriteLine("id author loldot");
-
+#if NNUE
+        Console.WriteLine("info NNUE enabled");
+#endif
         Console.WriteLine("uciok");
     }
 

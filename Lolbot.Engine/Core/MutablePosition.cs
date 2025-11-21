@@ -98,7 +98,9 @@ public sealed class MutablePosition
         bb[QueensIndex] = Bitboards.Create("D1", "D8");
         bb[KingsIndex] = Bitboards.Create("E1", "E8");
         bb[WhiteIndex] = Bitboards.Masks.Rank_1 | Bitboards.Masks.Rank_2;
+#if NNUE
         Accumulator = NNUE.Accumulator.Create(this);
+#endif
     }
 
     public static MutablePosition EmptyBoard => new()

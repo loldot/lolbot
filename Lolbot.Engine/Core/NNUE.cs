@@ -1,4 +1,5 @@
 
+using System.Diagnostics;
 using System.Numerics.Tensors;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -27,7 +28,8 @@ public static class NNUE
             acc.Reevaluate(pos);
             return acc;
         }
-
+        
+        [Conditional("NNUE")]
         public void Reevaluate(MutablePosition pos)
         {
             hiddenBiasf.CopyTo(v, 0);
@@ -65,7 +67,7 @@ public static class NNUE
         {
             return ((color ^ 1) * 6 + ((int)piece - 1)) * 64 + (square ^ 63);
         }
-
+        [Conditional("NNUE")]
         public void Move(ref readonly Move m)
         {
             var toPiece = m.PromotionPieceType == PieceType.None ? m.FromPieceType : m.PromotionPieceType;
@@ -112,7 +114,7 @@ public static class NNUE
             //     }
             // }
         }
-
+        [Conditional("NNUE")]
         public void Undo(ref readonly Move m)
         {
             var toPiece = m.PromotionPieceType == PieceType.None ? m.FromPieceType : m.PromotionPieceType;
