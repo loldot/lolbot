@@ -33,6 +33,7 @@ public ref struct MovePicker
     public Move SelectMove(int k)
     {
         if (k == 0 && !ttMove.IsNull) return ttMove;
+        if (k >= moves.Length) return Move.Null;
         if (!isGenerated)
         {
             Count = MoveGenerator.Legal(position, ref moves);

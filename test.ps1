@@ -62,6 +62,7 @@ Write-Host "Previous: $previousVersion"
     -recover `
     -debug `
     -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 `
+    -pgnout "C:\dev\chess-data\$(Get-Date -Format yyyyMMddHHmmss).pgn" fi `
 | Tee-Object C:\temp\log.txt
 
 Pop-Location

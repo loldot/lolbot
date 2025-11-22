@@ -236,7 +236,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
                 || (ttEntry.Type == TranspositionTable.UpperBound && eval <= alpha))
             ) return eval;
         }
-        // else if (remainingDepth > 3) remainingDepth--;
+        // else if (depth > 3) depth--;
 
         bool isPruningAllowed = !TNode.IsPv && !position.IsCheck;
 
@@ -301,13 +301,13 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             history.Unwind();
             position.Undo(in move);
 
-            if (score > best)
+            if (score > best && score < Inf)
             {
                 best = score;
                 ttMove = (ttMove.IsNull || best > originalAlpha) ? move : ttMove;
             }
 
-            if (score > alpha)
+            if (score > alpha && score < Inf)
             {
                 alpha = score;
                 if (alpha >= beta)
