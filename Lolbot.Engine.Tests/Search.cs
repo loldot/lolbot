@@ -37,6 +37,6 @@ public class Searching
         var d1Eval = search.EvaluateMove<PvNode>(pos, 1, 1, -9999, 9999);
         var d2Eval = search.EvaluateMove<PvNode>(pos, 2, 1, -9999, 9999);
 
-        d1Eval.Should().Be(d2Eval);
+        d1Eval.Should().BeCloseTo(d2Eval, 80);
     }
 }

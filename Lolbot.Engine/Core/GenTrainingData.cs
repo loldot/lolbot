@@ -7,14 +7,26 @@ namespace Lolbot.Core;
 
 public partial class GenTrainingData
 {
+    const int SearchDepth = 8;
     const int QuiesenceMargin = 56;
     const int SearchMargin = 87;
 
     public static (int staticEval, int nnueEval, int score, bool isValid) TestPosition(Search search, MutablePosition position)
     {
+        Span<Move> moves = stackalloc Move[216];
+        int count = MoveGenerator.Legal(position, ref moves);
+        moves = moves[..count];
+        for (int i = 0; i < moves.Length; i++)
+        {
+            if (moves[i].IsSpecial && moves[i].CastleFlag != CastlingRights.None)
+            {
+                return (0, 0, 0, false);
+            }
+        }
+
         var staticEval = Heuristics.StaticEvaluation(position);
         var quiesenceEval = search.QuiesenceSearchPv(position, -Search.Inf, Search.Inf);
-        var score = search.EvaluateMove<PvNode>(position, 7, 0, -Search.Inf, Search.Inf, true);
+        var score = search.EvaluateMove<PvNode>(position, SearchDepth, 0, -Search.Inf, Search.Inf, true);
 
         var isValid = position.IsEndgame ||
             (Math.Abs(staticEval - quiesenceEval) < QuiesenceMargin &&
@@ -35,7 +47,6 @@ public partial class GenTrainingData
         using var inputStream = File.OpenRead(path);
         using var outputStream = File.OpenWrite(output);
 
-        int max_depth = 8;
         int games = 0;
         int validPositions = 0;
         int totalPositions = 0;
@@ -53,7 +64,7 @@ public partial class GenTrainingData
 
             if (game.GenerateLegalMoves().Length == 0)
             {
-                for (int i = 0; i < max_depth && game.Moves.Any(); i++)
+                for (int i = 0; i < SearchDepth && game.Moves.Any(); i++)
                 {
                     game.UndoLastMove();
                 }
@@ -70,7 +81,7 @@ public partial class GenTrainingData
 
                 if (!game.CurrentPosition.IsCheck && Math.Abs(staticEval - quiesenceEval) < QuiesenceMargin)
                 {
-                    search.BestMove(max_depth);
+                    search.BestMove(SearchDepth);
                     var eval = search.CentiPawnEvaluation;
 
                     if (Math.Abs(staticEval - eval) < SearchMargin)
@@ -82,7 +93,7 @@ public partial class GenTrainingData
 
                         var mutation = game.CurrentPosition.Clone();
                         mutation.DropRandomPiece();
-                     
+
                         var mutatedGame = new Game(mutation);
                         if (mutatedGame.GenerateLegalMoves().Length > 0)
                         {
@@ -93,7 +104,7 @@ public partial class GenTrainingData
                             {
                                 var mutSearch = new Search(mutatedGame, Engine.tt, history);
 
-                                mutSearch.BestMove(max_depth);
+                                mutSearch.BestMove(SearchDepth);
 
                                 var mutScore = mutSearch.CentiPawnEvaluation;
 

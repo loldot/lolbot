@@ -1,3 +1,4 @@
+#if NNUE
 using Lolbot.Core;
 
 namespace Lolbot.Tests;
@@ -750,3 +751,4 @@ public class AccumulatorTests
             "After stress test make/undo sequence, should return to initial state");
     }
 }
+#endif

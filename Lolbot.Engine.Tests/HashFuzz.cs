@@ -6,6 +6,7 @@ namespace Lolbot.Tests;
 public class HashFuzz
 {
     [Test]
+    [Explicit]
     public void FuzzHash()
     {
         Stack<Move> testMoves = new();

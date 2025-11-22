@@ -3,22 +3,67 @@ using Lolbot.UciTester;
 
 using Lolbot.Core;
 
+var positions = new List<(string Category, string FEN, string BestMove, string WorstMove)>();
+var lines = File.ReadAllLines("positions.csv");
+foreach (var line in lines.Skip(1))
+{
+    var parts = line.Split(',');
+    if (parts.Length >= 4)
+    {
+        positions.Add((parts[0], parts[1], parts[2], parts[3]));
+    }
+}
+
+int bestMovesFound = 0;
+int worstMovesAvoided = 0;
+
 using UciDriver uci = new UciDriver(@"C:\dev\lolbot\Lolbot.Engine\bin\Release\net10.0\win-x64\publish\Lolbot.Engine.exe");
 uci.Uci();
-uci.IsReady();
-uci.SetPosition("2rqk2r/pb1nbp1p/4p1p1/1B1n4/Np1N4/7Q/PP3PPP/R1B1R1K1 w kq - 0 1");
-uci.Go(new()
-{
-    WhiteTime = 50_000,
-    BlackTime = 50_000,
-    WhiteInc = 100,
-    BlackInc = 100,
-});
 
-while (true)
+foreach (var item in positions)
 {
-    Thread.Sleep(1000);
+    Console.WriteLine($"{item.Category} {item.FEN}");
+    string expected = item.BestMove;
+    Mode mode = Mode.BestMove; 
+    
+    if (string.IsNullOrEmpty(item.BestMove))
+    {
+        mode = Mode.AvoidMove;
+        expected = item.WorstMove;
+    }
+
+    uci.IsReady();
+    uci.SetPosition(item.FEN);
+    uci.Go(new()
+    {
+        WhiteTime = 50_000,
+        BlackTime = 50_000,
+        WhiteInc = 100,
+        BlackInc = 100,
+    });
+    while (!uci.HasMove) Thread.Sleep(100);
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    if (mode == Mode.BestMove && uci.Move == expected)
+    {
+        Console.WriteLine("Best move found!");
+        bestMovesFound++;
+    }
+    else if (mode == Mode.AvoidMove && uci.Move != expected)
+    {
+        Console.WriteLine("Worst move avoided!");
+        worstMovesAvoided++;
+    }
+    else
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"Failed! Expected: {expected}, Got: {uci.Move}");
+    }
+
+    Console.ResetColor();
+    uci.ClearMove();
 }
+Console.WriteLine($"Solved {bestMovesFound + worstMovesAvoided} / {positions.Count} positions");
 
 Environment.Exit(0);
 
@@ -329,4 +374,9 @@ static void GenerateDetailedReport(TestDatabase database, string commitHash)
     {
         Console.WriteLine($"• Average evaluation: {withScores.Average(p => p.ScoreCp!.Value):F0}cp");
     }
+}
+public enum Mode : byte
+{
+    BestMove = 0,
+    AvoidMove = 1
 }

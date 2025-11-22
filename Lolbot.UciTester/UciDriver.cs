@@ -3,8 +3,10 @@ using System.Text.RegularExpressions;
 
 namespace Lolbot.Core;
 
-public class UciDriver : IDisposable
+public sealed class UciDriver : IDisposable
 {
+
+
     private Lazy<Process> _engineProcess;
     public UciDriver(string enginePath)
     {
@@ -31,6 +33,16 @@ public class UciDriver : IDisposable
         });
     }
 
+    
+    public string Move { get; private set; }
+    public bool HasMove { get; set; }
+
+    public void ClearMove()
+    {
+        Move = string.Empty;
+        HasMove = false;
+    }
+
     private void HandleProcOutput(object sender, DataReceivedEventArgs e)
     {
         if (!string.IsNullOrEmpty(e.Data))
@@ -47,10 +59,13 @@ public class UciDriver : IDisposable
             else if (e.Data.StartsWith("bestmove"))
             {
                 SummarizeStats();
+                moveStats.Clear();
+                Move = e.Data.Trim().Split(' ')[1];
+                HasMove = true;
             }
-
         }
     }
+
     private List<Dictionary<string, string>> moveStats = new();
     private void SummarizeStats()
     {
@@ -134,9 +149,11 @@ public class UciDriver : IDisposable
         {
             SendCommand("quit");
             _engineProcess.Value.StandardInput.Flush();
-            Thread.Sleep(500); // Give the engine some time to exit gracefully
-            _engineProcess.Value.Kill();
-            _engineProcess.Value.WaitForExit();
+            if (!_engineProcess.Value.WaitForExit(500))
+            {
+                _engineProcess.Value.Kill();
+            }
+
             _engineProcess.Value.Dispose();
         }
     }
