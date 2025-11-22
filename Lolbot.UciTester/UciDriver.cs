@@ -33,14 +33,15 @@ public sealed class UciDriver : IDisposable
         });
     }
 
-    
-    public string Move { get; private set; }
-    public bool HasMove { get; set; }
+
+    public string BestMove { get; private set; } = "";
+    public (int Depth, int AvgNodes, int TotalNodes, int AvgNps, double BranchingFactor) SearchStats { get; private set; }
+    public bool IsFinished { get; set; }
 
     public void ClearMove()
     {
-        Move = string.Empty;
-        HasMove = false;
+        BestMove = string.Empty;
+        IsFinished = false;
     }
 
     private void HandleProcOutput(object sender, DataReceivedEventArgs e)
@@ -60,8 +61,8 @@ public sealed class UciDriver : IDisposable
             {
                 SummarizeStats();
                 moveStats.Clear();
-                Move = e.Data.Trim().Split(' ')[1];
-                HasMove = true;
+                BestMove = e.Data.Trim().Split(' ')[1];
+                IsFinished = true;
             }
         }
     }
@@ -71,22 +72,22 @@ public sealed class UciDriver : IDisposable
     {
         double branchingFactor = 0;
 
-        int averageNodes = 0, previousNodes = 0;
+        int averageNodes = 0, previousNodes = 0, totalNodes = 0;
         int averageNps = 0;
         int totalDepth = 0;
 
-        // Implementation for summarizing stats from outputBuffer
         foreach (var stat in moveStats)
         {
-            var nodes = stat.ContainsKey("nodes") ? int.TryParse(stat["nodes"], out var n) ? n : 0 : 0;
-            var nps = stat.ContainsKey("nps") ? int.TryParse(stat["nps"], out var p) ? p : 0 : 0;
-            totalDepth = stat.ContainsKey("depth") ? int.TryParse(stat["depth"], out var d) ? d : 0 : 0;
+            var nodes = GetInt(stat, "nodes");
+            var nps = GetInt(stat, "nps");
+            totalDepth = GetInt(stat, "depth");
             if (previousNodes != 0 && nodes != 0)
             {
                 branchingFactor += nodes / previousNodes;
             }
             previousNodes = nodes;
             averageNodes += nodes;
+            totalNodes += nodes;
             averageNps += nps;
         }
         if (moveStats.Count > 0)
@@ -95,14 +96,16 @@ public sealed class UciDriver : IDisposable
             averageNps /= moveStats.Count;
             branchingFactor /= moveStats.Count - 1; // since we start calculating from the second entry
         }
+        SearchStats = (totalDepth, averageNodes, totalNodes, averageNps, branchingFactor);
+    }
 
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"[Engine Stats] Average Nodes: {averageNodes:N0}");
-        Console.WriteLine($"[Engine Stats] Branching Factor: {branchingFactor:N3}");
-        Console.WriteLine($"[Engine Stats] Average NPS: {averageNps:N0}");
-        Console.WriteLine($"[Engine Stats] Total Depth: {totalDepth:N0}");
-        Console.ResetColor();
-
+    private static int GetInt(Dictionary<string, string> stat, string key)
+    {
+        if (stat.TryGetValue(key, out string? value))
+        {
+            return int.TryParse(value, out var n) ? n : 0;
+        }
+        return 0;
     }
 
     private void AddStats(string line)
