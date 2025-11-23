@@ -17,28 +17,27 @@ export const createGame = async (fen? : string) : Promise<number> => {
 }
 
 export interface EngineSummary {
-    commitHash: string;
+    enginePath: string;
     totalPositions: number;
     correctPositions: number;
     correctPercentage: number;
     averageDepth: number;
     averageNodes: number;
+    totalNodes: number;
     averageNps: number;
-    averageTimeMs: number;
-    latestTestTime: string;
+    averageBranchingFactor: number;
 }
 
 export interface PositionResult {
-    positionName: string;
+    category: string;
     fen: string;
     bestMove: string;
-    actualDepth: number;
-    nodes: number;
-    nps: number;
-    timeMs: number;
-    scoreCp?: number;
-    scoreMate?: number;
-    principalVariation: string;
+    worstMove: string;
+    depth: number;
+    averageNodes: number;
+    totalNodes: number;
+    averageNps: number;
+    branchingFactor: number;
     isCorrectMove: boolean;
 }
 
@@ -48,9 +47,9 @@ export async function fetchEngineSummaries(): Promise<EngineSummary[]> {
     return await res.json();
 }
 
-export async function fetchPositionResults(commitHash: string): Promise<PositionResult[]> {
-    const res = await fetch(`${baseUrl}/api/tests/positions/${commitHash}`);
-    if (res.status === 404) return [];
+export async function fetchPositionResults(enginePath: string): Promise<PositionResult[]> {
+    const encoded = encodeURIComponent(enginePath);
+    const res = await fetch(`${baseUrl}/api/tests/positions/${encoded}`);
     if (!res.ok) throw new Error('Failed to fetch position results');
     return await res.json();
 }

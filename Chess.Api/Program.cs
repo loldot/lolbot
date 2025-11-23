@@ -65,10 +65,11 @@ app.MapHub<GameHub>("/game/realtime");
 app.MapGet("/api/tests/engines", (TestResultsService svc) => Results.Ok(svc.GetEngineSummaries()))
    .WithName("GetEngineTestSummaries").WithOpenApi();
 
-app.MapGet("/api/tests/positions/{commitHash}", (string commitHash, TestResultsService svc) =>
+app.MapGet("/api/tests/positions/{engineId}", (string engineId, TestResultsService svc) =>
 {
-    var positions = svc.GetPositionResults(commitHash);
-    return positions is null ? Results.NotFound() : Results.Ok(positions);
+    var enginePath = Uri.UnescapeDataString(engineId);
+    var positions = svc.GetPositionResults(enginePath);
+    return Results.Ok(positions);
 }).WithName("GetEnginePositionResults").WithOpenApi();
 
 // Run management
