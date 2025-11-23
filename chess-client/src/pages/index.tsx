@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react"
+import { lazy, Suspense } from "react"
 
 // TypeScript declarations for web components
 declare global {
@@ -15,6 +15,7 @@ declare global {
 const NewGame = lazy(() => import("./game/new"));
 const MasterGameView = lazy(() => import("./game/master"));
 const TestResults = lazy(() => import("./test-results"));
+const PositionTrends = lazy(() => import("./position-trends"));
 
 const Home = () => {
     return (
@@ -22,7 +23,7 @@ const Home = () => {
             <h1>Lolbot Chess Engine</h1>
 
             <ui-tabs>
-                <ui-tab-panel title="New Game">
+                {/* <ui-tab-panel title="New Game">
                     <h3 slot="header">New Game</h3>
                     <section slot="content" className="block md">
                         
@@ -36,7 +37,7 @@ const Home = () => {
                             <NewGame />
                         </Suspense>
                     </section>
-                </ui-tab-panel>
+                </ui-tab-panel> */}
 
                 <ui-tab-panel title="Master Game">
                     <section slot="content" className="block md">
@@ -64,6 +65,21 @@ const Home = () => {
                             </ui-card>
                         }>
                             <TestResults />
+                        </Suspense>
+                    </section>
+                </ui-tab-panel>
+
+                <ui-tab-panel title="Position Trends">
+                    <section slot="content" className="block md">
+                        <h3>Performance Trends</h3>
+                        <Suspense fallback={
+                            <ui-card>
+                                <span slot="icon">⏳</span>
+                                <span slot="header">Loading...</span>
+                                <div>Preparing charts...</div>
+                            </ui-card>
+                        }>
+                            <PositionTrends />
                         </Suspense>
                     </section>
                 </ui-tab-panel>

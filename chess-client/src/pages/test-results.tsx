@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { EngineSummary, fetchEngineSummaries, fetchPositionResults, PositionResult } from '../api';
 
 // TypeScript declarations for web components
@@ -19,23 +19,43 @@ export default function TestResultsPage() {
   const [loadingEngines, setLoadingEngines] = useState(false);
   const [loadingPositions, setLoadingPositions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sortedEngines = useMemo(
+    () =>
+      [...engines].sort(
+        (a, b) => getCommitTimestamp(b.committedAt) - getCommitTimestamp(a.committedAt)
+      ),
+    [engines]
+  );
+  const selectedEngine = selectedEnginePath
+    ? sortedEngines.find((engine) => engine.enginePath === selectedEnginePath)
+    : undefined;
 
   useEffect(() => {
     setLoadingEngines(true);
     fetchEngineSummaries()
-      .then(setEngines)
+      .then(data => {
+        const ordered = [...data].sort(
+          (a, b) => getCommitTimestamp(b.committedAt) - getCommitTimestamp(a.committedAt)
+        );
+        setEngines(ordered);
+        if (ordered.length > 0) {
+          setSelectedEnginePath(prev => prev ?? ordered[0].enginePath);
+        }
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoadingEngines(false));
   }, []);
 
   useEffect(() => {
     if (!selectedEnginePath) return;
+    const engine = sortedEngines.find((item) => item.enginePath === selectedEnginePath);
+    const identifier = engine?.commitHash || engine?.enginePath || selectedEnginePath;
     setLoadingPositions(true);
-    fetchPositionResults(selectedEnginePath)
+    fetchPositionResults(identifier)
       .then(setPositions)
       .catch(e => setError(e.message))
       .finally(() => setLoadingPositions(false));
-  }, [selectedEnginePath]);
+  }, [selectedEnginePath, engines]);
 
   return (
     <div style={{ display: 'flex', gap: '2rem', padding: '1rem' }}>
@@ -45,21 +65,25 @@ export default function TestResultsPage() {
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {engines.map(e => (
+          {sortedEngines.map((engine) => (
             <ui-card
-              key={e.enginePath}
-              checked={selectedEnginePath === e.enginePath}
-              onClick={() => setSelectedEnginePath(e.enginePath)}
+              key={engine.enginePath}
+              checked={selectedEnginePath === engine.enginePath}
+              onClick={() => setSelectedEnginePath(engine.enginePath)}
               style={{ cursor: 'pointer' }}
             >
-              <span slot="header" title={e.enginePath}>{extractName(e.enginePath)}</span>
+              <span slot="icon">🚀</span>
+              <span slot="header" title={engine.enginePath}>{getEngineLabel(engine)}</span>
               <ul>
-                <li><strong>Correct:</strong> {e.correctPositions}/{e.totalPositions} ({e.correctPercentage.toFixed(1)}%)</li>
-                <li><strong>Avg Depth:</strong> {e.averageDepth.toFixed(1)}</li>
-                <li><strong>Avg Nodes:</strong> {Math.round(e.averageNodes).toLocaleString()}</li>
-                <li><strong>Total Nodes:</strong> {e.totalNodes.toLocaleString()}</li>
-                <li><strong>Avg NPS:</strong> {Math.round(e.averageNps).toLocaleString()}</li>
-                <li><strong>Avg Branching:</strong> {e.averageBranchingFactor.toFixed(2)}</li>
+                <li><strong>Commit:</strong> {engine.commitHash || 'Unknown'}</li>
+                <li><strong>Committed:</strong> {formatCommittedAt(engine.committedAt)}</li>
+                <li><strong>Folder:</strong> {engine.engineFolder || 'n/a'}</li>
+                <li><strong>Correct:</strong> {engine.correctPositions}/{engine.totalPositions} ({engine.correctPercentage.toFixed(1)}%)</li>
+                <li><strong>Avg Depth:</strong> {engine.averageDepth.toFixed(1)}</li>
+                <li><strong>Avg Nodes:</strong> {Math.round(engine.averageNodes).toLocaleString()}</li>
+                <li><strong>Total Nodes:</strong> {engine.totalNodes.toLocaleString()}</li>
+                <li><strong>Avg NPS:</strong> {Math.round(engine.averageNps).toLocaleString()}</li>
+                <li><strong>Avg Branching:</strong> {engine.averageBranchingFactor.toFixed(2)}</li>
               </ul>
             </ui-card>
           ))}
@@ -67,7 +91,7 @@ export default function TestResultsPage() {
       </div>
 
       <div style={{ flex: '1 1 70%' }}>
-        <h2>Position Results {selectedEnginePath && `(${extractName(selectedEnginePath)})`}</h2>
+        <h2>Position Results {selectedEngine && `(${getEngineLabel(selectedEngine)})`}</h2>
 
         {!selectedEnginePath && (
           <ui-card checked={true}>
@@ -84,6 +108,12 @@ export default function TestResultsPage() {
             <span slot="header">No Results</span>
             <div>No position results found for this engine version.</div>
           </ui-card>
+        )}
+
+        {selectedEngine && positions.length > 0 && (
+          <p style={{ margin: '0 0 0.5rem 0' }}>
+            <strong>Commit:</strong> {selectedEngine.commitHash || getEngineLabel(selectedEngine)} &nbsp;•&nbsp; <strong>Committed:</strong> {formatCommittedAt(selectedEngine.committedAt)}
+          </p>
         )}
 
         {positions.length > 0 && (
@@ -129,5 +159,28 @@ const th: React.CSSProperties = { padding: '4px', position: 'sticky', top: 0 };
 const td: React.CSSProperties = { padding: '4px' };
 
 function extractName(path: string): string {
-  return path;
+  if (!path) return '';
+  const trimmed = path.replace(/[/\\]+$/, '');
+  const parts = trimmed.split(/[\\/]/);
+  const last = parts.pop();
+  return last && last.length > 0 ? last : trimmed;
+}
+
+function getEngineLabel(engine: EngineSummary): string {
+  if (engine.commitHash) return engine.commitHash;
+  if (engine.engineFolder) return engine.engineFolder;
+  return extractName(engine.enginePath);
+}
+
+function formatCommittedAt(value?: string): string {
+  if (!value) return 'Unknown';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
+function getCommitTimestamp(value?: string): number {
+  if (!value) return 0;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }

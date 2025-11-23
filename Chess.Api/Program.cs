@@ -62,8 +62,22 @@ app.UseHttpsRedirection();
 app.MapHub<GameHub>("/game/realtime");
 
 // Test results endpoints
-app.MapGet("/api/tests/engines", (TestResultsService svc) => Results.Ok(svc.GetEngineSummaries()))
+app.MapGet("/api/tests/engines", (int? limit, TestResultsService svc) => Results.Ok(svc.GetEngineSummaries(limit ?? 250)))
    .WithName("GetEngineTestSummaries").WithOpenApi();
+
+app.MapGet("/api/tests/positions", (TestResultsService svc) => Results.Ok(svc.GetAvailablePositions()))
+   .WithName("GetAvailableTestPositions").WithOpenApi();
+
+app.MapGet("/api/tests/positions/history", (string fen, int? limit, TestResultsService svc) =>
+{
+    if (string.IsNullOrWhiteSpace(fen))
+    {
+        return Results.BadRequest(new { message = "fen query parameter is required" });
+    }
+
+    var history = svc.GetPositionHistory(fen, limit ?? 500);
+    return Results.Ok(history);
+}).WithName("GetPositionHistory").WithOpenApi();
 
 app.MapGet("/api/tests/positions/{engineId}", (string engineId, TestResultsService svc) =>
 {
