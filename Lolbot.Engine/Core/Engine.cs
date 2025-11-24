@@ -13,7 +13,6 @@ public static class Engine
     public static void Init()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "nnue_weights_16.bin");
-        NNUE.Initialize(path);
     }
 
     public static Game NewGame() => new Game(new MutablePosition());

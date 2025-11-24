@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
-using static Lolbot.Core.NNUE;
 using static Lolbot.Core.Utils;
 
 namespace Lolbot.Core;
@@ -16,9 +15,6 @@ public sealed class MutablePosition
     public const int MaxDepth = 1024;
 
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
-    #if NNUE
-    private readonly Accumulator Accumulator;
-    #endif
 
     public int plyfromRoot = 0;
 
@@ -113,15 +109,9 @@ public sealed class MutablePosition
         CurrentPlayer = Colors.White,
     };
 
-#if NNUE
-    public int Eval => Accumulator.Read(CurrentPlayer);
-#endif
 
     public void Move(ref readonly Move m)
     {
-#if NNUE
-        Accumulator.Move(in m);
-#endif
         var oponent = Enemy(CurrentPlayer);
 
         Diffs[plyfromRoot] = new DiffData(
@@ -221,9 +211,6 @@ public sealed class MutablePosition
         IsPinned = CreatePinmasks(us);
 
         CurrentPlayer = us;
-        #if NNUE
-        Accumulator.Undo(in m);
-        #endif
     }
 
     public void SkipTurn()
@@ -268,48 +255,7 @@ public sealed class MutablePosition
         Hash = Diffs[plyfromRoot].Hash;
     }
 
-    /// SEE score from the perspective of the side to move *before* 'm' is played.
-    /// Returns the net material swing in centipawns; >=0 ⇒ non-losing capture (by this evaluation).
-    public int SEE(Move m, bool treatPromotion = true)
-    {
-        if (m.IsQuiet) return 0;
-
-        int d = 0;
-        Span<int> gain = stackalloc int[32];
-
-        Piece aPiece = m.FromPiece;
-
-        ulong mayXray = bb[PawnIndex] | bb[BishopsIndex] | bb[RooksIndex] | bb[QueensIndex];
-        ulong fromSet = m.FromSquare;
-        ulong occ = Occupied;
-        ulong attadef = AttackersTo(m.ToIndex, ref occ);
-
-        gain[d] = Heuristics.GetPieceValue(m.CapturePiece);
-
-        var sideToMove = (Colors)(7 * m.Color);
-        do
-        {
-            d++; // next depth and side
-            gain[d] = Heuristics.GetPieceValue(aPiece) - gain[d - 1]; // speculative store, if defended
-            attadef ^= fromSet; // reset bit in set to traverse
-            occ ^= fromSet; // reset bit in temporary occupancy (for x-Rays)
-
-            if ((fromSet & mayXray) != 0)
-                attadef = AttackersTo(m.ToIndex, ref occ);
-
-            sideToMove = Enemy(sideToMove);
-            fromSet = GetLeastValuablePiece(attadef, sideToMove, ref aPiece);
-        } while (fromSet != 0);
-
-        while (--d >= 1)
-        {
-            gain[d - 1] = -Math.Max(-gain[d - 1], gain[d]);
-        }
-
-        return gain[0];
-    }
-
-
+   
     ulong GetLeastValuablePiece(ulong attackers, Colors c, ref Piece piece)
     {
         PieceType[] types = [PieceType.Pawn, PieceType.Knight, PieceType.Bishop, PieceType.Rook, PieceType.Queen, PieceType.King];
@@ -415,9 +361,6 @@ public sealed class MutablePosition
         AttackMask = CreateEnemyAttackMask(CurrentPlayer);
         (Checkmask, CheckerCount) = CreateCheckMask(CurrentPlayer);
         IsPinned = CreatePinmasks(CurrentPlayer);
-        #if NNUE
-        Accumulator.Reevaluate(this);
-        #endif
     }
 
     private ulong CreateEnemyAttackMask(Colors color)
