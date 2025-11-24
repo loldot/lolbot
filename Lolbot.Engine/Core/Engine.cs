@@ -6,9 +6,15 @@ public static class Engine
     const int Mate = ushort.MaxValue;
 
     internal static readonly TranspositionTable tt = new TranspositionTable();
-    private static readonly int[][] historyHeuristic = [
-        new int[4096], new int[4096]
-    ];
+    private static readonly int[][] historyHeuristic = new int[64][];
+
+    static Engine()
+    {
+        for (int i = 0; i < 64; i++)
+        {
+            historyHeuristic[i] = new int[64];
+        }
+    }
 
     public static void Init()
     {

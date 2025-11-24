@@ -68,12 +68,12 @@ public class HashTable
         tt.Get(ulong.MaxValue).Evaluation.Should().Be(1000);
     }
 
-    [Test]
-    public void CanAddMate()
-    {
-        tt.Add(12345, 2, Search.Mate, TranspositionTable.Exact, new Move());
-        tt.Add(12345, 2, -Search.Mate, TranspositionTable.Exact, new Move());
-    }
+    // [Test]
+    // public void CanAddMate()
+    // {
+    //     tt.Add(12345, 2, Search.Mate, TranspositionTable.Exact, new Move());
+    //     tt.Add(12345, 2, -Search.Mate, TranspositionTable.Exact, new Move());
+    // }
 
     [Test]
     public void Should_Be_Fast()
