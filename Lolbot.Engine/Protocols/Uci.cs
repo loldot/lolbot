@@ -22,26 +22,8 @@ public class Uci
             else if (command.StartsWith("go")) Go(command);
             else if (command.StartsWith("perft")) Perft(command);
             else if (command.StartsWith("ucinewgame")) Reset();
-            else if (command.StartsWith("eval")) Evaluate();
             else Unknown(command);
         }
-    }
-
-    private void Evaluate()
-    {
-        var fen = FenSerializer.ToFenString(game.CurrentPosition);
-
-        Heuristics.StaticEvaluation(game.CurrentPosition, debug: true);
-
-        game.CurrentPosition.FillInput(ref NNUE.input);
-        var output = NNUE.FeedForward();
-        Console.WriteLine($"NNUE output: {output}");
-
-        var acc = NNUE.Accumulator.Create(game.CurrentPosition);
-        Console.WriteLine($"NNUE output (from acc): {acc.Read(game.CurrentPlayer)}");
-
-        Console.WriteLine();
-        Console.WriteLine(fen);
     }
 
     private static void Reset()
