@@ -190,7 +190,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
             if (value > alpha && value < Inf)
             {
-                if (i != 0) Array.Copy(rootMoves, 0, rootMoves, 1, rootMoveCount - 1);
+                if (i != 0) Array.Copy(rootMoves, 0, rootMoves, 1, i);
                 rootScore = alpha = value;
                 rootMoves[0] = bestMove = move;
             }
@@ -230,11 +230,21 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             ttMove = ttEntry.Move;
             eval = FromTT(ttEntry.Evaluation, ply);
 
-            if (ttEntry.Depth >= depth && (
-                ttEntry.Type == TranspositionTable.Exact
-                || (ttEntry.Type == TranspositionTable.LowerBound && eval >= beta)
-                || (ttEntry.Type == TranspositionTable.UpperBound && eval <= alpha))
-            ) return eval;
+            if (ttEntry.Depth >= depth)
+            {
+                switch (ttEntry.Type)
+                {
+                    case TranspositionTable.Exact:
+                        return eval;
+                    case TranspositionTable.LowerBound:
+                        alpha = Max(alpha, eval);
+                        break;
+                    case TranspositionTable.UpperBound:
+                        beta = Min(beta, eval);
+                        break;
+                }
+                if (alpha >= beta) return eval;
+            }
         }
         // else if (depth > 3) depth--;
 
@@ -360,10 +370,18 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         if (!TNode.IsPv && tt.TryGet(position.Hash, out var ttEntry))
         {
             ttMove = ttEntry.Move;
-            if (ttEntry.Type == TranspositionTable.Exact
-                || (ttEntry.Type == TranspositionTable.LowerBound && ttEntry.Evaluation >= beta)
-                || (ttEntry.Type == TranspositionTable.UpperBound && ttEntry.Evaluation <= alpha)
-            ) return ttEntry.Evaluation;
+            switch (ttEntry.Type)
+            {
+                case TranspositionTable.Exact:
+                    return ttEntry.Evaluation;
+                case TranspositionTable.LowerBound:
+                    alpha = Max(alpha, ttEntry.Evaluation);
+                    break;
+                case TranspositionTable.UpperBound:
+                    beta = Min(beta, ttEntry.Evaluation);
+                    break;
+            }
+            if (alpha >= beta) return ttEntry.Evaluation;
         }
 
         Span<Move> moves = stackalloc Move[256];

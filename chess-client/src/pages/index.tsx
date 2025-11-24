@@ -56,7 +56,6 @@ const Home = () => {
 
                 <ui-tab-panel title="Test Results">
                     <section slot="content" className="block md">
-                        <h3>Engine Test Results</h3>
                         <Suspense fallback={
                             <ui-card>
                                 <span slot="icon">⏳</span>
