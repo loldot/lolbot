@@ -1,4 +1,3 @@
-
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -115,6 +114,45 @@ public class TranspositionTable
         // if (isMatch) Console.WriteLine($"info tt match: {entry.Key:X} [{entry.Type}]");
 
         return isMatch;
+    }
+
+    public Move[] GetPv(MutablePosition position, int depth)
+    {
+        var pv = new List<Move>();
+        var tempPosition = position.Clone();
+        for (int i = 0; i < depth; i++)
+        {
+            if (TryGet(tempPosition.Hash, out var entry) && entry.Move != Move.Null)
+            {
+                // Check if the move is pseudo-legal before applying it.
+                // A full legality check is too slow here.
+                var legalMoves = tempPosition.GenerateLegalMoves();
+                bool found = false;
+                foreach(var move in legalMoves)
+                {
+                    if (move.Equals(entry.Move))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found)
+                {
+                    pv.Add(entry.Move);
+                    tempPosition.Move(in entry.Move);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
+        return pv.ToArray();
     }
 
     internal void Clear()
