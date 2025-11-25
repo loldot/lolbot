@@ -6,13 +6,24 @@ public class Clock
 {
     private DateTime startTime;
     private int hardLimitMs;
+    private int softLimitMs;
     private int timeLeft;
 
     public CancellationToken Start(int timeleft, int increment)
     {
         this.startTime = DateTime.Now;
         timeLeft = timeleft;
-        hardLimitMs = timeleft / 24 + increment / 2;
+        
+        // Time management strategy:
+        // - Use about 1/30th of remaining time for this move
+        // - Add most of the increment (we'll get it back after the move)
+        // - Set hard limit at ~3x the soft limit to allow finishing important searches
+        
+        softLimitMs = Max(50, timeleft / 30 + increment * 3 / 4);
+        hardLimitMs = Min(timeleft - 50, softLimitMs * 3); // Reserve 50ms buffer
+        
+        // Ensure we don't go negative or too low
+        hardLimitMs = Max(100, Min(hardLimitMs, timeleft - 50));
 
         var timer = new CancellationTokenSource(hardLimitMs);
 
@@ -23,11 +34,30 @@ public class Clock
     {
         var elapsed = (DateTime.Now - startTime).TotalMilliseconds;
 
+        // Estimate time needed for next depth
+        // Chess search typically has a branching factor around 3-4 at higher depths
         var expectedNodes = 1285 * Exp(0.856 * depth);
-        var expectedNpms = 1e3;
+        var expectedNpms = 1e3; // nodes per millisecond
 
-        return elapsed + (expectedNodes / expectedNpms) <= hardLimitMs;
+        var estimatedTimeMs = expectedNodes / expectedNpms;
+
+        // Only start if we have enough time within soft limit
+        // or if we're well within hard limit
+        if (elapsed + estimatedTimeMs <= softLimitMs)
+        {
+            return true;
+        }
+
+        if (elapsed + estimatedTimeMs / 2 <= hardLimitMs)
+        {
+            return true;
+        }
+
+        return false;
     }
+    
     public int MillisecondsElapsedThisTurn => (int)(DateTime.Now - startTime).TotalMilliseconds;
     public int MillisecondsRemaining =>  Max(0, timeLeft - MillisecondsElapsedThisTurn);
+    public int SoftLimit => softLimitMs;
+    public int HardLimit => hardLimitMs;
 }
