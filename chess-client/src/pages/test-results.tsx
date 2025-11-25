@@ -19,6 +19,8 @@ export default function TestResultsPage() {
   const [loadingEngines, setLoadingEngines] = useState(false);
   const [loadingPositions, setLoadingPositions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const sortedEngines = useMemo(
     () =>
       [...engines].sort(
@@ -26,8 +28,21 @@ export default function TestResultsPage() {
       ),
     [engines]
   );
+  
+  const filteredEngines = useMemo(
+    () => {
+      if (!searchQuery.trim()) return sortedEngines;
+      const query = searchQuery.toLowerCase();
+      return sortedEngines.filter(engine => 
+        engine.commitHash?.toLowerCase().includes(query) ||
+        engine.engineFolder?.toLowerCase().includes(query) ||
+        engine.enginePath?.toLowerCase().includes(query)
+      );
+    },
+    [sortedEngines, searchQuery]
+  );
   const selectedEngine = selectedEnginePath
-    ? sortedEngines.find((engine) => engine.enginePath === selectedEnginePath)
+    ? filteredEngines.find((engine) => engine.enginePath === selectedEnginePath)
     : undefined;
 
   useEffect(() => {
@@ -48,7 +63,7 @@ export default function TestResultsPage() {
 
   useEffect(() => {
     if (!selectedEnginePath) return;
-    const engine = sortedEngines.find((item) => item.enginePath === selectedEnginePath);
+    const engine = filteredEngines.find((item) => item.enginePath === selectedEnginePath);
     const identifier = engine?.commitHash || engine?.enginePath || selectedEnginePath;
     setLoadingPositions(true);
     fetchPositionResults(identifier)
@@ -64,8 +79,29 @@ export default function TestResultsPage() {
         {loadingEngines && <p>Loading engines...</p>}
         {error && <p style={{ color: 'red' }}>{error}</p>}
 
+        <input
+          type="text"
+          placeholder="Search by commit, folder, or path..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.5rem',
+            marginBottom: '1rem',
+            borderRadius: '4px',
+            border: '1px solid var(--border-color, #ccc)',
+            fontSize: '0.9rem'
+          }}
+        />
+
+        {filteredEngines.length === 0 && searchQuery && (
+          <p style={{ color: 'var(--text-muted, #666)' }}>
+            No engines match "{searchQuery}"
+          </p>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {sortedEngines.map((engine) => (
+          {filteredEngines.map((engine) => (
             <ui-card
               key={engine.enginePath}
               checked={selectedEnginePath === engine.enginePath}
@@ -168,7 +204,9 @@ function extractName(path: string): string {
 
 function getEngineLabel(engine: EngineSummary): string {
   if (engine.commitHash) return engine.commitHash;
-  if (engine.engineFolder) return engine.engineFolder;
+  if (engine.engineFolder && /^[0-9a-fA-F]{7}$/.test(engine.engineFolder)) {
+    return engine.engineFolder;
+  }
   return extractName(engine.enginePath);
 }
 

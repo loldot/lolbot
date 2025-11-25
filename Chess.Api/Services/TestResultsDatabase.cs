@@ -246,8 +246,19 @@ internal class TestDatabase : IDisposable
             }
         }
 
-        var fallbackHash = string.IsNullOrEmpty(folder) ? enginePath : folder;
+        // Use folder only if it looks like a 7-character hex hash
+        var fallbackHash = IsSevenCharHex(folder) ? folder : enginePath;
         return new CommitMetadata(folder, fallbackHash, null);
+    }
+
+    private static bool IsSevenCharHex(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length != 7) return false;
+        foreach (var c in value)
+        {
+            if (!Uri.IsHexDigit(c)) return false;
+        }
+        return true;
     }
 
     private Dictionary<string, CommitRecord> LoadCommitLookup()
