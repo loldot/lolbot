@@ -1,6 +1,7 @@
 using Lolbot.Core;
 using Microsoft.Data.Sqlite;
 using Lolbot.Benchmarking;
+using System.IO.Enumeration;
 
 // select EnginePath, avg(Depth) as D, sum(TotalNodes) as TN, 
 //    avg(avgNodes) as AN, avg(AvgNps) as nps, avg(BranchingFactor) as bf, 
@@ -24,6 +25,10 @@ if (args.Length > 0 && args[0].Trim().Equals("current"))
 {
     enginesToTest = [@"C:\dev\lolbot\Lolbot.Engine\bin\Release\net10.0\win-x64\publish\"];
 }
+else if (args.Length > 0 )
+{
+    enginesToTest = args;
+}
 else
 {
     enginesToTest = [.. Directory.EnumerateDirectories(engineFolder)];
@@ -42,7 +47,10 @@ foreach (var line in lines.Skip(1))
 
 foreach (var engine in enginesToTest)
 {
-    string path = Path.Combine(engine, exeName);
+    string path = Directory.Exists(engine) 
+        ? Path.Combine(engine, exeName) 
+        : engine;
+
     if (!File.Exists(path))
     {
         Console.WriteLine($"Engine not found: {path}");
