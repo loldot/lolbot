@@ -21,6 +21,8 @@ public sealed partial class PgnSerializer
 
     public async Task<(Game?, GameMetadata)> ReadSingle(Stream stream)
     {
+        var x = MovePatterns.Kings;
+        Console.WriteLine(x.Length);
 
         using var reader = new StreamReader(stream);
         return await ReadSingle(reader);
@@ -193,7 +195,7 @@ public sealed partial class PgnSerializer
         [GeneratedRegex(@"\*|0-1|1-0|0-0|1/2-1/2")]
         public static partial Regex Result();
 
-        [GeneratedRegex(@"\s+|\{.+\}|^;.+$")]
+        [GeneratedRegex(@"\s+|\{.+?\}|^;.+$")]
         public static partial Regex NonToken();
 
         [GeneratedRegex(@"^(?<piece>[NBRQK]{1})?(?<disambiguation>[a-h]?\d?)?(?<cap>x)?(?<square>[a-h][0-8])(?<promotion>=[NBRQ])?.*$")]

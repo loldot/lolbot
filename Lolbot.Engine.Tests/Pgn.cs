@@ -112,11 +112,14 @@ public class Pgn
     }
 
     [Test]
-    public void Should_Not_Allow_Illegal_Castling()
+    public async Task Should_Not_Allow_Illegal_Castling()
     {
         var pgn = File.OpenRead(@"./Testdata/castling-bug.pgn");
         var reader = new PgnSerializer();
-        Func<Task> act = async () => await reader.ReadSingle(pgn);
-        act.Should().ThrowAsync<PgnParseException>().WithMessage("Could not disambiguate move O-O-O");
+        var (game, _) = await reader.ReadSingle(pgn);
+        game.Should().NotBeNull();
+        
+        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.BlackQueen);
+        game.GenerateLegalMoves().Should().NotContain(m => m.CastleFlag == CastlingRights.BlackKing);
     }
 }

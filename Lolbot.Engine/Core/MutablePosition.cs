@@ -350,13 +350,13 @@ public sealed class MutablePosition
             x |= Squares.FromIndex(m.CaptureIndex);
 
         if ((x & Squares.FromIndex(Squares.A1)) != 0)
-            removed = CastlingRights.WhiteQueen;
-        else if ((x & Squares.FromIndex(Squares.H1)) != 0)
-            removed = CastlingRights.WhiteKing;
-        else if ((x & Squares.FromIndex(Squares.A8)) != 0)
-            removed = CastlingRights.BlackQueen;
-        else if ((x & Squares.FromIndex(Squares.H8)) != 0)
-            removed = CastlingRights.BlackKing;
+            removed |= CastlingRights.WhiteQueen;
+        if ((x & Squares.FromIndex(Squares.H1)) != 0)
+            removed |= CastlingRights.WhiteKing;
+        if ((x & Squares.FromIndex(Squares.A8)) != 0)
+            removed |= CastlingRights.BlackQueen;
+        if ((x & Squares.FromIndex(Squares.H8)) != 0)
+            removed |= CastlingRights.BlackKing;
 
         if (m.FromIndex == Squares.E1)
             removed = CastlingRights.WhiteKing | CastlingRights.WhiteQueen;
@@ -759,7 +759,7 @@ public sealed class MutablePosition
     }
 
     [InlineArray(8)]
-    internal struct DenseBitboards
+    private struct DenseBitboards
     {
         private ulong _element0;
   
