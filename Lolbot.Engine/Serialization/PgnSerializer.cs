@@ -30,16 +30,18 @@ public sealed partial class PgnSerializer
 
     public async Task<(Game?, GameMetadata)> ReadSingle(TextReader reader)
     {
+        Game? game = null;
         try
         {
             var metadata = await ReadTagPairs(reader);
 
-            var game = ReadMoves(metadata, reader);
+            game = ReadMoves(metadata, reader);
             sb.Clear();
             return (game, metadata);
         }
         catch (Exception)
         {
+            Console.WriteLine(game?.CurrentPosition.ToDebugString());
             Console.WriteLine(sb);
             throw;
         }
@@ -67,7 +69,10 @@ public sealed partial class PgnSerializer
 
             var to = Squares.FromCoordinates(coords);
 
-            move = Disambiguate(game, to, piece, disambiguation, promotion);
+            Console.WriteLine("Parsing move: {0}", token);
+
+            move = Disambiguate(game, to, piece, disambiguation, promotion) 
+                ?? throw new PgnParseException($"Could not disambiguate move {token}");
         }
         return move;
     }
@@ -97,7 +102,7 @@ public sealed partial class PgnSerializer
         return null;
     }
 
-    private static Move Disambiguate(
+    private static Move? Disambiguate(
         Game game,
         Square to,
         ReadOnlySpan<char> pieceName,
@@ -129,7 +134,7 @@ public sealed partial class PgnSerializer
 
         if (disambiguated.Count() != 1) Debugger.Break();
 
-        return disambiguated.Single();
+        return disambiguated.SingleOrDefault();
     }
 
     private static async Task<GameMetadata> ReadTagPairs(TextReader reader)
@@ -182,7 +187,7 @@ public sealed partial class PgnSerializer
         [GeneratedRegex(@"\d+\.(\.\.)?")]
         public static partial Regex MoveNumber();
 
-        [GeneratedRegex(@"^;.+$|{.+}")]
+        [GeneratedRegex(@"^;.+$|{.+?}")]
         public static partial Regex Comment();
 
         [GeneratedRegex(@"\*|0-1|1-0|0-0|1/2-1/2")]
@@ -193,5 +198,21 @@ public sealed partial class PgnSerializer
 
         [GeneratedRegex(@"^(?<piece>[NBRQK]{1})?(?<disambiguation>[a-h]?\d?)?(?<cap>x)?(?<square>[a-h][0-8])(?<promotion>=[NBRQ])?.*$")]
         public static partial Regex SanToken();
+    }
+}
+
+[Serializable]
+internal class PgnParseException : Exception
+{
+    public PgnParseException()
+    {
+    }
+
+    public PgnParseException(string? message) : base(message)
+    {
+    }
+
+    public PgnParseException(string? message, Exception? innerException) : base(message, innerException)
+    {
     }
 }

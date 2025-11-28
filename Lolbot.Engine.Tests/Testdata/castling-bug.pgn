@@ -1,0 +1,34 @@
+[Event "My Tournament"]
+[Site "RWBC-ESPRESSO Win11Pro Ryzen7 5700G 3.8Ghz 32GB"]
+[Date "2025.11.17"]
+[Round "5.2.3"]
+[White "Stash_1101-64"]
+[Black "Lolbot_021a-64"]
+[Result "1-0"]
+[ECO "D00"]
+[GameDuration "00:00:19"]
+[GameEndTime "2025-11-17T10:44:13.271 Mitteleuropäische Zeit"]
+[GameStartTime "2025-11-17T10:43:53.585 Mitteleuropäische Zeit"]
+[Opening "Queen's pawn, Mason variation"]
+[PlyCount "31"]
+[Termination "illegal move"]
+[TimeControl "20+0.3"]
+
+1. d4 {book} d5 {book}
+2. Bf4 {book} Nf6 {book}
+3. Nc3 {book} Bf5 {book}
+4. Nf3 {+0.20/6 0.72s} Nc6 {-0.18/9 1.04s}
+5. Nh4 {+0.16/6 0.68s} Be4 {-0.05/10 0.99s}
+6. f3 {+0.61/7 0.69s} Bg6 {0.00/11 0.96s}
+7. e3 {+0.45/7 0.66s} Nh5 {+0.04/12 0.92s}
+8. Bb5 {+0.46/6 0.66s} Nxf4 {+0.65/13 0.90s}
+9. exf4 {+0.23/6 0.65s} e6 {+0.61/13 0.88s}
+10. Nxg6 {+0.02/8 0.65s} hxg6 {+0.66/12 0.85s}
+11. Qd2 {+0.02/6 0.64s} Qh4+ {+0.94/10 0.83s}
+12. g3 {+0.08/7 0.63s} Qxg3+ {+3.12/10 0.81s}
+13. hxg3 {+4.27/9 0.62s} Rxh1+ {+8.27/11 0.78s}
+14. Bf1 {+4.27/7 0.61s} Bb4 {+6.80/12 0.76s}
+15. a3 {+4.60/8 0.61s} Be7 {+6.86/12 0.75s}
+16. O-O-O {+4.60/6 0.60s}
+{Black makes an illegal move: e8g8}
+1-0

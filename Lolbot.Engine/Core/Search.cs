@@ -99,7 +99,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
     public void AspirationWindows(int depth)
     {
-        var delta = 128 / Clamp(depth - 3, 1, 4);
+        var delta = 64 / Clamp(depth - 3, 1, 4);
 
         var start = DateTime.Now;
 
@@ -119,7 +119,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             else break;
 
             delta <<= 1;
-            if (delta >= 256) (alpha, beta) = (-(Inf + delta), Inf + delta);
+            if (delta >= 100) (alpha, beta) = (-(Inf + delta), Inf + delta);
         }
 
         var s = (DateTime.Now - start).TotalSeconds;

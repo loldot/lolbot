@@ -16,7 +16,9 @@ public sealed class MutablePosition
     public const int MaxDepth = 1024;
 
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
+    #if NNUE
     private readonly Accumulator Accumulator;
+    #endif
 
     public int plyfromRoot = 0;
 
@@ -111,12 +113,15 @@ public sealed class MutablePosition
         CurrentPlayer = Colors.White,
     };
 
+#if NNUE
     public int Eval => Accumulator.Read(CurrentPlayer);
+#endif
 
     public void Move(ref readonly Move m)
     {
+#if NNUE
         Accumulator.Move(in m);
-
+#endif
         var oponent = Enemy(CurrentPlayer);
 
         Diffs[plyfromRoot] = new DiffData(
@@ -216,7 +221,9 @@ public sealed class MutablePosition
         IsPinned = CreatePinmasks(us);
 
         CurrentPlayer = us;
+        #if NNUE
         Accumulator.Undo(in m);
+        #endif
     }
 
     public void SkipTurn()
@@ -408,7 +415,9 @@ public sealed class MutablePosition
         AttackMask = CreateEnemyAttackMask(CurrentPlayer);
         (Checkmask, CheckerCount) = CreateCheckMask(CurrentPlayer);
         IsPinned = CreatePinmasks(CurrentPlayer);
+        #if NNUE
         Accumulator.Reevaluate(this);
+        #endif
     }
 
     private ulong CreateEnemyAttackMask(Colors color)
@@ -753,18 +762,7 @@ public sealed class MutablePosition
     internal struct DenseBitboards
     {
         private ulong _element0;
-
-        // public ulong this[int color, int piece]
-        // {
-        //     readonly get => this[color] & this[piece];
-        //     set
-        //     {
-        //         var mask = (this[color] & this[piece]) ^ value;
-        //         this[color] ^= mask;
-        //         this[piece] ^= mask;
-        //     }
-        // }
-
+  
         internal void SetMask(int color, int piece, ulong value)
         {
             var mask = (this[color] & this[piece]) ^ value;
