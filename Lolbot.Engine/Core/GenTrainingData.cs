@@ -1,8 +1,3 @@
-using System.Diagnostics;
-using System.Runtime.ConstrainedExecution;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-
 namespace Lolbot.Core;
 
 public partial class GenTrainingData
@@ -10,33 +5,6 @@ public partial class GenTrainingData
     const int SearchDepth = 8;
     const int QuiesenceMargin = 56;
     const int SearchMargin = 87;
-
-    public static (int staticEval, int nnueEval, int score, bool isValid) TestPosition(Search search, MutablePosition position)
-    {
-        Span<Move> moves = stackalloc Move[216];
-        int count = MoveGenerator.Legal(position, ref moves);
-        moves = moves[..count];
-        for (int i = 0; i < moves.Length; i++)
-        {
-            if (moves[i].IsSpecial && moves[i].CastleFlag != CastlingRights.None)
-            {
-                return (0, 0, 0, false);
-            }
-        }
-
-        var staticEval = Heuristics.StaticEvaluation(position);
-        var quiesenceEval = search.QuiesenceSearchPv(position, -Search.Inf, Search.Inf);
-        var score = search.EvaluateMove<PvNode>(position, SearchDepth, 0, -Search.Inf, Search.Inf, true);
-
-        var isValid = position.IsEndgame ||
-            (Math.Abs(staticEval - quiesenceEval) < QuiesenceMargin &&
-             Math.Abs(staticEval - score) < SearchMargin);
-        var nnueEval = Heuristics.StaticEvaluation(position);
-        (staticEval, nnueEval, score) = position.CurrentPlayer == Colors.White
-            ? (staticEval, nnueEval, score)
-            : (-staticEval, -nnueEval, -score);
-        return (staticEval, nnueEval, score, isValid);
-    }
 
     static int[][] history = [new int[4096], new int[4096]];
 

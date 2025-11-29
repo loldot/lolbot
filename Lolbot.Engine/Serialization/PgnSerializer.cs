@@ -21,9 +21,6 @@ public sealed partial class PgnSerializer
 
     public async Task<(Game?, GameMetadata)> ReadSingle(Stream stream)
     {
-        var x = MovePatterns.Kings;
-        Console.WriteLine(x.Length);
-
         using var reader = new StreamReader(stream);
         return await ReadSingle(reader);
     }
@@ -71,9 +68,7 @@ public sealed partial class PgnSerializer
 
             var to = Squares.FromCoordinates(coords);
 
-            Console.WriteLine("Parsing move: {0}", token);
-
-            move = Disambiguate(game, to, piece, disambiguation, promotion) 
+            move = Disambiguate(game, to, piece, disambiguation, promotion)
                 ?? throw new PgnParseException($"Could not disambiguate move {token}");
         }
         return move;

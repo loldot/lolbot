@@ -34,8 +34,10 @@ public class Searching
         var game = new Game(pos, []);
         var search = new Search(game, tt, [new int[4096], new int[4096]]);
 
-        var d1Eval = search.EvaluateMove<PvNode>(pos, 1, 1, -9999, 9999);
-        var d2Eval = search.EvaluateMove<PvNode>(pos, 2, 1, -9999, 9999);
+        search.BestMove(1);
+        var d1Eval = search.CentiPawnEvaluation;
+        search.BestMove(2);
+        var d2Eval = search.CentiPawnEvaluation;
 
         d1Eval.Should().BeCloseTo(d2Eval, 80);
     }

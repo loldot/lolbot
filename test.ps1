@@ -60,9 +60,10 @@ Write-Host "Previous: $previousVersion"
     -games 2 `
     -repeat 2 `
     -recover `
-    -debug `
     -sprt elo0=0 elo1=15 alpha=0.05 beta=0.05 `
+    -tb "C:\dev\chess-data\syzygy\3-4-5-wdl" `
     -pgnout "C:\dev\chess-data\$(Get-Date -Format yyyyMMddHHmmss).pgn" fi `
+    -concurrency 4 `
 | Tee-Object C:\temp\log.txt
 
 Pop-Location

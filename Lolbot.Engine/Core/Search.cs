@@ -16,7 +16,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     private const int FutilityMargin = 130;
     private const int ReverseFutilityMargin = 117;
 
-    private readonly MutablePosition rootPosition = game.CurrentPosition;
+    private readonly MutablePosition position = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
 
     private readonly Move[] Killers = new Move[2 * Max_Depth];
@@ -24,9 +24,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
     private int nodes = 0;
     private int qnodes = 0;
-    private CancellationToken ct;
 
-    NNUE.Accumulator[] accumulators = new NNUE.Accumulator[Max_Depth];
+    private int contempt = 50;
+    private CancellationToken ct;
+    
     public Action<SearchProgress>? OnSearchProgress { get; set; }
     public int CentiPawnEvaluation => rootScore;
 
@@ -63,14 +64,16 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     public Move IterativeDeepening(int maxSearchDepth, CancellationToken ct)
     {
         this.ct = ct;
+
         Array.Clear(rootMoves);
 
         Span<Move> moves = rootMoves;
-        rootMoveCount = MoveGenerator.Legal(rootPosition, ref moves);
+        rootMoveCount = MoveGenerator.Legal(position, ref moves);
 
         int offset = 0;
+        if (position.IsEndgame) contempt = 0;
 
-        if (tt.TryGet(rootPosition.Hash, out var ttEntry))
+        if (tt.TryGet(position.Hash, out var ttEntry))
         {
             var ttMove = ttEntry.Move;
             int index;
@@ -122,24 +125,25 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             if (delta >= 100) (alpha, beta) = (-(Inf + delta), Inf + delta);
         }
 
-        var s = (DateTime.Now - start).TotalSeconds;
-        OnSearchProgress?.Invoke(new SearchProgress(depth, rootMoves[0], rootScore, nodes, s));
-        // Console.WriteLine($"DEBUG qnodes: {qnodes} ({qnodes * 100 / Max(nodes, 1)} %)");
+        if (!ct.IsCancellationRequested)
+        {
+            var s = (DateTime.Now - start).TotalSeconds;
+            OnSearchProgress?.Invoke(new SearchProgress(depth, rootMoves[0], rootScore, nodes, s));
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int Lmr(byte depth, byte move) => 1 + ((LogTable[depth] * LogTable[move + 1]) >> 15);
 
-
     public void SearchRoot(int depth, int alpha = -Inf, int beta = Inf)
     {
-        if (rootPosition.IsCheck) depth++;
+        if (position.IsCheck) depth++;
 
-        rootScore = -Inf;
         var originalAlpha = alpha;
         Move bestMove = rootMoves[0];
+        rootScore = -Inf;
 
-        if (tt.TryGet(rootPosition.Hash, out var ttEntry))
+        if (tt.TryGet(position.Hash, out var ttEntry))
         {
             if (ttEntry.Depth >= depth)
             {
@@ -170,22 +174,22 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         for (; i < rootMoveCount; i++)
         {
             var move = rootMoves[i];
-            rootPosition.Move(in move);
-            history.Update(move, rootPosition.Hash);
+            position.Move(in move);
+            history.Update(move, position.Hash);
 
             int value;
             if (i == 0)
             {
-                value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha);
+                value = -EvaluateMove<PvNode>(depth - 1, 1, -beta, -alpha);
             }
             else
             {
                 int reduction = Lmr((byte)depth, (byte)i);
-                value = -EvaluateMove<NonPvNode>(rootPosition, depth - reduction, 1, -alpha - 1, -alpha);
+                value = -EvaluateMove<NonPvNode>(depth - reduction, 1, -alpha - 1, -alpha);
                 if (value > alpha && Abs(value) != Inf)
-                    value = -EvaluateMove<PvNode>(rootPosition, depth - 1, 1, -beta, -alpha); // re-search
+                    value = -EvaluateMove<PvNode>(depth - 1, 1, -beta, -alpha); // re-search
             }
-            rootPosition.Undo(in move);
+            position.Undo(in move);
             history.Unwind();
 
             if (value > alpha && value < Inf)
@@ -202,10 +206,10 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         else if (alpha >= beta) flag = TranspositionTable.LowerBound;
 
         if (alpha > -Inf && alpha < Inf)
-            tt.Add(rootPosition.Hash, depth, ToTT(alpha, 0), flag, bestMove);
+            tt.Add(position.Hash, depth, ToTT(alpha, 0), flag, bestMove);
     }
 
-    public int EvaluateMove<TNode>(MutablePosition position, int depth, int ply, int alpha, int beta, bool isNullAllowed = true)
+    public int EvaluateMove<TNode>(int depth, int ply, int alpha, int beta, bool isNullAllowed = true)
         where TNode : struct, NodeType
     {
         if (ct.IsCancellationRequested) return Inf;
@@ -218,7 +222,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         beta = Min(beta, Mate - ply - 1);
         if (alpha >= beta) return alpha;
 
-        if (history.IsDraw(position.Hash)) return 0;
+        if (history.IsDraw(position.Hash)) return 0; // return contempt * (position.CurrentPlayer == Colors.White ? -1 : 1);
 
         var ttMove = Move.Null;
         var eval = 0;
@@ -271,7 +275,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             {
                 position.SkipTurn();
                 var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
-                var score = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
+                var score = -EvaluateMove<NonPvNode>(depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
                 position.UndoSkipTurn();
 
                 if (score >= beta)
@@ -297,15 +301,15 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             int score;
             if (TNode.IsPv && i == 0)
             {
-                score = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha);
+                score = -EvaluateMove<PvNode>(depth - 1, ply + 1, -beta, -alpha);
             }
             else
             {
                 int reduction = Lmr((byte)depth, i);
-                score = -EvaluateMove<NonPvNode>(position, depth - reduction, ply + 1, -alpha - 1, -alpha);
+                score = -EvaluateMove<NonPvNode>(depth - reduction, ply + 1, -alpha - 1, -alpha);
 
                 if (TNode.IsPv && score > alpha && score < beta)
-                    score = -EvaluateMove<PvNode>(position, depth - 1, ply + 1, -beta, -alpha); // re-search
+                    score = -EvaluateMove<PvNode>(depth - 1, ply + 1, -beta, -alpha); // re-search
             }
 
             history.Unwind();
@@ -344,6 +348,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             // Futility pruning
             if (isPruningAllowed && depth <= 3
                 && move.CapturePiece == Piece.None
+                && !position.IsEndgame
+                && Abs(alpha) < Mate - Max_Depth
                 && eval + FutilityMargin * depth <= alpha) break;
 
             move = movepicker.SelectMove(++i);
