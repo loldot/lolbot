@@ -52,21 +52,13 @@ public static class Heuristics
     {
         int eval = 0;
 
-        for (PieceType p = PieceType.Knight; p <= PieceType.Queen; p++)
+        for (PieceType p = PieceType.Pawn; p <= PieceType.Queen; p++)
         {
             var white = position[Colors.White, p];
-            while (white != 0)
-            {
-                Bitboards.PopLsb(ref white);
-                eval += PieceValues[(byte)p];
-            }
-
             var black = position[Colors.Black, p];
-            while (black != 0)
-            {
-                Bitboards.PopLsb(ref black);
-                eval -= PieceValues[(byte)p];
-            }
+            
+            eval += PieceValues[(byte)p] * Bitboards.CountOccupied(white);
+            eval -= PieceValues[(byte)p] * Bitboards.CountOccupied(black);
         }
 
         var color = position.CurrentPlayer == Colors.White ? 1 : -1;
