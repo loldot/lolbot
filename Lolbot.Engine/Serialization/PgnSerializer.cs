@@ -34,7 +34,7 @@ public sealed partial class PgnSerializer
         {
             var metadata = await ReadTagPairs(reader);
 
-            game = ReadMoves(metadata, reader);
+            (metadata, game) = ReadMoves(metadata, reader);
             sb.Clear();
             return (game, metadata);
         }
@@ -74,7 +74,7 @@ public sealed partial class PgnSerializer
         return move;
     }
 
-    private Game? ReadMoves(GameMetadata meta, TextReader reader)
+    private (GameMetadata meta, Game? game) ReadMoves(GameMetadata meta, TextReader reader)
     {
         var position = meta.GetInitialPosition();
         var game = new Game(position);
@@ -88,7 +88,11 @@ public sealed partial class PgnSerializer
                 if (string.IsNullOrEmpty(token)) continue;
                 if (PgnScanners.MoveNumber().IsMatch(token)) continue;
                 if (PgnScanners.Comment().IsMatch(token)) continue;
-                if (PgnScanners.Result().IsMatch(token)) return game;
+                if (PgnScanners.Result().IsMatch(token))
+                {
+                    if (!meta.ContainsKey("Result")) meta["Result"] = token;
+                    return (meta, game);
+                }
 
                 var move = ParseMove(game, token);
 
@@ -96,7 +100,7 @@ public sealed partial class PgnSerializer
             }
         }
 
-        return null;
+        return (meta, null);
     }
 
     private static Move? Disambiguate(
