@@ -1,8 +1,11 @@
 using System.Buffers;
+using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
+using static Lolbot.Core.NNUE;
 using static Lolbot.Core.Utils;
 
 namespace Lolbot.Core;
@@ -13,6 +16,10 @@ public sealed class MutablePosition
     public const int MaxDepth = 1024;
 
     private readonly DiffData[] Diffs = new DiffData[MaxDepth];
+#if NNUE
+    private readonly Accumulator Accumulator;
+#endif
+
     public int plyfromRoot = 0;
 
     private const int BlackIndex = 0;
@@ -93,6 +100,9 @@ public sealed class MutablePosition
         bb[QueensIndex] = Bitboards.Create("D1", "D8");
         bb[KingsIndex] = Bitboards.Create("E1", "E8");
         bb[WhiteIndex] = Bitboards.Masks.Rank_1 | Bitboards.Masks.Rank_2;
+#if NNUE
+        Accumulator = NNUE.Accumulator.Create(this);
+#endif
     }
 
     public static MutablePosition EmptyBoard => new()
@@ -103,8 +113,15 @@ public sealed class MutablePosition
         CurrentPlayer = Colors.White,
     };
 
+#if NNUE
+    public int Eval => Accumulator.Read(CurrentPlayer);
+#endif
+
     public void Move(ref readonly Move m)
     {
+#if NNUE
+        Accumulator.Move(in m);
+#endif
         var oponent = Enemy(CurrentPlayer);
 
         Diffs[plyfromRoot] = new DiffData(
@@ -117,41 +134,40 @@ public sealed class MutablePosition
         Hash ^= Hashes.GetValue(m.FromPiece, m.FromIndex);
         Hash ^= Hashes.GetValue(m.FromPiece, m.ToIndex);
 
-        if (m.CastleFlag != CastlingRights.None)
+        if (m.IsSpecial)
         {
-            var rookmask = m.CaptureSquare | m.CastleSquare;
-            bb[(int)m.CapturePieceType] ^= rookmask;
-            bb[(int)CurrentPlayer] ^= rookmask;
 
-            Hash ^= Hashes.GetValue(m.CapturePiece, m.CaptureIndex);
-            Hash ^= Hashes.GetValue(m.CapturePiece, m.CastleIndex);
+            if (m.CastleFlag != CastlingRights.None)
+            {
+                var rookmask = m.CaptureSquare | m.CastleSquare;
+                bb[(int)m.CapturePieceType] ^= rookmask;
+                bb[(int)CurrentPlayer] ^= rookmask;
+
+                Hash ^= Hashes.GetValue(m.CapturePiece, m.CaptureIndex);
+                Hash ^= Hashes.GetValue(m.CapturePiece, m.CastleIndex);
+            }
+            else if (m.CapturePieceType != PieceType.None)
+            {
+                bb[(int)m.CapturePieceType] ^= m.CaptureSquare;
+                bb[(int)oponent] ^= m.CaptureSquare;
+
+                Hash ^= Hashes.GetValue(m.CapturePiece, m.CaptureIndex);
+            }
+
+            if (m.PromotionPieceType != PieceType.None)
+            {
+                var promoteIndex = m.PromotionPieceType;
+                this[promoteIndex] ^= m.ToSquare;
+                this[m.FromPiece] ^= m.ToSquare;
+
+                Hash ^= Hashes.GetValue(m.FromPiece, m.ToIndex); // remove pawn from hash again
+                Hash ^= Hashes.GetValue(m.PromotionPiece, m.ToIndex);
+            }
         }
-        else if (m.CapturePieceType != PieceType.None)
-        {
-            bb[(int)m.CapturePieceType] ^= m.CaptureSquare;
-            bb[(int)oponent] ^= m.CaptureSquare;
 
-            Hash ^= Hashes.GetValue(m.CapturePiece, m.CaptureIndex);
-        }
-
-        if (m.PromotionPieceType != PieceType.None)
-        {
-            var promoteIndex = m.PromotionPieceType;
-            this[promoteIndex] ^= m.ToSquare;
-            this[m.FromPiece] ^= m.ToSquare;
-
-            Hash ^= Hashes.GetValue(m.FromPiece, m.ToIndex); // remove pawn from hash again
-            Hash ^= Hashes.GetValue(m.PromotionPiece, m.ToIndex);
-        }
-
-        var newCastling = ApplyCastlingRights(in m);
-
-        if (newCastling != CastlingRights)
-        {
-            Hash ^= Hashes.GetValue(CastlingRights);
-            Hash ^= Hashes.GetValue(newCastling);
-            CastlingRights = newCastling;
-        }
+        var cstlmask = (m.FromSquare | m.CaptureSquare) & Squares.MayDropCastlingRightsMask;
+        if (CastlingRights != CastlingRights.None && cstlmask != 0)
+            ApplyCastlingRights(in m, cstlmask);
 
         Hash ^= Hashes.GetValue(EnPassant);
         EnPassant = GetEnPassantSquare(in m);
@@ -176,22 +192,25 @@ public sealed class MutablePosition
         bb[(int)us] ^= m.FromSquare | m.ToSquare;
         bb[(int)m.FromPieceType] ^= m.FromSquare | m.ToSquare;
 
-        if (m.CastleFlag != CastlingRights.None)
+        if (m.IsSpecial)
         {
-            var rookmask = m.CaptureSquare | m.CastleSquare;
-            bb[(int)m.CapturePieceType] ^= rookmask;
-            bb[(int)us] ^= rookmask;
-        }
-        else if (m.CapturePieceType != PieceType.None)
-        {
-            bb[(int)m.CapturePieceType] ^= m.CaptureSquare;
-            bb[(int)oponent] ^= m.CaptureSquare;
-        }
+            if (m.CastleFlag != CastlingRights.None)
+            {
+                var rookmask = m.CaptureSquare | m.CastleSquare;
+                bb[(int)m.CapturePieceType] ^= rookmask;
+                bb[(int)us] ^= rookmask;
+            }
+            else if (m.CapturePieceType != PieceType.None)
+            {
+                bb[(int)m.CapturePieceType] ^= m.CaptureSquare;
+                bb[(int)oponent] ^= m.CaptureSquare;
+            }
 
-        if (m.PromotionPieceType != PieceType.None)
-        {
-            this[m.PromotionPiece] ^= m.ToSquare;
-            this[m.FromPiece] ^= m.ToSquare;
+            if (m.PromotionPieceType != PieceType.None)
+            {
+                this[m.PromotionPiece] ^= m.ToSquare;
+                this[m.FromPiece] ^= m.ToSquare;
+            }
         }
 
         CastlingRights = Diffs[plyfromRoot].Castling;
@@ -203,6 +222,9 @@ public sealed class MutablePosition
         IsPinned = CreatePinmasks(us);
 
         CurrentPlayer = us;
+#if NNUE
+        Accumulator.Undo(in m);
+#endif
     }
 
     public void SkipTurn()
@@ -319,29 +341,32 @@ public sealed class MutablePosition
         return occ & attackers;
     }
 
-    private CastlingRights ApplyCastlingRights(ref readonly Move m)
+    private void ApplyCastlingRights(ref readonly Move m, ulong cstlmask)
     {
-        var removedCastling = m.FromIndex switch
-        {
-            Squares.A1 => CastlingRights.WhiteQueen,
-            Squares.E1 => CastlingRights.WhiteKing | CastlingRights.WhiteQueen,
-            Squares.H1 => CastlingRights.WhiteKing,
-            Squares.A8 => CastlingRights.BlackQueen,
-            Squares.E8 => CastlingRights.BlackKing | CastlingRights.BlackQueen,
-            Squares.H8 => CastlingRights.BlackKing,
-            _ => CastlingRights.None
-        };
-        if (m.CapturePiece != Piece.None)
-            removedCastling |= m.CaptureIndex switch
-            {
-                Squares.A1 => CastlingRights.WhiteQueen,
-                Squares.H1 => CastlingRights.WhiteKing,
-                Squares.A8 => CastlingRights.BlackQueen,
-                Squares.H8 => CastlingRights.BlackKing,
-                _ => CastlingRights.None
-            };
+        if (CastlingRights == CastlingRights.None) return;
 
-        return CastlingRights & ~removedCastling;
+        CastlingRights removed = CastlingRights.None;
+
+        if ((cstlmask & Squares.FromIndex(Squares.A1)) != 0)
+            removed |= CastlingRights.WhiteQueen;
+        else if ((cstlmask & Squares.FromIndex(Squares.H1)) != 0)
+            removed |= CastlingRights.WhiteKing;
+        else if ((cstlmask & Squares.FromIndex(Squares.A8)) != 0)
+            removed |= CastlingRights.BlackQueen;
+        else if ((cstlmask & Squares.FromIndex(Squares.H8)) != 0)
+            removed |= CastlingRights.BlackKing;
+
+        if (m.FromIndex == Squares.E1)
+            removed = CastlingRights.WhiteKing | CastlingRights.WhiteQueen;
+        else if (m.FromIndex == Squares.E8)
+            removed = CastlingRights.BlackKing | CastlingRights.BlackQueen;
+
+
+        var newCastling = CastlingRights & ~removed;
+        Hash ^= Hashes.GetValue(CastlingRights);
+        Hash ^= Hashes.GetValue(newCastling);
+        CastlingRights = newCastling;
+
     }
 
     public byte GetEnPassantSquare(ref readonly Move m)
@@ -387,6 +412,9 @@ public sealed class MutablePosition
         AttackMask = CreateEnemyAttackMask(CurrentPlayer);
         (Checkmask, CheckerCount) = CreateCheckMask(CurrentPlayer);
         IsPinned = CreatePinmasks(CurrentPlayer);
+#if NNUE
+        Accumulator.Reevaluate(this);
+#endif
     }
 
     private ulong CreateEnemyAttackMask(Colors color)
@@ -559,7 +587,7 @@ public sealed class MutablePosition
         {
             if ((bb[(int)pieceType] & square) != 0) return GetPiece(color, pieceType);
         }
-        throw new InvalidOperationException($"{Squares.CoordinateFromIndex(attack)} is {color}, but missing in piece bitboards");
+        return Piece.None;
     }
 
     // Move generation
@@ -623,6 +651,7 @@ public sealed class MutablePosition
     public const int BinarySize = 67;
     public int CopyTo(Span<byte> buffer)
     {
+        Debug.Assert(Unsafe.SizeOf<DenseBitboards>() + 3 == BinarySize);
         if (buffer.Length < BinarySize) throw new ArgumentException($"Buffer too small, need at least {BinarySize} bytes");
 
         MemoryMarshal.Write(buffer, in bb);
@@ -686,6 +715,7 @@ public sealed class MutablePosition
 
             if (currentIndex == targetIndex)
             {
+                Debug.WriteLine(FenSerializer.ToFenString(this));
                 var piece = GetOccupant(ref dropIndex);
                 var pieceType = (PieceType)((byte)piece & 0xf);
 
@@ -700,6 +730,17 @@ public sealed class MutablePosition
 
                 Hash ^= Hashes.GetValue(piece, dropIndex);
                 Reevaluate();
+                Debug.WriteLine(FenSerializer.ToFenString(this));
+
+                if (Occupied !=
+                    (BlackPawns | BlackKnights | BlackBishops | BlackRooks |
+                    BlackQueens | BlackKing |
+                    WhitePawns | WhiteKnights | WhiteBishops | WhiteRooks |
+                    WhiteQueens | WhiteKing)
+                    )
+                {
+                    Debugger.Break();
+                }
 
                 return;
             }

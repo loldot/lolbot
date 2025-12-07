@@ -12,11 +12,21 @@
   <PropertyGroup>
     <PublishAot>true</PublishAot>
     <IlcInstructionSet>x86-64-v3</IlcInstructionSet>
+    <!-- <IlcArg>C:\dev\lolbot\pgo.mibc</IlcArg> -->
+    
     <OptimizationPreference>Speed</OptimizationPreference>
     <DebuggerSupport>false</DebuggerSupport>
     <InvariantGlobalization>true</InvariantGlobalization>
     <StackTraceSupport>false</StackTraceSupport>
+    <EnableNativePGO>true</EnableNativePGO>
+    <OptimizationDataFormat>mibc</OptimizationDataFormat>
+    
+    
   </PropertyGroup>
+  <ItemGroup>
+  <IlcArg Include="--mibc%3apgo.mibc" />
+    <IlcArg Include="--Ot" />
+  </ItemGroup>
   
   <ItemGroup>
     <None Update="nnue_weights.bin">

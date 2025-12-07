@@ -116,12 +116,15 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         var originalAlpha = alpha;
 
         var ttMove = Move.Null;
-        if (tt.TryGet(rootPosition.Hash, out var ttEntry))
+        ref var ttEntry = ref tt.GetRef(rootPosition.Hash);
+
+        if (ttEntry.Key == rootPosition.Hash)
         {
+            int ttEval = FromTT(ttEntry.Evaluation, 0);
+            ttMove = ttEntry.Move;
+
             if (ttEntry.Depth >= depth)
             {
-                int ttEval = FromTT(ttEntry.Evaluation, 0);
-
                 if (ttEntry.Type == TranspositionTable.Exact)
                 {
                     return (ttEntry.Move, ttEval);
@@ -140,8 +143,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
                     return (ttEntry.Move, ttEval);
                 }
             }
-            ttMove = ttEntry.Move;
         }
+
 
         Span<Move> moves = stackalloc Move[256];
         var count = MoveGenerator.Legal(rootPosition, ref moves);
@@ -185,7 +188,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         else if (alpha >= beta) flag = TranspositionTable.LowerBound;
 
         if (alpha > -Inf && alpha < Inf)
-            tt.Add(rootPosition.Hash, depth, ToTT(alpha, 0), flag, bestMove);
+            ttEntry = new(rootPosition.Hash, depth, ToTT(alpha, 0), flag, bestMove);
 
         return (bestMove, alpha);
     }
@@ -207,59 +210,57 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         // TT probe (with mate normalization)
         var ttMove = Move.Null;
-        var ttEval = 0;
-        if (tt.TryGet(position.Hash, out var ttEntry))
+        var eval = 0;
+        ref var ttEntry = ref tt.GetRef(position.Hash);
+
+        if (ttEntry.Key == position.Hash)
         {
+            eval = FromTT(ttEntry.Evaluation, ply);
+            ttMove = ttEntry.Move;
+
             if (ttEntry.Depth >= depth)
             {
-                ttEval = FromTT(ttEntry.Evaluation, ply);
-
                 if (ttEntry.Type == TranspositionTable.Exact)
                 {
-                    return ttEval;
+                    return eval;
                 }
                 else if (ttEntry.Type == TranspositionTable.LowerBound)
                 {
-                    alpha = Max(alpha, ttEval);
+                    alpha = Max(alpha, eval);
                 }
                 else if (ttEntry.Type == TranspositionTable.UpperBound)
                 {
-                    beta = Min(beta, ttEval);
+                    beta = Min(beta, eval);
                 }
 
-                if (alpha >= beta) return ttEval;
+                if (alpha >= beta) return eval;
             }
-            ttMove = ttEntry.Move;
         }
+
         // else if (remainingDepth > 3) remainingDepth--;
 
-        int eval = 0;
+        
         if (!TNode.IsPv && !position.IsCheck)
         {
-            eval = ttEntry.IsSet && ttEntry.Type == TranspositionTable.Exact
-                ? ttEntry.Evaluation
-                : Heuristics.StaticEvaluation(position);
-            // ttEntry switch
-            // {
-            //     { IsSet: true, Type: TranspositionTable.Exact } => ttEval,
-            //     { IsSet: true, Type: TranspositionTable.LowerBound } => Max(Heuristics.StaticEvaluation(position), ttEval),
-            //     { IsSet: true, Type: TranspositionTable.UpperBound } => Min(Heuristics.StaticEvaluation(position), ttEval),
-            //     _ => 
-            // };
+            if (!ttEntry.IsSet || ttEntry.Type != TranspositionTable.Exact)
+                eval = Heuristics.StaticEvaluation(position);
 
             var margin = ReverseFutilityMargin * depth;
 
+            // Reverse futility pruning
             if (depth <= 5 && eval - margin >= beta) return eval - margin;
+            
+            // Adaptive null move pruning
             else if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
             {
                 position.SkipTurn();
                 var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
-                eval = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
+                var tempEval = -EvaluateMove<NonPvNode>(position, depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
                 position.UndoSkipTurn();
 
-                if (eval >= beta)
+                if (tempEval >= beta)
                 {
-                    return eval;
+                    return tempEval;
                 }
             }
         }
@@ -324,7 +325,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             }
 
             // Futility pruning
-            if (!TNode.IsPv && depth <= 3 
+            if (!TNode.IsPv && depth <= 3
                 && !position.IsCheck
                 && move.CapturePiece == Piece.None
                 && eval + FutilityMargin * depth <= alpha) break;
@@ -338,7 +339,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         else if (best >= beta) flag = TranspositionTable.LowerBound;
 
         if (best > -Inf && best < Inf)
-            tt.Add(position.Hash, depth, ToTT(best, ply), flag, ttMove);
+            ttEntry = new(position.Hash, depth, ToTT(best, ply), flag, ttMove);
 
         return best;
     }
@@ -349,7 +350,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         Move move, ttMove = Move.Null;
         int[] deltas = [0, 180, 390, 442, 718, 1332, 88888]; // Piece values for delta pruning
 
-        if (!TNode.IsPv && tt.TryGet(position.Hash, out var ttEntry))
+        ref var ttEntry = ref tt.GetRef(rootPosition.Hash);
+
+        if (!TNode.IsPv && ttEntry.Key == rootPosition.Hash)
         {
 
             if (ttEntry.Type == TranspositionTable.Exact)
@@ -367,7 +370,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
             if (alpha >= beta) return ttEntry.Evaluation;
             ttMove = ttEntry.Move;
-
         }
 
         Span<Move> moves = stackalloc Move[256];

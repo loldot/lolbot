@@ -6,7 +6,7 @@ Param(
 
 Write-Host "Comparing against previous version: ($prev)"
 $sourceDir =  Join-Path -path $(git rev-parse --show-toplevel) -ChildPath "Lolbot.Engine"
-$buildDir = Join-Path -path $sourceDir -ChildPath "bin\Release\net10.0\win-x64\publish"
+$buildDir = Join-Path -path $sourceDir -ChildPath "bin\Release\net10.0\publish"
 $previousDir = "C:\dev\lolbot-versions\$prev"
 
 Write-Host("Source dir: $sourceDir")
