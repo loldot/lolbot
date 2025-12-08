@@ -7,4 +7,4 @@ $Env:DOTNET_TC_CallCounting=0
 $Env:DOTNET_TC_QuickJitForLoops=1
 $Env:DOTNET_JitCollect64BitCounts=1
 
-dotnet trace collect -p 46828 --providers Microsoft-Windows-DotNETRuntime:0x6000080018:5
+dotnet trace collect -p 68280 --providers Microsoft-Windows-DotNETRuntime:0x6000080018:5 --format nettrace --output pgo.nettrace

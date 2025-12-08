@@ -327,6 +327,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             // Futility pruning
             if (!TNode.IsPv && depth <= 3
                 && !position.IsCheck
+                && Abs(alpha) < Mate - Max_Depth
                 && move.CapturePiece == Piece.None
                 && eval + FutilityMargin * depth <= alpha) break;
 
