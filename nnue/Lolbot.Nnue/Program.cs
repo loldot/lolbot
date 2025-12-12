@@ -1,6 +1,6 @@
 ﻿using Lolbot.Core;
 
-foreach(var file in Directory.GetFiles("C:\\dev\\chess-data\\Lichess Elite Database\\Lichess Elite Database", "*.pgn"))
+foreach(var file in Directory.GetFiles("C:\\dev\\chess-data", "*.pgn"))
 {
     var output = $"{file}.evals.bin";
     if (File.Exists(output))

@@ -20,89 +20,6 @@ class NNUE(nn.Module):
         x = torch.clamp(self.hidden(x), 0, 1)
         return torch.sigmoid(self.output(x))
 
-def calculate_material_wdl(rec) -> float:
-    """
-    Calculate WDL based on material count.
-    Returns value between 0.0 (black winning) and 1.0 (white winning).
-    """
-    # Material values (in centipawns)
-    piece_values = {
-        'pawn': 100,
-        'knight': 320,
-        'bishop': 330,
-        'rook': 500,
-        'queen': 900,
-        'king': 0  # King doesn't count for material
-    }
-    
-    # Extract bitboards
-    B = rec["bb_black"]
-    W = rec["bb_white"]
-    P = rec["bb_pawns"]
-    N = rec["bb_knights"]
-    Bp = rec["bb_bishops"]
-    R = rec["bb_rooks"]
-    Q = rec["bb_queens"]
-    K = rec["bb_kings"]
-    
-    # Count pieces for each side
-    def count_bits(bb):
-        return bin(bb).count('1')
-    
-    # White material
-    white_material = (
-        count_bits(P & W) * piece_values['pawn'] +
-        count_bits(N & W) * piece_values['knight'] +
-        count_bits(Bp & W) * piece_values['bishop'] +
-        count_bits(R & W) * piece_values['rook'] +
-        count_bits(Q & W) * piece_values['queen']
-    )
-    
-    # Black material
-    black_material = (
-        count_bits(P & B) * piece_values['pawn'] +
-        count_bits(N & B) * piece_values['knight'] +
-        count_bits(Bp & B) * piece_values['bishop'] +
-        count_bits(R & B) * piece_values['rook'] +
-        count_bits(Q & B) * piece_values['queen']
-    )
-    
-    # Convert material difference to WDL probability
-    material_diff = white_material - black_material
-    
-    # Use sigmoid with a scaling factor to convert to probability
-    # Larger differences should give more extreme probabilities
-    k = 400  # Scaling factor (similar to Elo rating system)
-    wdl_prob = 1.0 / (1.0 + np.exp(-material_diff / k))
-    
-    # Clamp to reasonable bounds
-    return np.clip(wdl_prob, 0.01, 0.99)
-
-class MaterialWDLDataset(Dataset):
-    """
-    Dataset wrapper that uses material-based WDL instead of stored WDL.
-    """
-    def __init__(self, base_dataset: ChessBitboardDataset, indices=None):
-        self.base_dataset = base_dataset
-        self.indices = indices if indices is not None else list(range(len(base_dataset)))
-        
-    def __len__(self):
-        return len(self.indices)
-    
-    def __getitem__(self, idx):
-        # Map to actual index in base dataset
-        actual_idx = self.indices[idx]
-        
-        # Get features from base dataset
-        x, _ = self.base_dataset[actual_idx]  # Ignore original WDL
-        
-        # Calculate material-based WDL
-        rec = self.base_dataset.mm[actual_idx]
-        material_wdl = calculate_material_wdl(rec)
-        y = torch.tensor([material_wdl], dtype=torch.float32)
-        
-        return x, y
-
 def print_tensor_debug(tensor):
     for i in range(tensor.shape[0]):
         if tensor[0] != 0:
@@ -162,14 +79,9 @@ if __name__ == "__main__":
     # Training configuration
     hidden_size = 16
     batch_size = 8192
-    
-    # Phase 1: Material-based training (more epochs to learn basic evaluation)
-    phase1_epochs = 2
-    phase1_lr = 0.003  # Higher learning rate for initial learning
-    
-    # Phase 2: Fine-tuning with accurate WDL (fewer epochs to refine)
-    phase2_epochs = 25
-    phase2_lr = 0.0005  # Lower learning rate for fine-tuning
+        
+    epochs = 5
+    lr = 0.05  # Lower learning rate for fine-tuning
 
     path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\preprocessed_positions.bin"
 
@@ -214,9 +126,9 @@ if __name__ == "__main__":
     accurate_test_loader = make_dataloader(accurate_test_ds, batch_size=batch_size, shuffle=False)
     
     # Train phase 2 (fine-tuning)
-    phase2_loss = train_phase(
+    loss = train_phase(
         model, accurate_train_loader, accurate_test_loader, device,
-        "Phase 2 - Accurate WDL", phase2_epochs, phase2_lr
+        "Training WDL", epochs, lr
     )
     
     # === Final Results ===
@@ -224,7 +136,7 @@ if __name__ == "__main__":
     print("TRAINING COMPLETE")
     print("="*60)
 
-    print(f"Phase 2 (Accurate WDL) best loss: {phase2_loss:.6f}")
+    print(f"Best loss: {loss:.6f}")
     
     # Save final weights
     save_f32_weights(model, "nnue_weights.bin")
