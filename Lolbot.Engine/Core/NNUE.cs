@@ -29,7 +29,7 @@ public static class NNUE
             return acc;
         }
         
-        [Conditional("NNUE")]
+        // [Conditional("NNUE")]
         public void Reevaluate(MutablePosition pos)
         {
             hiddenBiasf.CopyTo(v, 0);

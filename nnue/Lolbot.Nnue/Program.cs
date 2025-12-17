@@ -1,6 +1,14 @@
 ﻿using Lolbot.Core;
 
-foreach(var file in Directory.GetFiles("C:\\dev\\chess-data", "*.pgn"))
+if (args.Length != 1)
+{
+    Console.WriteLine("Usage: Lolbot.Nnue <directory>");
+    return;
+}
+
+var dir = args[0];
+
+foreach(var file in Directory.GetFiles(dir, "*.pgn"))
 {
     var output = $"{file}.evals.bin";
     if (File.Exists(output))

@@ -92,7 +92,7 @@ class ChessBitboardDataset(Dataset):
         rec = self.mm[idx]
         x = _planes_from_record(rec)
         y = np.float32(rec["wdl_f32"])
-        y = 1.0 - y if rec["stm"] == 0 else y
+        # y = 1.0 - y if rec["stm"] == 0 else y
         
         x_t = torch.from_numpy(x)
         y_t = torch.tensor([y], dtype=torch.float32)

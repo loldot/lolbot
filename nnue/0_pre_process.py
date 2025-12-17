@@ -191,7 +191,7 @@ def process_folder(folder_path):
     # Filter out mate-score positions unless we are in sparse endgames (<6 pieces)
     print("Filtering mate-score positions...")
     evals = all_positions["eval_i16"].astype(np.int32)
-    mate_mask = np.abs(evals) >= 16000
+    mate_mask = np.abs(evals) >= 10000
     mate_indices = np.flatnonzero(mate_mask)
     if mate_indices.size:
         filter_mask = np.ones(len(all_positions), dtype=bool)

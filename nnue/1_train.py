@@ -1,144 +1,215 @@
 import os
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import TensorDataset, DataLoader, Dataset
-import numpy as np
 
-from data import ChessBitboardDataset, make_dataloader, record_dtype
-from model_information import print_model_summary, save_f32_weights, evaluate_model
+from data import ChessBitboardDataset, make_dataloader
+from model_information import print_model_summary, save_f32_weights
 
+# --------------------------
+# Repro / determinism helpers
+# --------------------------
+def seed_all(seed: int = 1234):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) if torch.cuda.is_available() else None
+
+# --------------------------
+# Model
+# --------------------------
 class NNUE(nn.Module):
-    def __init__(self, input_size: int, hidden_size: int = 32):
+    """
+    Outputs logits (unbounded). Use sigmoid only for metrics/inference.
+    """
+    def __init__(self, input_size: int, hidden_size: int = 16):
         super().__init__()
         self.input_size = input_size
         self.hidden = nn.Linear(input_size, hidden_size, dtype=torch.float32)
         self.output = nn.Linear(hidden_size, 1, dtype=torch.float32)
 
-    def forward(self, x):
-        # Clipped ReLU (CReLU) like activation: clamp between 0 and 1
-        x = torch.clamp(self.hidden(x), 0, 1)
-        return torch.sigmoid(self.output(x))
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # CReLU-like clamp activation in hidden layer
+        x = torch.clamp(self.hidden(x), 0.0, 1.0)
+        logits = self.output(x)  # NO sigmoid here
+        return logits
 
-def print_tensor_debug(tensor):
-    for i in range(tensor.shape[0]):
-        if tensor[0] != 0:
-            print(f"Index {i}: {tensor[i]}")
+# --------------------------
+# Evaluation
+# --------------------------
+@torch.no_grad()
+def evaluate_model(model, loader, device):
+    """
+    Returns:
+      - bce_loss (avg per sample)
+      - mse (avg per sample) on probabilities
+      - baseline_mse (predict mean target) on this loader
+      - r2 (on probabilities vs targets)
+    """
+    model.eval()
 
-def train_phase(model, train_loader, test_loader, device, phase_name, num_epochs, learning_rate=0.001):
-    """
-    Train the model for a specific phase.
-    """
+    bce = nn.BCEWithLogitsLoss(reduction="sum")  # sum then /N
+    total_bce = 0.0
+
+    # For MSE / baseline / R2 we work in probability space
+    total_mse = 0.0
+    total_targets_sum = 0.0
+    total_targets_sq_sum = 0.0
+    total_samples = 0
+
+    for x, y in loader:
+        x = x.to(device, non_blocking=True)
+        y = y.to(device, non_blocking=True).float().view(-1, 1)  # ensure shape [B,1]
+
+        logits = model(x)
+        total_bce += bce(logits, y).item()
+
+        p = torch.sigmoid(logits)
+        total_mse += torch.sum((p - y) ** 2).item()
+
+        total_targets_sum += torch.sum(y).item()
+        total_targets_sq_sum += torch.sum(y ** 2).item()
+        total_samples += y.numel()
+
+    avg_bce = total_bce / total_samples
+    avg_mse = total_mse / total_samples
+
+    # baseline: predict mean target mu
+    mu = total_targets_sum / total_samples
+    var = (total_targets_sq_sum / total_samples) - (mu * mu)
+    baseline_mse = var  # MSE of constant predictor = variance
+
+    # R^2 in probability space (guard against var ~ 0)
+    r2 = 0.0 if baseline_mse <= 1e-12 else (1.0 - (avg_mse / baseline_mse))
+
+    return avg_bce, avg_mse, baseline_mse, r2
+
+# --------------------------
+# Training
+# --------------------------
+def train_phase(
+    model,
+    train_loader,
+    test_loader,
+    device,
+    phase_name: str,
+    num_epochs: int,
+    learning_rate: float = 3e-3,
+    weight_decay: float = 1e-5,
+    grad_clip: float = 1.0,
+):
     print(f"\n=== Starting {phase_name} ===")
-    
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-5)
-    loss_function = nn.MSELoss()
-    
-    best_test_loss = float('inf')
-    
-    for epoch in range(num_epochs):
+
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    loss_fn = nn.BCEWithLogitsLoss(reduction="sum")  # sum then /N
+
+    best_test_bce = float("inf")
+
+    for epoch in range(1, num_epochs + 1):
         model.train()
-        total_loss = 0
-        num_batches = 0
-        
-        for batch_inputs, batch_targets in train_loader:
-            batch_inputs = batch_inputs.to(device)
-            batch_targets = batch_targets.to(device)
+        total_bce = 0.0
+        total_samples = 0
 
-            optimizer.zero_grad()
-            outputs = model(batch_inputs)
-            loss = loss_function(outputs, batch_targets)
+        for x, y in train_loader:
+            x = x.to(device, non_blocking=True)
+            y = y.to(device, non_blocking=True).float().view(-1, 1)
+
+            optimizer.zero_grad(set_to_none=True)
+            logits = model(x)
+
+            loss = loss_fn(logits, y)  # summed
             loss.backward()
+
+            if grad_clip is not None and grad_clip > 0:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+
             optimizer.step()
-            total_loss += loss.item()
-            num_batches += 1
 
-        train_avg_loss = total_loss / num_batches
+            total_bce += loss.item()
+            total_samples += y.numel()
 
-        if (epoch + 1) % 5 == 0 or epoch == num_epochs - 1:
-            test_loss, test_accuracy = evaluate_model(model, test_loader, device)
-            print(f"Epoch [{epoch+1}/{num_epochs}]")
-            print(f"  Train Loss: {train_avg_loss:.4f}")
-            print(f"  Test Loss: {test_loss:.4f}")
-            print(f"  Test Accuracy: {test_accuracy:.3f}")
-            if test_loss < best_test_loss:
-                best_test_loss = test_loss
-                # Save phase-specific checkpoint
-                checkpoint_name = f"nnue_weights_{phase_name.lower().replace(' ', '_')}.pth"
-                torch.save(model.state_dict(), checkpoint_name)
-                print(f"  New best test loss! Model saved to {checkpoint_name}")
-        else:
-            print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {train_avg_loss:.4f}")
-    
+        train_bce = total_bce / total_samples
+
+        # Evaluate every epoch (your epochs=5 anyway)
+        test_bce, test_mse, baseline_mse, r2 = evaluate_model(model, test_loader, device)
+
+        print(f"Epoch [{epoch}/{num_epochs}]")
+        print(f"  Train BCE: {train_bce:.6f}")
+        print(f"  Test  BCE: {test_bce:.6f}")
+        print(f"  Test  MSE(prob): {test_mse:.6f} | baseline MSE: {baseline_mse:.6f} | R^2: {r2:.4f}")
+
+        if test_bce < best_test_bce:
+            best_test_bce = test_bce
+            checkpoint_name = f"nnue_weights_{phase_name.lower().replace(' ', '_')}.pth"
+            torch.save(model.state_dict(), checkpoint_name)
+            print(f"  New best test BCE! Saved to {checkpoint_name}")
+
     print(f"=== Completed {phase_name} ===")
-    return best_test_loss
+    return best_test_bce
 
+# --------------------------
+# Main
+# --------------------------
 if __name__ == "__main__":
-    print(f'XPU: {torch.xpu.is_available()}')
+    seed_all(1234)
 
-    # Training configuration
+    print(f"XPU: {torch.xpu.is_available()}")
+
     hidden_size = 16
     batch_size = 8192
-        
     epochs = 5
-    lr = 0.05  # Lower learning rate for fine-tuning
+    lr = 3e-3  # safer default than 1e-2 for AdamW
 
     path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\preprocessed_positions.bin"
 
-    # Load base dataset
     base_ds = ChessBitboardDataset(path)
     print("Number of positions:", len(base_ds))
 
-    # Split dataset indices
     train_size = int(0.9 * len(base_ds))
     test_size = len(base_ds) - train_size
-    
-    # Create random indices
+
     indices = torch.randperm(len(base_ds)).tolist()
     train_indices = indices[:train_size]
     test_indices = indices[train_size:]
 
-    # Get input size from sample
-    sample_inputs, _ = base_ds[0]
-    input_size = sample_inputs.shape[0]
+    sample_x, _ = base_ds[0]
+    input_size = int(sample_x.shape[0])
 
-    # Create model
     model = NNUE(input_size=input_size, hidden_size=hidden_size)
     print_model_summary(model)
 
-    device = torch.device('xpu' if torch.xpu.is_available() else 'cpu')
+    device = torch.device("xpu" if torch.xpu.is_available() else "cpu")
     model = model.to(device)
 
     print(f"Training on {train_size} positions, testing on {test_size} positions...")
-    
-    
-    # === PHASE 2: Fine-tuning with Accurate WDL ===
-    print("\n" + "="*60)
-    print("PHASE 2: Fine-tuning with Accurate WDL")
-    print("This refines the evaluation using more nuanced position assessments")
-    print("="*60)
-    
-    # Create accurate WDL datasets (using original dataset)
-    accurate_train_ds = torch.utils.data.Subset(base_ds, train_indices)
-    accurate_test_ds = torch.utils.data.Subset(base_ds, test_indices)
-    
-    accurate_train_loader = make_dataloader(accurate_train_ds, batch_size=batch_size, shuffle=True)
-    accurate_test_loader = make_dataloader(accurate_test_ds, batch_size=batch_size, shuffle=False)
-    
-    # Train phase 2 (fine-tuning)
-    loss = train_phase(
-        model, accurate_train_loader, accurate_test_loader, device,
-        "Training WDL", epochs, lr
-    )
-    
-    # === Final Results ===
-    print("\n" + "="*60)
-    print("TRAINING COMPLETE")
-    print("="*60)
 
-    print(f"Best loss: {loss:.6f}")
-    
-    # Save final weights
+    train_ds = torch.utils.data.Subset(base_ds, train_indices)
+    test_ds = torch.utils.data.Subset(base_ds, test_indices)
+
+    train_loader = make_dataloader(train_ds, batch_size=batch_size, shuffle=True)
+    test_loader = make_dataloader(test_ds, batch_size=batch_size, shuffle=False)
+
+    print("\n" + "=" * 60)
+    print("PHASE: Training WDL (prob targets in [0,1])")
+    print("=" * 60)
+
+    best_bce = train_phase(
+        model,
+        train_loader,
+        test_loader,
+        device,
+        phase_name="Training WDL",
+        num_epochs=epochs,
+        learning_rate=lr,
+    )
+
+    print("\n" + "=" * 60)
+    print("TRAINING COMPLETE")
+    print("=" * 60)
+    print(f"Best test BCE: {best_bce:.6f}")
+
     save_f32_weights(model, "nnue_weights.bin")
     torch.save(model.state_dict(), "nnue_weights_final.pth")
     print("Final model saved to nnue_weights.bin and nnue_weights_final.pth")

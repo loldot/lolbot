@@ -39,7 +39,18 @@ public partial class GenTrainingData
             }
 
             var search = new Search(game, Engine.tt, history);
+            var result = meta.ContainsKey("Result") ? meta["Result"] : "*";
+            if (result != "1-0" && result != "0-1" && result != "1/2-1/2")
+            {
+                continue;
+            }
 
+            float wdl = result switch
+            {
+                "1-0" => 1f,
+                "0-1" => 0f,
+                _ => 0.5f
+            };
 
             foreach (var _ in game.Moves)
             {
@@ -54,36 +65,37 @@ public partial class GenTrainingData
 
                     if (Math.Abs(eval) < (Search.Mate - 1000) && Math.Abs(staticEval - eval) < SearchMargin)
                     {
-                        float wdl = 1 / (1 + MathF.Exp(-eval / 410f));
-                        BinarySerializer.WritePosition(outputStream, game.CurrentPosition, (short)eval, wdl);
+                        // float wdl = 1 / (1 + MathF.Exp(-eval / 410f));
+                        var whiteEval = game.CurrentPosition.CurrentPlayer == Colors.White ? eval : -eval;
+                        BinarySerializer.WritePosition(outputStream, game.CurrentPosition, (short)whiteEval, wdl);
 
                         validPositions++;
 
-                        var mutation = game.CurrentPosition.Clone();
-                        mutation.DropRandomPiece();
+                        // var mutation = game.CurrentPosition.Clone();
+                        // mutation.DropRandomPiece();
 
-                        var mutatedGame = new Game(mutation);
-                        if (mutatedGame.GenerateLegalMoves().Length > 0)
-                        {
-                            var mutEval = Heuristics.StaticEvaluation(mutatedGame.CurrentPosition);
-                            var mutQuiesenceEval = search.QuiesenceSearchPv(mutatedGame.CurrentPosition, -Search.Inf, Search.Inf);
+                        // var mutatedGame = new Game(mutation);
+                        // if (mutatedGame.GenerateLegalMoves().Length > 0)
+                        // {
+                        //     var mutEval = Heuristics.StaticEvaluation(mutatedGame.CurrentPosition);
+                        //     var mutQuiesenceEval = search.QuiesenceSearchPv(mutatedGame.CurrentPosition, -Search.Inf, Search.Inf);
 
-                            if (!mutation.IsCheck && Math.Abs(mutEval - mutQuiesenceEval) < QuiesenceMargin)
-                            {
-                                var mutSearch = new Search(mutatedGame, Engine.tt, history);
+                        //     if (!mutation.IsCheck && Math.Abs(mutEval - mutQuiesenceEval) < QuiesenceMargin)
+                        //     {
+                        //         var mutSearch = new Search(mutatedGame, Engine.tt, history);
 
-                                mutSearch.BestMove(SearchDepth);
+                        //         mutSearch.BestMove(SearchDepth);
 
-                                var mutScore = mutSearch.CentiPawnEvaluation;
+                        //         var mutScore = mutSearch.CentiPawnEvaluation;
 
-                                if (Math.Abs(mutEval - mutScore) < SearchMargin)
-                                {
-                                    float mutWdl = 1 / (1 + MathF.Exp(-mutScore / 410f));
-                                    BinarySerializer.WritePosition(outputStream, mutatedGame.CurrentPosition, (short)mutScore, mutWdl);
-                                    validPositions++;
-                                }
-                            }
-                        }
+                        //         if (Math.Abs(mutEval - mutScore) < SearchMargin)
+                        //         {
+                        //             float mutWdl = 1 / (1 + MathF.Exp(-mutScore / 410f));
+                        //             BinarySerializer.WritePosition(outputStream, mutatedGame.CurrentPosition, (short)mutScore, mutWdl);
+                        //             validPositions++;
+                        //         }
+                        //     }
+                        // }
                     }
                 }
 
