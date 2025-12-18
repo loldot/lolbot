@@ -10,6 +10,63 @@ from data import record_dtype, RECORD_SIZE
 
 SYZYGY_DEFAULT_PATH = "C:\\dev\\chess-data\\syzygy"
 
+# File mirroring lookup table: maps each square to its horizontally mirrored square
+# a1(0)->h1(7), b1(1)->g1(6), etc.
+MIRROR_SQUARES = np.array([
+    7,  6,  5,  4,  3,  2,  1,  0,
+    15, 14, 13, 12, 11, 10,  9,  8,
+    23, 22, 21, 20, 19, 18, 17, 16,
+    31, 30, 29, 28, 27, 26, 25, 24,
+    39, 38, 37, 36, 35, 34, 33, 32,
+    47, 46, 45, 44, 43, 42, 41, 40,
+    55, 54, 53, 52, 51, 50, 49, 48,
+    63, 62, 61, 60, 59, 58, 57, 56,
+], dtype=np.uint8)
+
+def mirror_bitboard(bb: np.uint64) -> np.uint64:
+    """Mirror a bitboard horizontally (flip files a<->h)."""
+    # Swap adjacent files using bit manipulation
+    # This is the standard horizontal flip for chess bitboards
+    k1 = np.uint64(0x5555555555555555)  # odd bits
+    k2 = np.uint64(0x3333333333333333)  # pairs
+    k4 = np.uint64(0x0f0f0f0f0f0f0f0f)  # nibbles
+    bb = ((bb >> 1) & k1) | ((bb & k1) << 1)  # swap adjacent bits
+    bb = ((bb >> 2) & k2) | ((bb & k2) << 2)  # swap adjacent pairs
+    bb = ((bb >> 4) & k4) | ((bb & k4) << 4)  # swap adjacent nibbles
+    return bb
+
+def mirror_position(pos):
+    """Create a horizontally mirrored copy of a position record."""
+    mirrored = pos.copy()
+    
+    # Mirror all bitboards
+    mirrored["bb_black"] = mirror_bitboard(pos["bb_black"])
+    mirrored["bb_white"] = mirror_bitboard(pos["bb_white"])
+    mirrored["bb_pawns"] = mirror_bitboard(pos["bb_pawns"])
+    mirrored["bb_knights"] = mirror_bitboard(pos["bb_knights"])
+    mirrored["bb_bishops"] = mirror_bitboard(pos["bb_bishops"])
+    mirrored["bb_rooks"] = mirror_bitboard(pos["bb_rooks"])
+    mirrored["bb_queens"] = mirror_bitboard(pos["bb_queens"])
+    mirrored["bb_kings"] = mirror_bitboard(pos["bb_kings"])
+    
+    # Mirror castling rights: swap kingside/queenside for each color
+    # Assuming castling is stored as: bit0=WK, bit1=WQ, bit2=BK, bit3=BQ
+    old_castling = int(pos["castling"])
+    new_castling = 0
+    if old_castling & 1: new_castling |= 2  # WK -> WQ
+    if old_castling & 2: new_castling |= 1  # WQ -> WK
+    if old_castling & 4: new_castling |= 8  # BK -> BQ
+    if old_castling & 8: new_castling |= 4  # BQ -> BK
+    mirrored["castling"] = np.uint8(new_castling)
+    
+    # Mirror en passant file: a(0)->h(7), b(1)->g(6), etc.
+    ep_file = int(pos["ep_file"])
+    if ep_file < 8:  # Valid ep file (0-7)
+        mirrored["ep_file"] = np.uint8(7 - ep_file)
+    
+    # stm, eval, wdl stay the same
+    return mirrored
+
 def truncate_to_full_records(file_path):
     """Ensure the file length is an integer multiple of RECORD_SIZE."""
     try:
@@ -125,12 +182,7 @@ def rescore_with_syzygy(all_positions, piece_counts, syzygy_path):
             try:
                 wdl = tablebase.probe_wdl(board)
             except chess.syzygy.MissingTableError as err:
-                # No table (e.g. KRvR missing) – just skip.
-                # You may want to silence this if it’s spammy.
-                print(f"  Warning: missing tablebase for position at index {idx}, "
-                      f"skipping Syzygy probe ({err})")
                 continue
-            print(f"  Syzygy rescore at index {idx}: WDL={wdl}")
 
             rescored += 1
             if wdl > 0:
@@ -255,6 +307,19 @@ def process_folder(folder_path):
     print("Converting to numpy array for saving...")
     final_positions = np.array(all_processed_positions, dtype=record_dtype)
     
+    # Create mirrored versions of all positions
+    print("Creating horizontally mirrored positions...")
+    mirrored_positions = np.empty(len(final_positions), dtype=record_dtype)
+    for i in range(len(final_positions)):
+        if i % 1000000 == 0 and i > 0:
+            print(f"  Mirrored {i:,}/{len(final_positions):,} positions ({100*i/len(final_positions):.1f}%)")
+        mirrored_positions[i] = mirror_position(final_positions[i])
+    print(f"  Created {len(mirrored_positions):,} mirrored positions")
+    
+    # Combine original and mirrored
+    final_positions = np.concatenate([final_positions, mirrored_positions])
+    print(f"  Total positions after mirroring: {len(final_positions):,}")
+    
     # Save processed positions to a new file
     output_file = os.path.join(folder_path, "preprocessed_positions.bin")
     print(f"Saving to: {output_file}")
@@ -270,6 +335,93 @@ def process_folder(folder_path):
         print("✓ File format validation passed")
     else:
         print(f"⚠️  Warning: File size mismatch! Expected {expected_size:,}, got {file_size:,}")
+    
+    # -------------------------
+    # Dataset Statistics Summary
+    # -------------------------
+    print("\n" + "=" * 60)
+    print("DATASET STATISTICS SUMMARY")
+    print("=" * 60)
+    
+    # Evaluation distribution
+    evals = final_positions["eval_i16"].astype(np.int32)
+    print("\n📊 Evaluation Distribution:")
+    print(f"  Min eval:    {evals.min():+,} cp")
+    print(f"  Max eval:    {evals.max():+,} cp")
+    print(f"  Mean eval:   {evals.mean():+.1f} cp")
+    print(f"  Median eval: {np.median(evals):+.1f} cp")
+    print(f"  Std dev:     {evals.std():.1f} cp")
+    
+    # Eval buckets
+    print("\n  Eval buckets:")
+    buckets = [
+        ("  |eval| ≤ 50 cp (equal)", np.sum(np.abs(evals) <= 50)),
+        ("  |eval| ≤ 100 cp", np.sum(np.abs(evals) <= 100)),
+        ("  |eval| ≤ 200 cp", np.sum(np.abs(evals) <= 200)),
+        ("  |eval| ≤ 500 cp", np.sum(np.abs(evals) <= 500)),
+        ("  |eval| > 500 cp (decisive)", np.sum(np.abs(evals) > 500)),
+    ]
+    for label, count in buckets:
+        pct = 100 * count / len(evals)
+        print(f"    {label}: {count:,} ({pct:.1f}%)")
+    
+    # WDL distribution
+    wdls = final_positions["wdl_f32"]
+    print("\n📊 WDL (Game Result) Distribution:")
+    white_wins = np.sum(wdls > 0.75)
+    draws = np.sum((wdls >= 0.25) & (wdls <= 0.75))
+    black_wins = np.sum(wdls < 0.25)
+    print(f"  White wins (WDL > 0.75): {white_wins:,} ({100*white_wins/len(wdls):.1f}%)")
+    print(f"  Draws (0.25 ≤ WDL ≤ 0.75): {draws:,} ({100*draws/len(wdls):.1f}%)")
+    print(f"  Black wins (WDL < 0.25): {black_wins:,} ({100*black_wins/len(wdls):.1f}%)")
+    print(f"  Mean WDL:   {wdls.mean():.3f}")
+    print(f"  Median WDL: {np.median(wdls):.3f}")
+    
+    # Side to move distribution
+    stm = final_positions["stm"]
+    white_to_move = np.sum(stm == 1)
+    black_to_move = np.sum(stm == 0)
+    print("\n📊 Side to Move:")
+    print(f"  White to move: {white_to_move:,} ({100*white_to_move/len(stm):.1f}%)")
+    print(f"  Black to move: {black_to_move:,} ({100*black_to_move/len(stm):.1f}%)")
+    
+    # Piece count distribution (game phase proxy)
+    occupancy = np.bitwise_or(final_positions["bb_white"], final_positions["bb_black"])
+    piece_counts = np.array([int(int(val).bit_count()) for val in occupancy], dtype=np.uint8)
+    print("\n📊 Piece Count Distribution (Game Phase):")
+    print(f"  Min pieces:  {piece_counts.min()}")
+    print(f"  Max pieces:  {piece_counts.max()}")
+    print(f"  Mean pieces: {piece_counts.mean():.1f}")
+    
+    phase_buckets = [
+        ("  Endgame (2-6 pieces)", (piece_counts >= 2) & (piece_counts <= 6)),
+        ("  Late middlegame (7-12 pieces)", (piece_counts >= 7) & (piece_counts <= 12)),
+        ("  Middlegame (13-20 pieces)", (piece_counts >= 13) & (piece_counts <= 20)),
+        ("  Opening (21-32 pieces)", (piece_counts >= 21) & (piece_counts <= 32)),
+    ]
+    for label, mask in phase_buckets:
+        count = np.sum(mask)
+        pct = 100 * count / len(piece_counts)
+        print(f"    {label}: {count:,} ({pct:.1f}%)")
+    
+    # Eval vs WDL agreement
+    print("\n📊 Eval-WDL Agreement:")
+    eval_says_white = evals > 50
+    eval_says_black = evals < -50
+    wdl_says_white = wdls > 0.6
+    wdl_says_black = wdls < 0.4
+    
+    agree_white = np.sum(eval_says_white & wdl_says_white)
+    agree_black = np.sum(eval_says_black & wdl_says_black)
+    disagree = np.sum((eval_says_white & wdl_says_black) | (eval_says_black & wdl_says_white))
+    
+    print(f"  Eval & WDL agree (white winning): {agree_white:,}")
+    print(f"  Eval & WDL agree (black winning): {agree_black:,}")
+    print(f"  Eval & WDL disagree: {disagree:,} ({100*disagree/len(evals):.2f}%)")
+    
+    print("\n" + "=" * 60)
+    print("PREPROCESSING COMPLETE")
+    print("=" * 60)
     
     return final_positions
 

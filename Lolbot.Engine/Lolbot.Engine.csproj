@@ -18,7 +18,7 @@
     <StackTraceSupport>false</StackTraceSupport>
     <!-- <EnableNativePGO>true</EnableNativePGO>
     <OptimizationDataFormat>mibc</OptimizationDataFormat> -->
-     <DefineConstants>NNUE</DefineConstants>
+    <DefineConstants>NNUE</DefineConstants>
   </PropertyGroup>
   <!-- <ItemGroup>
     <IlcArg Include="-mibc%3apgo.mibc" />
