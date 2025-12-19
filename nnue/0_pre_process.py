@@ -49,20 +49,23 @@ def mirror_position(pos):
     mirrored["bb_queens"] = mirror_bitboard(pos["bb_queens"])
     mirrored["bb_kings"] = mirror_bitboard(pos["bb_kings"])
     
-    # Mirror castling rights: swap kingside/queenside for each color
-    # Assuming castling is stored as: bit0=WK, bit1=WQ, bit2=BK, bit3=BQ
+    # Mirror castling rights: swap kingside/queenside for each color.
+    # Engine format (see CastlingRights in Lolbot.Engine):
+    #   WhiteQueen=1, WhiteKing=2, BlackQueen=4, BlackKing=8
     old_castling = int(pos["castling"])
     new_castling = 0
-    if old_castling & 1: new_castling |= 2  # WK -> WQ
-    if old_castling & 2: new_castling |= 1  # WQ -> WK
-    if old_castling & 4: new_castling |= 8  # BK -> BQ
-    if old_castling & 8: new_castling |= 4  # BQ -> BK
+    if old_castling & 2: new_castling |= 1  # WK -> WQ
+    if old_castling & 1: new_castling |= 2  # WQ -> WK
+    if old_castling & 8: new_castling |= 4  # BK -> BQ
+    if old_castling & 4: new_castling |= 8  # BQ -> BK
     mirrored["castling"] = np.uint8(new_castling)
     
-    # Mirror en passant file: a(0)->h(7), b(1)->g(6), etc.
-    ep_file = int(pos["ep_file"])
-    if ep_file < 8:  # Valid ep file (0-7)
-        mirrored["ep_file"] = np.uint8(7 - ep_file)
+    # Mirror en passant square.
+    # IMPORTANT: the binary format stores EnPassant as a square index (LERF, a1=0..h8=63),
+    # with 0 meaning "no en passant" (and EP can never legally be a1 anyway).
+    ep_sq = int(pos["ep_file"])
+    if ep_sq != 0:
+        mirrored["ep_file"] = np.uint8(ep_sq ^ 7)  # flip file within the same rank
     
     # stm, eval, wdl stay the same
     return mirrored
@@ -379,7 +382,7 @@ def process_folder(folder_path):
     
     # Side to move distribution
     stm = final_positions["stm"]
-    white_to_move = np.sum(stm == 1)
+    white_to_move = np.sum(stm == 7)
     black_to_move = np.sum(stm == 0)
     print("\n📊 Side to Move:")
     print(f"  White to move: {white_to_move:,} ({100*white_to_move/len(stm):.1f}%)")

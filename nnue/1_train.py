@@ -164,17 +164,39 @@ if __name__ == "__main__":
 
     path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\preprocessed_positions.bin"
 
-    base_ds = ChessBitboardDataset(path)
-    print("Number of positions:", len(base_ds))
+    # Get total size without loading memmap
+    import os
+    total_positions = os.path.getsize(path) // 73  # RECORD_SIZE = 73
+    print(f"Total positions in file: {total_positions:,}")
 
-    train_size = int(0.9 * len(base_ds))
-    test_size = len(base_ds) - train_size
+    # NOTE: The preprocessor currently does NOT shuffle the file; it writes category blocks.
+    # A contiguous 90/10 split will therefore create a big distribution shift.
+    # Use an interleaved split without huge index lists (Windows-friendly):
+    #   train = records where (idx % 10) in [0..8]
+    #   test  = records where (idx % 10) == 9
+    split_mod = 10
+    train_keep = 9
+    train_ds = ChessBitboardDataset(
+        path,
+        start_idx=0,
+        end_idx=total_positions,
+        split_modulus=split_mod,
+        split_remainder_start=0,
+        split_remainder_count=train_keep,
+    )
+    test_ds = ChessBitboardDataset(
+        path,
+        start_idx=0,
+        end_idx=total_positions,
+        split_modulus=split_mod,
+        split_remainder_start=train_keep,
+        split_remainder_count=1,
+    )
 
-    indices = torch.randperm(len(base_ds)).tolist()
-    train_indices = indices[:train_size]
-    test_indices = indices[train_size:]
+    train_size = len(train_ds)
+    test_size = len(test_ds)
 
-    sample_x, _ = base_ds[0]
+    sample_x, _ = train_ds[0]
     input_size = int(sample_x.shape[0])
 
     model = NNUE(input_size=input_size, hidden_size=hidden_size)
@@ -183,10 +205,7 @@ if __name__ == "__main__":
     device = torch.device("xpu" if torch.xpu.is_available() else "cpu")
     model = model.to(device)
 
-    print(f"Training on {train_size} positions, testing on {test_size} positions...")
-
-    train_ds = torch.utils.data.Subset(base_ds, train_indices)
-    test_ds = torch.utils.data.Subset(base_ds, test_indices)
+    print(f"Training on {train_size:,} positions, testing on {test_size:,} positions...")
 
     train_loader = make_dataloader(train_ds, batch_size=batch_size, shuffle=True)
     test_loader = make_dataloader(test_ds, batch_size=batch_size, shuffle=False)
