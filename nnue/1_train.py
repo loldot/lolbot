@@ -1,9 +1,11 @@
 import os
 import random
+import math
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, SequentialLR
 
 from data import ChessBitboardDataset, make_dataloader
 from model_information import print_model_summary, save_f32_weights
@@ -99,11 +101,37 @@ def train_phase(
     learning_rate: float = 3e-3,
     weight_decay: float = 1e-5,
     grad_clip: float = 1.0,
+    warmup_epochs: int = 1,
+    min_lr_ratio: float = 0.01,
 ):
     print(f"\n=== Starting {phase_name} ===")
 
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     loss_fn = nn.BCEWithLogitsLoss(reduction="sum")  # sum then /N
+
+    # Learning rate scheduler: warmup + cosine annealing
+    min_lr = learning_rate * min_lr_ratio
+    if warmup_epochs > 0 and num_epochs > warmup_epochs:
+        warmup_scheduler = LinearLR(
+            optimizer,
+            start_factor=0.1,
+            end_factor=1.0,
+            total_iters=warmup_epochs,
+        )
+        cosine_scheduler = CosineAnnealingLR(
+            optimizer,
+            T_max=num_epochs - warmup_epochs,
+            eta_min=min_lr,
+        )
+        scheduler = SequentialLR(
+            optimizer,
+            schedulers=[warmup_scheduler, cosine_scheduler],
+            milestones=[warmup_epochs],
+        )
+        print(f"  Using warmup ({warmup_epochs} epochs) + cosine annealing (min_lr={min_lr:.2e})")
+    else:
+        scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=min_lr)
+        print(f"  Using cosine annealing (min_lr={min_lr:.2e})")
 
     best_test_bce = float("inf")
 
@@ -111,6 +139,7 @@ def train_phase(
         model.train()
         total_bce = 0.0
         total_samples = 0
+        current_lr = optimizer.param_groups[0]['lr']
 
         for x, y in train_loader:
             x = x.to(device, non_blocking=True)
@@ -130,12 +159,15 @@ def train_phase(
             total_bce += loss.item()
             total_samples += y.numel()
 
+        # Step the scheduler after each epoch
+        scheduler.step()
+
         train_bce = total_bce / total_samples
 
         # Evaluate every epoch (your epochs=5 anyway)
         test_bce, test_mse, baseline_mse, r2 = evaluate_model(model, test_loader, device)
 
-        print(f"Epoch [{epoch}/{num_epochs}]")
+        print(f"Epoch [{epoch}/{num_epochs}] (lr={current_lr:.2e})")
         print(f"  Train BCE: {train_bce:.6f}")
         print(f"  Test  BCE: {test_bce:.6f}")
         print(f"  Test  MSE(prob): {test_mse:.6f} | baseline MSE: {baseline_mse:.6f} | R^2: {r2:.4f}")
@@ -157,9 +189,9 @@ if __name__ == "__main__":
 
     print(f"XPU: {torch.xpu.is_available()}")
 
-    hidden_size = 16
+    hidden_size = 32
     batch_size = 8192
-    epochs = 5
+    epochs = 25
     lr = 3e-3  # safer default than 1e-2 for AdamW
 
     path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\preprocessed_positions.bin"

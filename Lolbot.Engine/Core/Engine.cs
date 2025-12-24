@@ -12,7 +12,7 @@ public static class Engine
 
     public static void Init()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "nnue_weights_16.bin");
+        var path = Path.Combine(AppContext.BaseDirectory, "nnue_weights_32.bin");
         NNUE.Initialize(path);
     }
 
