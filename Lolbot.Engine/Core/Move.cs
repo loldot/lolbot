@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Lolbot.Core;
 
 public readonly struct Move : IEquatable<Move>
@@ -55,6 +57,9 @@ public readonly struct Move : IEquatable<Move>
         Color == 1 ? Colors.White : Colors.Black,
         PromotionPieceType
     );
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int MVV_LVA() => CapturePieceType == PieceType.None ? 0 : 8 * ((int)CapturePieceType) - (int)FromPieceType;
 
     public readonly Piece CapturePiece
     {

@@ -117,7 +117,7 @@ public ref struct MovePicker
         int score = 0;
 
         score += Heuristics.GetPieceValue(m.PromotionPiece);
-        score += Heuristics.MVV_LVA(m.CapturePieceType, m.FromPieceType);
+        score += m.MVV_LVA();
 
         return score;
     }
@@ -127,7 +127,7 @@ public ref struct MovePicker
         int score = 0;
 
         score += 100_000 * Heuristics.GetPieceValue(m.PromotionPiece);
-        score += 100_000 * Heuristics.MVV_LVA(m.CapturePieceType, m.FromPieceType);
+        score += 100_000 * m.MVV_LVA();
 
         Debug.Assert(ply >= 0, "negative ply");
         Debug.Assert(ply < killers.Length);
