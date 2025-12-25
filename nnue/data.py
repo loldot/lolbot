@@ -185,11 +185,13 @@ class ChessBitboardDataset(Dataset):
             raise IndexError("Index out of range")
         rec = mm[actual_idx]
         x = _planes_from_record(rec)
-        y = np.float32(rec["wdl_f32"])
+        wdl = np.float32(rec["wdl_f32"])
+        eval_cp = np.float32(rec["eval_i16"])
         
         x_t = torch.from_numpy(x)
-        y_t = torch.tensor([y], dtype=torch.float32)
-        return x_t, y_t
+        wdl_t = torch.tensor([wdl], dtype=torch.float32)
+        eval_t = torch.tensor([eval_cp], dtype=torch.float32)
+        return x_t, wdl_t, eval_t
 
 def _worker_init_fn(worker_id):
     """Initialize each worker by opening its own memmap handle."""

@@ -41,8 +41,17 @@ class NNUE(nn.Module):
 # --------------------------
 # Evaluation
 # --------------------------
+def blend_targets(wdl: torch.Tensor, eval_cp: torch.Tensor, wdl_lambda: float, eval_scale: float) -> torch.Tensor:
+    """
+    Blend game result (WDL) with eval-based probability.
+    target = wdl_lambda * wdl + (1 - wdl_lambda) * sigmoid(eval / eval_scale)
+    """
+    eval_prob = torch.sigmoid(eval_cp / eval_scale)
+    return wdl_lambda * wdl + (1.0 - wdl_lambda) * eval_prob
+
+
 @torch.no_grad()
-def evaluate_model(model, loader, device):
+def evaluate_model(model, loader, device, wdl_lambda: float = 1.0, eval_scale: float = 400.0):
     """
     Returns:
       - bce_loss (avg per sample)
@@ -61,9 +70,13 @@ def evaluate_model(model, loader, device):
     total_targets_sq_sum = 0.0
     total_samples = 0
 
-    for x, y in loader:
+    for x, wdl, eval_cp in loader:
         x = x.to(device, non_blocking=True)
-        y = y.to(device, non_blocking=True).float().view(-1, 1)  # ensure shape [B,1]
+        wdl = wdl.to(device, non_blocking=True).float().view(-1, 1)
+        eval_cp = eval_cp.to(device, non_blocking=True).float().view(-1, 1)
+        
+        # Blend targets
+        y = blend_targets(wdl, eval_cp, wdl_lambda, eval_scale)
 
         logits = model(x)
         total_bce += bce(logits, y).item()
@@ -103,6 +116,8 @@ def train_phase(
     grad_clip: float = 1.0,
     warmup_epochs: int = 1,
     min_lr_ratio: float = 0.01,
+    wdl_lambda: float = 1.0,
+    eval_scale: float = 400.0,
 ):
     print(f"\n=== Starting {phase_name} ===")
 
@@ -135,15 +150,21 @@ def train_phase(
 
     best_test_bce = float("inf")
 
+    print(f"  Target blend: {wdl_lambda:.0%} WDL + {1-wdl_lambda:.0%} eval (scale={eval_scale})")
+
     for epoch in range(1, num_epochs + 1):
         model.train()
         total_bce = 0.0
         total_samples = 0
         current_lr = optimizer.param_groups[0]['lr']
 
-        for x, y in train_loader:
+        for x, wdl, eval_cp in train_loader:
             x = x.to(device, non_blocking=True)
-            y = y.to(device, non_blocking=True).float().view(-1, 1)
+            wdl = wdl.to(device, non_blocking=True).float().view(-1, 1)
+            eval_cp = eval_cp.to(device, non_blocking=True).float().view(-1, 1)
+            
+            # Blend targets
+            y = blend_targets(wdl, eval_cp, wdl_lambda, eval_scale)
 
             optimizer.zero_grad(set_to_none=True)
             logits = model(x)
@@ -165,7 +186,7 @@ def train_phase(
         train_bce = total_bce / total_samples
 
         # Evaluate every epoch (your epochs=5 anyway)
-        test_bce, test_mse, baseline_mse, r2 = evaluate_model(model, test_loader, device)
+        test_bce, test_mse, baseline_mse, r2 = evaluate_model(model, test_loader, device, wdl_lambda, eval_scale)
 
         print(f"Epoch [{epoch}/{num_epochs}] (lr={current_lr:.2e})")
         print(f"  Train BCE: {train_bce:.6f}")
@@ -193,6 +214,10 @@ if __name__ == "__main__":
     batch_size = 8192
     epochs = 25
     lr = 3e-3  # safer default than 1e-2 for AdamW
+    
+    # Blending parameters: target = wdl_lambda * wdl + (1 - wdl_lambda) * sigmoid(eval / eval_scale)
+    wdl_lambda = 0.7  # 0.0 = pure eval, 1.0 = pure game result
+    eval_scale = 400.0  # scale factor for eval -> probability conversion
 
     path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\preprocessed_positions.bin"
 
@@ -228,10 +253,20 @@ if __name__ == "__main__":
     train_size = len(train_ds)
     test_size = len(test_ds)
 
-    sample_x, _ = train_ds[0]
+    sample_x, _, _ = train_ds[0]
     input_size = int(sample_x.shape[0])
 
     model = NNUE(input_size=input_size, hidden_size=hidden_size)
+    
+    # Load existing weights if available
+    weights_path = "nnue_weights_final.pth"
+    if os.path.exists(weights_path):
+        print(f"Loading existing weights from {weights_path}...")
+        model.load_state_dict(torch.load(weights_path, weights_only=True))
+        print("Weights loaded successfully!")
+    else:
+        print("No existing weights found, starting from scratch.")
+    
     print_model_summary(model)
 
     device = torch.device("xpu" if torch.xpu.is_available() else "cpu")
@@ -254,6 +289,8 @@ if __name__ == "__main__":
         phase_name="Training WDL",
         num_epochs=epochs,
         learning_rate=lr,
+        wdl_lambda=wdl_lambda,
+        eval_scale=eval_scale,
     )
 
     print("\n" + "=" * 60)
