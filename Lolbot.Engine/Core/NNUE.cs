@@ -11,7 +11,7 @@ public static class NNUE
     const int Scale = 410;
     const short QA = 255;
     const short QB = 64;
-    const short HiddenSize = 32;
+    const short HiddenSize = 64;
     const int InputSize = 768;
 
     public readonly struct Accumulator
