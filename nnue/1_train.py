@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
     print(f"XPU: {torch.xpu.is_available()}")
 
-    hidden_size = 32
+    hidden_size = 64
     batch_size = 8192
     epochs = 25
     lr = 3e-3  # safer default than 1e-2 for AdamW
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     wdl_lambda = 0.7  # 0.0 = pure eval, 1.0 = pure game result
     eval_scale = 400.0  # scale factor for eval -> probability conversion
 
-    path = r"C:\dev\chess-data\Lichess Elite Database\Lichess Elite Database\preprocessed_positions.bin"
+    path = r"C:\dev\chess-data\preprocessed_positions.bin"
 
     # Get total size without loading memmap
     import os
