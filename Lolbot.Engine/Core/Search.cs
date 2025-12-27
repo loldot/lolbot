@@ -16,6 +16,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     private const int FutilityMargin = 130;
     private const int ReverseFutilityMargin = 117;
 
+    private const int InternalIterativeReductionDepth = 4;
+
     private readonly MutablePosition position = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
 
@@ -182,6 +184,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
                 }
             }
         }
+        else if (depth > InternalIterativeReductionDepth) depth--;
 
         searchStack[0].Reevaluate(position);
 
@@ -268,7 +271,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
                 if (alpha >= beta) return eval;
             }
         }
-        // else if (depth > 3) depth--;
+        else if (depth > InternalIterativeReductionDepth) depth--;
 
         bool isPruningAllowed = !TNode.IsPv && !position.IsCheck;
 
