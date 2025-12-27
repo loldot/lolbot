@@ -349,11 +349,11 @@ public sealed class MutablePosition
 
         if ((cstlmask & Squares.FromIndex(Squares.A1)) != 0)
             removed |= CastlingRights.WhiteQueen;
-        else if ((cstlmask & Squares.FromIndex(Squares.H1)) != 0)
+        if ((cstlmask & Squares.FromIndex(Squares.H1)) != 0)
             removed |= CastlingRights.WhiteKing;
-        else if ((cstlmask & Squares.FromIndex(Squares.A8)) != 0)
+        if ((cstlmask & Squares.FromIndex(Squares.A8)) != 0)
             removed |= CastlingRights.BlackQueen;
-        else if ((cstlmask & Squares.FromIndex(Squares.H8)) != 0)
+        if ((cstlmask & Squares.FromIndex(Squares.H8)) != 0)
             removed |= CastlingRights.BlackKing;
 
         if (m.FromIndex == Squares.E1)

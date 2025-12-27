@@ -122,4 +122,16 @@ public class Pgn
         game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.BlackQueen);
         game.GenerateLegalMoves().Should().NotContain(m => m.CastleFlag == CastlingRights.BlackKing);
     }
+
+    [Test]
+    public async Task Should_Not_Allow_Illegal_Castling2()
+    {
+        var pgn = File.OpenRead(@"./Testdata/illegal-castling-2.pgn");
+        var reader = new PgnSerializer();
+        var (game, _) = await reader.ReadSingle(pgn);
+        game.Should().NotBeNull();
+        
+        game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.None);
+        game.GenerateLegalMoves().Should().NotContain(m => m.CastleFlag == CastlingRights.BlackKing);
+    }
 }

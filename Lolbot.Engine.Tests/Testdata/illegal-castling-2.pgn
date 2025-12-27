@@ -1,0 +1,18 @@
+[Event "?"]
+[Site "?"]
+[Date "2025.12.27"]
+[Round "240"]
+[White "Experimental"]
+[Black "Previous"]
+[Result "1-0"]
+[GameId "rKfUuYSn"]
+[WhiteElo "?"]
+[BlackElo "?"]
+[Variant "Standard"]
+[TimeControl "-"]
+[ECO "B93"]
+[Opening "Sicilian Defense: Najdorf Variation, Amsterdam Variation"]
+[Termination "Unknown"]
+[Annotator "lichess.org"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 6. f4 { B93 Sicilian Defense: Najdorf Variation, Amsterdam Variation } e6 7. Qf3 Qc7 8. g4 Nc6 9. Nxc6 bxc6 10. g5 Nd7 11. Be3 g6 12. O-O-O Bg7 13. h4 Rb8 14. Na4 h6 15. Bd3 hxg5 16. hxg5 Rxh1 17. Rxh1 { White wins. } 1-0
