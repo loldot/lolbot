@@ -13,7 +13,7 @@ public class AccumulatorTests
         if (initialized) return;
         initialized = true;
         
-        NNUE.Initialize("nnue_weights_16.bin");
+        NNUE.Initialize("nnue_weights_64.bin");
     }
 
     [Test]

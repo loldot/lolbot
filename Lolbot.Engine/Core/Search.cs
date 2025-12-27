@@ -27,9 +27,11 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
     private int contempt = 50;
     private CancellationToken ct;
-    
+
     public Action<SearchProgress>? OnSearchProgress { get; set; }
     public int CentiPawnEvaluation => rootScore;
+
+    readonly NNUE.Accumulator[] searchStack = CreateSearchStack();
 
     static readonly int[] LogTable = new int[256];
     static Search()
@@ -38,6 +40,16 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         {
             LogTable[i] = (int)MathF.Round(128f * MathF.Log(i));
         }
+    }
+
+    private static NNUE.Accumulator[] CreateSearchStack()
+    {
+        var stack = new NNUE.Accumulator[2 * Max_Depth];
+        for (int i = 0; i < stack.Length; i++)
+        {
+            stack[i] = new NNUE.Accumulator();
+        }
+        return stack;
     }
 
     public Move BestMove()
@@ -69,6 +81,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         Span<Move> moves = rootMoves;
         rootMoveCount = MoveGenerator.Legal(position, ref moves);
+        searchStack[0] = NNUE.Accumulator.Create(position);
 
         int offset = 0;
         if (position.IsEndgame) contempt = 0;
@@ -170,12 +183,17 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             }
         }
 
+        searchStack[0].Reevaluate(position);
+
         int i = 0;
         for (; i < rootMoveCount; i++)
         {
             var move = rootMoves[i];
             position.Move(in move);
             history.Update(move, position.Hash);
+
+            searchStack[0].CopyTo(ref searchStack[1]);
+            searchStack[1].Move(in move);
 
             int value;
             if (i == 0)
@@ -192,7 +210,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             position.Undo(in move);
             history.Unwind();
 
-            if (value > alpha && value < Inf)
+            if (value > alpha && Abs(value) < Inf)
             {
                 if (i != 0) Array.Copy(rootMoves, 0, rootMoves, 1, i);
                 rootScore = alpha = value;
@@ -214,7 +232,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     {
         if (ct.IsCancellationRequested) return Inf;
         if (position.IsCheck) depth++;
-        if (depth <= 0) return QuiesenceSearch<TNode>(position, alpha, beta);
+        if (depth <= 0) return QuiesenceSearch<TNode>(position, ply, alpha, beta);
 
         var originalAlpha = alpha;
 
@@ -259,7 +277,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             if (!ttEntry.IsSet || ttEntry.Type != TranspositionTable.Exact)
             {
 #if NNUE
-                eval = position.Eval;
+                eval = searchStack[ply].Read(position.CurrentPlayer);
 #else
                 eval = Heuristics.StaticEvaluation(position);
 #endif
@@ -274,6 +292,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
             {
                 position.SkipTurn();
+                searchStack[ply].CopyTo(ref searchStack[ply + 1]);
                 var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
                 var score = -EvaluateMove<NonPvNode>(depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
                 position.UndoSkipTurn();
@@ -297,6 +316,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         {
             position.Move(in move);
             history.Update(move, position.Hash);
+            searchStack[ply].CopyTo(ref searchStack[ply + 1]);
+            searchStack[ply + 1].Move(in move);
 
             int score;
             if (TNode.IsPv && i == 0)
@@ -365,9 +386,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         return best;
     }
-    public int QuiesenceSearchPv(MutablePosition position, int alpha, int beta) => QuiesenceSearch<PvNode>(position, alpha, beta);
+    public int QuiesenceSearchPv(MutablePosition position, int alpha, int beta) => QuiesenceSearch<PvNode>(position, 0, alpha, beta);
 
-    private int QuiesenceSearch<TNode>(MutablePosition position, int alpha, int beta) where TNode : struct, NodeType
+    private int QuiesenceSearch<TNode>(MutablePosition position, int ply, int alpha, int beta) where TNode : struct, NodeType
     {
         int i = 0;
         Move move, ttMove = Move.Null;
@@ -393,7 +414,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         Span<Move> moves = stackalloc Move[256];
 
 #if NNUE
-        var standPat = position.Eval;
+        var standPat = searchStack[ply].Read(position.CurrentPlayer);
 #else
         var standPat = Heuristics.StaticEvaluation(position);
 #endif
@@ -416,8 +437,12 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
             qnodes++;
 
+
             position.Move(in move);
-            int eval = -QuiesenceSearch<TNode>(position, -beta, -alpha);
+            searchStack[ply].CopyTo(ref searchStack[ply + 1]);
+            searchStack[ply + 1].Move(in move);
+
+            int eval = -QuiesenceSearch<TNode>(position, ply + 1, -beta, -alpha);
             position.Undo(in move);
 
             if (eval >= beta) return beta;

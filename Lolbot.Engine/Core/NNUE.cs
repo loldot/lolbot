@@ -17,9 +17,10 @@ public static class NNUE
     public readonly struct Accumulator
     {
         const int white = 1, black = 0;
-        private readonly float[] v = new float[HiddenSize];
+        private readonly float[] v;
         public Accumulator()
         {
+            v = new float[HiddenSize];
         }
 
         public static Accumulator Create(MutablePosition pos)
@@ -175,7 +176,7 @@ public static class NNUE
             return (short)(sideToMove == Colors.White ? eval : -eval);
         }
 
-        public void CopyTo(Accumulator target)
+        public void CopyTo(ref Accumulator target)
         {
             v.CopyTo(target.v, 0);
         }
