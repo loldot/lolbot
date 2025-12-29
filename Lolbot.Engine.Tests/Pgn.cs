@@ -134,4 +134,15 @@ public class Pgn
         game.CurrentPosition.CastlingRights.Should().Be(CastlingRights.None);
         game.GenerateLegalMoves().Should().NotContain(m => m.CastleFlag == CastlingRights.BlackKing);
     }
+
+    [Test]
+    public async Task Should_Not_Allow_EP_When_Pinned()
+    {
+        var pgn = File.OpenRead(@"./Testdata/en-passant-pinned.pgn");
+        var reader = new PgnSerializer();
+        var (game, _) = await reader.ReadSingle(pgn);
+        game.Should().NotBeNull();
+        
+        game.GenerateLegalMoves().Should().NotContain(new Move(Piece.WhitePawn, Squares.B5, Squares.C6, Piece.BlackPawn, Squares.C5));
+    }
 }

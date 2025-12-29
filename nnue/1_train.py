@@ -10,14 +10,14 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, SequentialLR
 from data import ChessBitboardDataset, make_dataloader
 from model_information import print_model_summary, save_f32_weights
 
-# --------------------------
-# Repro / determinism helpers
-# --------------------------
-def seed_all(seed: int = 1234):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed) if torch.cuda.is_available() else None
+# # --------------------------
+# # Repro / determinism helpers
+# # --------------------------
+# def seed_all(seed: int = 1234):
+#     random.seed(seed)
+#     np.random.seed(seed)
+#     torch.manual_seed(seed)
+#     torch.cuda.manual_seed_all(seed) if torch.cuda.is_available() else None
 
 # --------------------------
 # Model
@@ -206,7 +206,7 @@ def train_phase(
 # Main
 # --------------------------
 if __name__ == "__main__":
-    seed_all(1234)
+    # seed_all(1234)
 
     print(f"XPU: {torch.xpu.is_available()}")
 
@@ -216,7 +216,7 @@ if __name__ == "__main__":
     lr = 3e-3  # safer default than 1e-2 for AdamW
     
     # Blending parameters: target = wdl_lambda * wdl + (1 - wdl_lambda) * sigmoid(eval / eval_scale)
-    wdl_lambda = 0.7  # 0.0 = pure eval, 1.0 = pure game result
+    wdl_lambda = 0.6  # 0.0 = pure eval, 1.0 = pure game result
     eval_scale = 400.0  # scale factor for eval -> probability conversion
 
     path = r"C:\dev\chess-data\preprocessed_positions.bin"

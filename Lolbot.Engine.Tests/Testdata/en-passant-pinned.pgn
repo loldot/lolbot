@@ -1,0 +1,18 @@
+[Event "My Tournament"]
+[Site "?"]
+[Date "2025.12.28"]
+[Round "5"]
+[White "Lolbot.Engine dev"]
+[Black "rustic-alpha"]
+[Result "0-1"]
+[GameId "PG462pmS"]
+[WhiteElo "?"]
+[BlackElo "?"]
+[Variant "Standard"]
+[TimeControl "-"]
+[ECO "A40"]
+[Opening "Kangaroo Defense"]
+[Termination "Unknown"]
+[Annotator "lichess.org"]
+
+1. d4 e6 2. c4 Bb4+ { A40 Kangaroo Defense } 3. Bd2 a5 4. Nf3 d6 5. Nc3 Nf6 6. g3 Nc6 7. Bg2 e5 8. O-O exd4 9. Nb5 O-O 10. Bg5 Be6 11. Nfxd4 Bxc4 12. Nxc6 bxc6 13. Nd4 Bc5 14. Nxc6 Qe8 15. Bxf6 gxf6 16. Qd2 Ra6 17. Nxa5 Qxe2 18. Nxc4 Qxc4 19. a3 Re8 20. Rfe1 Rxe1+ 21. Rxe1 Qd4 22. Qc2 Bb6 23. Re4 Qc5 24. Rg4+ Kf8 25. Qd2 Qh5 26. Bf3 Qc5 27. b4 Qxf2+ 28. Qxf2 Bxf2+ 29. Kxf2 Rxa3 30. b5 Ra2+ 31. Be2 Rb2 32. Ke3 h6 33. Rh4 Kg7 34. Bd3 Ra2 35. Rh5 Rb2 36. Kd4 Rg2 37. Kc3 Rg1 38. Be4 Rc1+ 39. Kd2 Rc4 40. Ke3 Rb4 41. Rf5 Rb3+ 42. Kf4 Rb2 43. h4 Rd2 44. h5 Re2 45. Bf3 Rd2 46. Ke3 Ra2 47. g4 Ra4 48. Kd2 Rc4 49. Kd3 Rb4 50. Bd1 Rb1 51. Be2 Rb2 52. Ke3 Rc2 53. Bd3 Rg2 54. Be2 Rg3+ 55. Bf3 Rg1 56. Rf4 Rb1 57. Bc6 Re1+ 58. Kd2 Re5 59. Rf5 Re7 60. Kc3 Re5 61. Kc4 Re2 62. Kb4 Re1 63. Bd5 Rb1+ 64. Kc4 Rc1+ 65. Kd4 Rb1 66. Bc4 Rg1 67. Be2 Rg2 68. Kd3 Rh2 69. Rf4 Rh3+ 70. Bf3 Rh2 71. Bc6 Rh3+ 72. Kd2 Ra3 73. Bd7 Ra2+ 74. Kc3 Kf8 75. Rc4 Ra7 76. Bf5 Rb7 77. Kb4 c5+ { Black wins. } 0-1
