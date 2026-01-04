@@ -23,6 +23,8 @@ public static class NNUE
             v = new float[HiddenSize];
         }
 
+        public float[] Values => v;
+
         public static Accumulator Create(MutablePosition pos)
         {
             var acc = new Accumulator();
@@ -195,6 +197,9 @@ public static class NNUE
     static float[] outputWeightsf = new float[HiddenSize];
     static int outputBias = 0;
     static float outputBiasf = 0;
+
+    public static float[] OutputWeights => outputWeightsf;
+    public static float OutputBias => outputBiasf;
 
     public static void Initialize(string path)
     {

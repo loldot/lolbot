@@ -1,20 +1,41 @@
-import { useEffect, useState } from "react";
-import { Navigate } from "react-router";
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { createGame } from "../../api";
 
 const NewGame = () => {
-    const [seq, setSeq] = useState<Number | undefined>();
-    useEffect(() => {
-        const loadData = async () => {
-          const result = await fetch('https://localhost:7097/game/new', { method: 'POST'});
-          if (result.status === 200) {
-            const data = await result.json();
-            setSeq(data.seq);
-          }
-        };
-        loadData();
-      });
-  
-      return seq ? <Navigate to={`/game/${seq}`} /> : null;
+    const [fen, setFen] = useState<string>("");
+    const navigate = useNavigate();
+
+    const handleCreateGame = async () => {
+        const seq = await createGame(fen || undefined);
+        if (seq !== -1) {
+            navigate(`/game/${seq}`);
+        }
+    };
+
+    return (
+        <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+            <h2>New Game</h2>
+            <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Starting Position (FEN) - Optional
+                </label>
+                <input 
+                    type="text" 
+                    value={fen} 
+                    onChange={(e) => setFen(e.target.value)} 
+                    placeholder="Standard starting position if left empty"
+                    style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+                />
+            </div>
+            <button 
+                onClick={handleCreateGame} 
+                
+            >
+                Start Game
+            </button>
+        </div>
+    );
 }
 
 export default NewGame;

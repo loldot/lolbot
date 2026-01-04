@@ -53,7 +53,7 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2""";
     public void Update(int seq, Game game)
     {
         var old = Get(seq) ?? throw new ArgumentException("Unknown game");
-        if (old.PlyCount + 1 != game.PlyCount) throw new InvalidOperationException("Move out of order");
+        // if (old.PlyCount + 1 != game.PlyCount) throw new InvalidOperationException("Move out of order");
 
         games[seq] = game;
     }

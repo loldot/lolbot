@@ -13,6 +13,7 @@ public sealed class Game
     public int PlyCount => moves.Count;
     public MutablePosition CurrentPosition => position;
     public RepetitionTable RepetitionTable => repetitions;
+    public string InitialFen { get; } = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     public Game(MutablePosition initialPosition)
     {
@@ -34,6 +35,7 @@ public sealed class Game
     public Game(string fen)
     {
         position = MutablePosition.FromFen(fen);
+        InitialFen = fen;
     }
 
     public void Move(in Move m)

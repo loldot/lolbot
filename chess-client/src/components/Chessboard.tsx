@@ -26,14 +26,39 @@ grid-template-columns: repeat(8, ${square_size});
 grid-template-rows: repeat(8, ${square_size});
 width: calc(8 * ${square_size});
 height: calc(8 * ${square_size});
+position: relative;
 `;
+
+const getCoords = (sq: string) => {
+    const file = sq.charCodeAt(0) - 97; // 'a' -> 0
+    const rank = 8 - parseInt(sq[1]);   // '8' -> 0
+    return { x: file * 64 + 32, y: rank * 64 + 32 };
+}
+
+const Arrow = ({ from, to }: { from: string, to: string }) => {
+    const start = getCoords(from);
+    const end = getCoords(to);
+    return (
+        <g>
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="orange" opacity="0.8" />
+                </marker>
+            </defs>
+            <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="orange" strokeWidth="6" opacity="0.8" markerEnd="url(#arrowhead)" />
+        </g>
+    );
+}
+
+import { ApiNnue } from "../api-nnue";
 
 export interface ChessboardProps {
     seq: number,
-    game?: Game
+    game?: Game,
+    onNnueUpdate?: (data: ApiNnue) => void
 }
 
-const Chessboard = ({ game, seq }: ChessboardProps) => {
+const Chessboard = ({ game, seq, onNnueUpdate }: ChessboardProps) => {
     if (!game) return (<>Loading..</>);
     const navigate = useNavigate();
 
@@ -52,9 +77,13 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
     const [selectedSquare, setSelectedSquare] = useState<string>();
     const [legalMoves, setLegalMoves] = useState<string[]>([]);
     const [highlight, setHighlights] = useState<string[]>([]);
+    const [suggestedMove, setSuggestedMove] = useState<string[] | null>(null);
 
 
     const [moveNumber, setMoveNumber] = useState(0);
+    const moveNumberRef = useRef(moveNumber);
+    useEffect(() => { moveNumberRef.current = moveNumber; }, [moveNumber]);
+
     const [position, setPosition] = useState<Position>(initialPosition);
 
     const [connection] = useState((prev: any) => {
@@ -67,14 +96,22 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
         if (!mounted.current) {
 
             connection.on('movePlayed', (message: any) => {
-                if (message.plyCount > moveNumber) {
+                if (message.plyCount >= moveNumberRef.current) {
                     console.log(message);
 
                     const [from, to] = message.move;
                     executeMove(from, to);
                 }
+                
+                if (message.nnue && onNnueUpdate) {
+                    onNnueUpdate(message.nnue);
+                }
             });
             connection.on('legalMovesReceived', setLegalMoves);
+            connection.on('suggestedMove', (message: any) => {
+                console.log('Suggested move:', message);
+                setSuggestedMove(message.move);
+            });
             connection.on('finished', () => alert('checkmate'));
 
             connection.start().catch(console.error);
@@ -144,7 +181,9 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
         const m = [from, to] as Move;
         setMoves(prev => [...prev, m]);
         setPosition(prev => move(prev, m));
+        setSuggestedMove(null);
         setMoveNumber(prev => prev + 1);
+        moveNumberRef.current++;
 
         setSelectedSquare(undefined);
         setLegalMoves([]);
@@ -163,7 +202,7 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
         const from = e.dataTransfer.getData("text/plain") as string;
         const to = id;
         executeMove(from, to);
-        connection.send('move', { "gameId": seq, "move": [selectedSquare, id], "plyCount": moveNumber });
+        connection.send('move', { "gameId": seq, "move": [from, id], "plyCount": moveNumber });
 
         e.preventDefault();
     };
@@ -209,6 +248,11 @@ const Chessboard = ({ game, seq }: ChessboardProps) => {
                     </Square>)
                 })
                 }
+                <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
+                    {suggestedMove && (
+                        <Arrow from={suggestedMove[0]} to={suggestedMove[1]} />
+                    )}
+                </svg>
             </BoardContainer>
             <button onClick={() => undoMove()} disabled={!canMoveBackwards} >Back</button>
             <button onClick={() => doMove()} disabled={!canMoveForward} >Next</button>

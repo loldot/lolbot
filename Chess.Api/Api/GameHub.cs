@@ -8,6 +8,7 @@ public class MoveMessage
     public required int GameId { get; set; }
     public required int PlyCount { get; set; }
     public required string[] Move { get; set; }
+    public ApiNnue? Nnue { get; set; }
 }
 
 public class CheckMovesMessage
@@ -21,32 +22,44 @@ public class UndoLastMove
     public required int GameId { get; set; }
 }
 
+public class SuggestedMoveMessage
+{
+    public required int GameId { get; set; }
+    public required string[] Move { get; set; }
+}
+
 public class GameHub : Hub
 {
     public async Task Move(MoveMessage message)
     {
+        if (message.Move.Length < 2 || message.Move[0].Length < 2 || message.Move[1].Length < 2) return;
+
         var game = GameDatabase.Instance.Get(message.GameId);
         if (game is null) return;
 
         Engine.Move(game, message.Move[0], message.Move[1]);
-        await Clients.AllExcept([Context.ConnectionId]).SendAsync("movePlayed", message);
 
-        // var nextMove = Engine.BestMove(game);
-        // if (nextMove is null)
-        // {
-        //     await Clients.All.SendAsync("finished", new { Winner = "w" });
-        //     return;
-        // }
+        var acc = NNUE.Accumulator.Create(game.CurrentPosition);
+        var eval = acc.Read(game.CurrentPosition.CurrentPlayer);
+        message.Nnue = new ApiNnue
+        {
+            HiddenActivations = acc.Values,
+            OutputWeights = NNUE.OutputWeights,
+            OutputBias = NNUE.OutputBias,
+            Evaluation = eval
+        };
 
-        // Engine.Move(game, nextMove.Value);
-        // GameDatabase.Instance.Update(message.GameId, game);
+        await Clients.All.SendAsync("movePlayed", message);
 
-        // await Clients.All.SendAsync("movePlayed", new MoveMessage
-        // {
-        //     GameId = message.GameId,
-        //     PlyCount = game.PlyCount,
-        //     Move = ApiMove.Create(nextMove.Value)!
-        // });
+        var bestMove = Engine.BestMove(game, 8);
+        if (bestMove.HasValue)
+        {
+            await Clients.All.SendAsync("suggestedMove", new SuggestedMoveMessage
+            {
+                GameId = message.GameId,
+                Move = ApiMove.Create(bestMove.Value)!
+            });
+        }
     }
 
     public async Task Undo(UndoLastMove message)

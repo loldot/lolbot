@@ -23,7 +23,7 @@ const Home = () => {
             <h1>Lolbot Chess Engine</h1>
 
             <ui-tabs>
-                {/* <ui-tab-panel title="New Game">
+                <ui-tab-panel title="New Game">
                     <h3 slot="header">New Game</h3>
                     <section slot="content" className="block md">
                         
@@ -37,7 +37,7 @@ const Home = () => {
                             <NewGame />
                         </Suspense>
                     </section>
-                </ui-tab-panel> */}
+                </ui-tab-panel>
 
                 <ui-tab-panel title="Master Game">
                     <section slot="content" className="block md">

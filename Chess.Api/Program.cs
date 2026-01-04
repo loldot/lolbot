@@ -5,6 +5,8 @@ using Chess.Api.Services;
 using Chess.Api.Testing;
 using Microsoft.AspNetCore.Mvc;
 
+Engine.Init();
+
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Test results DB migration (one-time) ---
@@ -229,6 +231,23 @@ app.MapGet("/game/{seq}/debug", (int seq) =>
     // Console.WriteLine("Evaluation: {0}", Engine.Evaluate(game.CurrentPosition));
 
     return Results.NoContent();
+});
+
+app.MapGet("/game/{seq}/nnue", (int seq) =>
+{
+    var game = GameDatabase.Instance.Get(seq);
+    if (game is null) return Results.NotFound();
+
+    var acc = NNUE.Accumulator.Create(game.CurrentPosition);
+    var eval = acc.Read(game.CurrentPosition.CurrentPlayer);
+
+    return Results.Ok(new ApiNnue
+    {
+        HiddenActivations = acc.Values,
+        OutputWeights = NNUE.OutputWeights,
+        OutputBias = NNUE.OutputBias,
+        Evaluation = eval
+    });
 });
 
 app.Run();

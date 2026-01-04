@@ -20,7 +20,7 @@ public static class Engine
 
     public static Game FromPosition(string fenstring)
     {
-        return new Game(MutablePosition.FromFen(fenstring));
+        return new Game(fenstring);
     }
 
     public static void Move(Game game, string from, string to)
@@ -109,6 +109,18 @@ public static class Engine
             OnSearchProgress = Uci.PrintProgress
         };
         return search.BestMove(ct);
+    }
+
+    public static Move? BestMove(Game game, int depth)
+    {
+        // Age history heuristic
+        AgeHistory();
+
+        var search = new Search(game, tt, historyHeuristic)
+        {
+            OnSearchProgress = Uci.PrintProgress
+        };
+        return search.BestMove(depth);
     }
 
     internal static void Reset()
