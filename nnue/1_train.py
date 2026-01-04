@@ -1,6 +1,7 @@
 import os
 import random
 import math
+import sys
 import numpy as np
 import torch
 import torch.nn as nn
@@ -210,7 +211,7 @@ if __name__ == "__main__":
 
     print(f"XPU: {torch.xpu.is_available()}")
 
-    hidden_size = 64
+    hidden_size = 128
     batch_size = 8192
     epochs = 25
     lr = 3e-3  # safer default than 1e-2 for AdamW
@@ -219,7 +220,10 @@ if __name__ == "__main__":
     wdl_lambda = 0.6  # 0.0 = pure eval, 1.0 = pure game result
     eval_scale = 400.0  # scale factor for eval -> probability conversion
 
-    path = r"C:\dev\chess-data\preprocessed_positions.bin"
+    if len(sys.argv) < 2:
+        print("Usage: uv run 1_train.py <path_to_data_file>")
+        sys.exit(1)
+    path = sys.argv[1]
 
     # Get total size without loading memmap
     import os

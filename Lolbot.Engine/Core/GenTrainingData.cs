@@ -54,7 +54,7 @@ public partial class GenTrainingData
 
             foreach (var _ in game.Moves)
             {
-                var staticEval = Heuristics.StaticEvaluation(game.CurrentPosition);
+                var staticEval = NNUE.Accumulator.Create(game.CurrentPosition).Read(game.CurrentPlayer);
                 var quiesenceEval = search.QuiesenceSearchPv(game.CurrentPosition, -Search.Inf, Search.Inf);
                 totalPositions++;
 
