@@ -99,14 +99,20 @@ public static class Engine
         return BestMove(game, timer.Token);
     }
 
-    public static Move? BestMove(Game game, CancellationToken ct)
+    public static Move? BestMove(Game game, Action<SearchProgress> onProgress)
+    {
+        var timer = new CancellationTokenSource(2_000);
+        return BestMove(game, timer.Token, onProgress);
+    }
+
+    public static Move? BestMove(Game game, CancellationToken ct, Action<SearchProgress>? onProgress = null)
     {
         // Age history heuristic
         AgeHistory();
 
         var search = new Search(game, tt, historyHeuristic)
         {
-            OnSearchProgress = Uci.PrintProgress
+            OnSearchProgress = onProgress ?? Uci.PrintProgress
         };
         return search.BestMove(ct);
     }

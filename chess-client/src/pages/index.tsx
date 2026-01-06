@@ -23,8 +23,8 @@ const Home = () => {
             <h1>Lolbot Chess Engine</h1>
 
             <ui-tabs>
-                <ui-tab-panel title="New Game">
-                    <h3 slot="header">New Game</h3>
+                <ui-tab-panel title="Analysis Board">
+                    <h3 slot="header">Analysis Board</h3>
                     <section slot="content" className="block md">
                         
                         <Suspense fallback={

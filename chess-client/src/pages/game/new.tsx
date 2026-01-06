@@ -1,41 +1,36 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { createGame } from "../../api";
+import { useEffect, useState } from "react";
+import Chessboard from "../../components/Chessboard";
+import { Game } from "../../game";
+import { createGame, baseUrl } from "../../api";
 
-const NewGame = () => {
-    const [fen, setFen] = useState<string>("");
-    const navigate = useNavigate();
+const AnalysisBoard = () => {
+    const [game, setGame] = useState<Game>();
+    const [seq, setSeq] = useState<number>(-1);
 
-    const handleCreateGame = async () => {
-        const seq = await createGame(fen || undefined);
-        if (seq !== -1) {
-            navigate(`/game/${seq}`);
-        }
-    };
+    useEffect(() => {
+        const initGame = async () => {
+            const newSeq = await createGame();
+            if (newSeq !== -1) {
+                setSeq(newSeq);
+                const result = await fetch(`${baseUrl}/game/${newSeq}`);
+                if (result.status === 200) {
+                    const data = await result.json();
+                    setGame(data);
+                }
+            }
+        };
+        initGame();
+    }, []);
+
+    if (!game) {
+        return <div>Starting new analysis session...</div>;
+    }
 
     return (
-        <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
-            <h2>New Game</h2>
-            <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                    Starting Position (FEN) - Optional
-                </label>
-                <input 
-                    type="text" 
-                    value={fen} 
-                    onChange={(e) => setFen(e.target.value)} 
-                    placeholder="Standard starting position if left empty"
-                    style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-                />
-            </div>
-            <button 
-                onClick={handleCreateGame} 
-                
-            >
-                Start Game
-            </button>
+        <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+            <Chessboard game={game} seq={seq} />
         </div>
     );
 }
 
-export default NewGame;
+export default AnalysisBoard;

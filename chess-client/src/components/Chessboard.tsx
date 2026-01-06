@@ -20,6 +20,16 @@ height: ${square_size};
 width: ${square_size};
 `;
 
+const SearchInfo = styled.div`
+    
+    padding: 8px;
+    margin-left: 20px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: monospace;
+    min-width: 150px;
+`;
+
 const BoardContainer = styled.div`    
 display: grid;
 grid-template-columns: repeat(8, ${square_size});
@@ -41,8 +51,8 @@ const Arrow = ({ from, to }: { from: string, to: string }) => {
     return (
         <g>
             <defs>
-                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                    <polygon points="0 0, 10 3.5, 0 7" fill="orange" opacity="0.8" />
+                <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+                    <polygon points="0 0, 6 2, 0 4" fill="orange" opacity="0.8" />
                 </marker>
             </defs>
             <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="orange" strokeWidth="6" opacity="0.8" markerEnd="url(#arrowhead)" />
@@ -78,6 +88,7 @@ const Chessboard = ({ game, seq, onNnueUpdate }: ChessboardProps) => {
     const [legalMoves, setLegalMoves] = useState<string[]>([]);
     const [highlight, setHighlights] = useState<string[]>([]);
     const [suggestedMove, setSuggestedMove] = useState<string[] | null>(null);
+    const [searchInfo, setSearchInfo] = useState<{ depth: number, eval: number } | null>(null);
 
 
     const [moveNumber, setMoveNumber] = useState(0);
@@ -96,7 +107,7 @@ const Chessboard = ({ game, seq, onNnueUpdate }: ChessboardProps) => {
         if (!mounted.current) {
 
             connection.on('movePlayed', (message: any) => {
-                if (message.plyCount >= moveNumberRef.current) {
+                if (message.plyCount > moveNumberRef.current) {
                     console.log(message);
 
                     const [from, to] = message.move;
@@ -111,6 +122,7 @@ const Chessboard = ({ game, seq, onNnueUpdate }: ChessboardProps) => {
             connection.on('suggestedMove', (message: any) => {
                 console.log('Suggested move:', message);
                 setSuggestedMove(message.move);
+                setSearchInfo({ depth: message.depth, eval: message.eval });
             });
             connection.on('finished', () => alert('checkmate'));
 
@@ -178,10 +190,23 @@ const Chessboard = ({ game, seq, onNnueUpdate }: ChessboardProps) => {
     }
 
     const executeMove = (from: string, to: string) => {
-        const m = [from, to] as Move;
+        let m = [from, to] as Move;
+
+        const piece = position[from];
+        if ((piece === 'K' || piece === 'k') && Math.abs(from.charCodeAt(0) - to.charCodeAt(0)) === 2) {
+            const row = piece === 'K' ? '1' : '8';
+            if (to === 'g' + row) {
+                 m = [from, to, 'h' + row, piece === 'K' ? 'R' : 'r', 'f' + row];
+            }
+            else if (to === 'c' + row) {
+                 m = [from, to, 'a' + row, piece === 'K' ? 'R' : 'r', 'd' + row];
+            }
+        }
+
         setMoves(prev => [...prev, m]);
         setPosition(prev => move(prev, m));
         setSuggestedMove(null);
+        setSearchInfo(null);
         setMoveNumber(prev => prev + 1);
         moveNumberRef.current++;
 
@@ -229,7 +254,8 @@ const Chessboard = ({ game, seq, onNnueUpdate }: ChessboardProps) => {
     }
 
     return (
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'row' }}>
+            <div>
             <BoardContainer>
                 {Array.from({ length: 64 }).map((_, i) => {
                     const f = file(i);
@@ -254,6 +280,7 @@ const Chessboard = ({ game, seq, onNnueUpdate }: ChessboardProps) => {
                     )}
                 </svg>
             </BoardContainer>
+            <div style={{marginTop: '10px'}}>
             <button onClick={() => undoMove()} disabled={!canMoveBackwards} >Back</button>
             <button onClick={() => doMove()} disabled={!canMoveForward} >Next</button>
             <button onClick={() => sendDebug()}  >Debug</button>
@@ -289,8 +316,16 @@ const Chessboard = ({ game, seq, onNnueUpdate }: ChessboardProps) => {
                 const seq = await createGame(fen);
                 navigate(`/game/${seq}`);
             }}>New</button>
+            </div>
+            </div>
 
-
+            {searchInfo && (
+                <SearchInfo>
+                    <h4>Engine Analysis</h4>
+                    <div><strong>Depth:</strong> {searchInfo.depth}</div>
+                    <div><strong>Eval:</strong> {searchInfo.eval}</div>
+                </SearchInfo>
+            )}
         </div>
     )
 }

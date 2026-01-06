@@ -26,6 +26,8 @@ public class SuggestedMoveMessage
 {
     public required int GameId { get; set; }
     public required string[] Move { get; set; }
+    public int Depth { get; set; }
+    public int Eval { get; set; }
 }
 
 public class GameHub : Hub
@@ -51,13 +53,26 @@ public class GameHub : Hub
 
         await Clients.All.SendAsync("movePlayed", message);
 
-        var bestMove = Engine.BestMove(game, 8);
+        SearchProgress? lastProgress = null;
+        var bestMove = Engine.BestMove(game, (progress) =>
+        {
+            lastProgress = progress;
+            _ = Clients.All.SendAsync("suggestedMove", new SuggestedMoveMessage
+            {
+                GameId = message.GameId,
+                Move = ApiMove.Create(progress.BestMove)!,
+                Depth = progress.Depth,
+                Eval = progress.Eval
+            });
+        });
         if (bestMove.HasValue)
         {
             await Clients.All.SendAsync("suggestedMove", new SuggestedMoveMessage
             {
                 GameId = message.GameId,
-                Move = ApiMove.Create(bestMove.Value)!
+                Move = ApiMove.Create(bestMove.Value)!,
+                Depth = lastProgress?.Depth ?? 0,
+                Eval = lastProgress?.Eval ?? 0
             });
         }
     }
