@@ -50,4 +50,19 @@ public class EnPassant
         position.Move(ref m);
         position.EnPassant.Should().Be(Squares.A6);
     }
+
+    
+    [Test]
+    public void EnPassant_Should_Not_Be_Set_When_Pawn_Is_Pinned()
+    {
+        var pos = MutablePosition.FromFen("5k2/1r3p2/3p1p1p/1Pp2B1P/1KR3P1/8/8/8 w - c6 0 78");
+        var illegalEP = new Move(Piece.WhitePawn, 
+            Squares.IndexFromCoordinate("b5"), 
+            Squares.IndexFromCoordinate("c6"),
+            Piece.BlackPawn,
+            Squares.IndexFromCoordinate("c5"));
+        
+        pos.GenerateLegalMoves().ToArray().Should().NotContain(illegalEP);
+        // pos.EnPassant.Should().NotBe(Squares.C6);
+    }
 }

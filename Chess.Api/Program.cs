@@ -30,6 +30,7 @@ catch (Exception ex)
 
 builder.Services.AddSignalR();
 builder.Services.AddCors();
+builder.Services.AddAntiforgery();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -58,10 +59,27 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
+app.UseAntiforgery();
+
 
 // await GameDatabase.Instance.Seed();
 
 app.MapHub<GameHub>("/game/realtime");
+
+app.MapPost("/game/pgn", async (IFormFile file) =>
+{
+    if (file is null || file.Length == 0)
+    {
+        return Results.BadRequest("No file uploaded.");
+    }
+
+    using var stream = file.OpenReadStream();
+    var (game, _) = await new PgnSerializer().ReadSingle(stream);
+    var (id, _) = GameDatabase.Instance.Add(game);
+    return Results.Ok(new { id });
+})
+.DisableAntiforgery()
+.WithName("UploadPgn");
 
 // Test results endpoints
 app.MapGet("/api/tests/engines", (int? limit, TestResultsService svc) => Results.Ok(svc.GetEngineSummaries(limit ?? 250)))
