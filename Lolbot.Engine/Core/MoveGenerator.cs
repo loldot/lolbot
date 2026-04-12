@@ -190,7 +190,8 @@ public class MoveGenerator
         {
             var sq = Bitboards.PopLsb(ref pawns);
             var pseudoAttacks = attackPattern[sq];
-            var attacks = pseudoAttacks & targets & position.Checkmask & position.PinnedPiece(ref sq);
+            var pinnedMask = position.PinnedPiece(in sq);
+            var attacks = pseudoAttacks & targets & position.Checkmask & pinnedMask;
 
             while (TMove.HasCaptures && attacks != 0 && count < moves.Length)
             {
@@ -203,8 +204,8 @@ public class MoveGenerator
             }
             if (TMove.HasCaptures && position.EnPassant != 0 && ((1ul << position.EnPassant) & attackPattern[sq]) != 0)
                 count = DoEnPassant(position, ref moves, count, ref sq, position.EnPassant);
-                
-            var pushes = pushPattern[sq] & position.Checkmask & position.PinnedPiece(in sq) & position.Empty;
+
+            var pushes = pushPattern[sq] & position.Checkmask & pinnedMask & position.Empty;
             while (TMove.HasQuiets && pushes != 0 && count < moves.Length)
             {
                 var push = Bitboards.PopLsb(ref pushes);
@@ -264,10 +265,9 @@ public class MoveGenerator
 
         var epWouldCheck = 0 != (kingRook & (opponentQueen | opponentRook));
         epWouldCheck |= 0 != (kingBishop & (opponentQueen | opponentBishop));
-
-        var epSavesCheck = position.Checkmask < ulong.MaxValue;
+        
         // Double pushed pawn is checking, capture en passant.
-        if (!epWouldCheck || epSavesCheck)
+        if (!epWouldCheck)
         {
             moves[count++] = ep;
         }
