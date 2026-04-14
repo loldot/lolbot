@@ -158,6 +158,39 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         Move bestMove = rootMoves[0];
         rootScore = -Inf;
 
+        if (SyzygyTablebase.CanProbe(position))
+        {            
+            var syzygyWdl = SyzygyTablebase.ProbeWdl(position);
+            if (syzygyWdl < 100)
+            {
+                rootScore = syzygyWdl switch
+                {
+                    0 => -Mate + 100,  // loss
+                    1 => 0,         // draw
+                    2 => Mate - 100, // win
+                    _ => 0
+                };
+
+                if (rootScore > 0)
+                {
+                    foreach (var move in rootMoves[..rootMoveCount])
+                    {
+                        position.Move(in move);
+                        var reply = SyzygyTablebase.ProbeWdl(position);
+                        position.Undo(in move);
+
+                        if (reply <= 0)
+                        {
+                            bestMove = move;
+                            break;
+                        }
+                    }
+                }
+
+                return;
+            }
+        }
+
         if (tt.TryGet(position.Hash, out var ttEntry))
         {
             if (ttEntry.Depth >= depth)

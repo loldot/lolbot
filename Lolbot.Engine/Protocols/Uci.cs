@@ -23,6 +23,7 @@ public class Uci
             else if (command.StartsWith("perft")) Perft(command);
             else if (command.StartsWith("ucinewgame")) Reset();
             else if (command.StartsWith("eval")) Evaluate();
+            else if (command.StartsWith("setoption")) SetOption(command);
             else Unknown(command);
         }
     }
@@ -63,16 +64,44 @@ public class Uci
         Console.WriteLine($"Total nodes: {count}, Elapsed: {ms:N0}ms, ({mNodesPerSec:N0} mnodes/s)");
     }
 
-    private static void Init()
+private static void Init()
     {
         var assembly = System.Reflection.Assembly.GetExecutingAssembly();
         var version = assembly.GetName().Version?.ToString() ?? "unknown";
+        SyzygyTablebase.Init(@"C:\dev\chess-data\syzygy\3-4-5-wdl");
         Console.WriteLine($"id name Lolbot {version}");
-        Console.WriteLine("id author loldot");
+        Console.WriteLine($"id author loldot");
 #if NNUE
         Console.WriteLine("info NNUE enabled");
 #endif
+        Console.WriteLine("option name SyzygyPath type string default");
+        Console.WriteLine("option name SyzygyMaxPieces type spin default 7 min 2 max 7");
         Console.WriteLine("uciok");
+    }
+
+    private static void SetOption(string command)
+    {
+        var tokens = Regex.Split(command, @"\s");
+
+        for (int i = 1; i < tokens.Length; i++)
+        {
+            if (tokens[i] == "name" && i + 1 < tokens.Length)
+            {
+                var name = tokens[++i];
+                var value = i + 1 < tokens.Length ? tokens[i + 1] : "";
+
+                if (name == "SyzygyPath")
+                {
+                    SyzygyTablebase.Init(value);
+                    Console.WriteLine($"info string syzygy loaded {SyzygyTablebase.MaxPieces} pieces");
+                }
+                else if (name == "SyzygyMaxPieces" && int.TryParse(value, out var maxPieces))
+                {
+                    SyzygyTablebase.Init(SyzygyTablebase.Path, maxPieces);
+                    Console.WriteLine($"info string Set SyzygyMaxPieces to {maxPieces}");
+                }
+            }
+        }
     }
 
     private static void IsReady()
