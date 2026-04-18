@@ -48,4 +48,15 @@ public class RepetitionTable
     }
 
     public void Clear() => moveCount = 0;
+
+    internal RepetitionTable Clone()
+    {
+        var clone = new RepetitionTable
+        {
+            moveCount = this.moveCount,
+            history = (ulong[])this.history.Clone(),
+            irreversible = (int[])this.irreversible.Clone()
+        };
+        return clone;
+    }
 }

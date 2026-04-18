@@ -2,8 +2,15 @@ using Lolbot.Core;
 
 namespace Lolbot.Tests;
 
+[TestFixture]
 public class Tactics
 {
+    [SetUp]
+    public void Init()
+    {
+        Engine.Init();
+    }
+
     [Test]
     public void Should_Find_Easy_Tactic()
     {
@@ -117,6 +124,24 @@ public class Tactics
         var game = new Game(position, []);
         var bestMove = Engine.BestMove(game);
         bestMove.Should().Be(new Move('p', "c7", "b6", 'Q'));
+    }
+
+    [TestCase("6bk/6pp/7R/5p2/4pP2/4P3/8/Q6K w - - 0 1")]
+    [TestCase("q6k/8/4p3/4Pp2/5P2/7r/6PP/6BK b - - 0 1")]
+    public void Should_Find_Mate_In_Two(string fen)
+    {
+        GetBestMove(fen).Should().BeOneOf([
+            new Move('Q', "A1", "a8"),
+            new Move('q', "a8", "a1")
+        ]);
+    }
+
+    [TestCase("4k3/1p6/3PBPK1/8/8/p7/8/7r w - - 2 46", "d7+")]
+    public void Should_Solve_EndGames(string fen, string bm)
+    {
+        var pos = MutablePosition.FromFen(fen);
+        var game = new Game(pos, []);
+        GetBestMove(fen).Should().Be(PgnSerializer.ParseMove(game, bm));
     }
 
 

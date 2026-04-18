@@ -11,7 +11,7 @@ public class MovePickerOrdering
         var pos = MutablePosition.FromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         Span<Move> buffer = stackalloc Move[256];
 
-        var killers = new Move[64];
+        var killers = new SearchStack[64];
         int[][] history = [new int[4096], new int[4096]];
 
         // pick two legal quiet moves, set one as killer, give another huge history to compete
@@ -19,7 +19,7 @@ public class MovePickerOrdering
         var first = mp.SelectMove(1); // generate
         var second = mp.SelectMove(2);
 
-        killers[0] = first;
+        killers[0].Killers = first;
         history[second.Color][second.value & 0xfff] = 10_000; // large but should lose to killer bonus
 
         // re-create to force regeneration with scores
@@ -35,7 +35,7 @@ public class MovePickerOrdering
         // Setup: simple position with several captures available
         var pos = MutablePosition.FromFen("r3k2r/ppp2ppp/2n5/3pp3/3PP3/2N5/PPP2PPP/R3K2R w KQkq - 0 1");
         Span<Move> buffer = stackalloc Move[256];
-        var killers = new Move[64];
+        var killers = new SearchStack[64];
         int[][] history = [new int[4096], new int[4096]];
 
         MovePicker mp = new MovePicker(ref killers, ref history, ref buffer, pos, Move.Null, ply: 0);

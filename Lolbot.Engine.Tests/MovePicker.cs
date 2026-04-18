@@ -5,7 +5,7 @@ namespace Lolbot.Tests;
 public class MovePick
 {
     private int[][] empty_history = [new int[4096], new int[4096]];
-    private Move[] empty_killers = new Move[64];
+    private SearchStack[] empty_killers = new SearchStack[64];
 
     [Test]
     public void Should_Select_Move_From_TT_First()

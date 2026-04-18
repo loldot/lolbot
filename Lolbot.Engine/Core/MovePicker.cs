@@ -7,7 +7,7 @@ public ref struct MovePicker
     private bool isGenerated = false;
 
     private Move ttMove;
-    private readonly Move[] killers;
+    private readonly  SearchStack[] searchStack;
     private readonly int[][] history;
     private Span<Move> moves;
     private MutablePosition position;
@@ -15,7 +15,7 @@ public ref struct MovePicker
     public int Count;
 
     public MovePicker(
-        ref readonly Move[] killers,
+        ref readonly SearchStack[] killers,
         ref readonly int[][] history,
         ref readonly Span<Move> moves,
         MutablePosition position,
@@ -23,7 +23,7 @@ public ref struct MovePicker
     {
         this.ttMove = ttMove;
         this.ply = ply;
-        this.killers = killers;
+        this.searchStack = killers;
         this.history = history;
         this.moves = moves;
         this.position = position;
@@ -130,9 +130,9 @@ public ref struct MovePicker
         score += 100_000 * m.MVV_LVA();
 
         Debug.Assert(ply >= 0, "negative ply");
-        Debug.Assert(ply < killers.Length);
+        Debug.Assert(ply < searchStack.Length);
 
-        score += killers[ply] == m ? 99_999 : 0;
+        score += searchStack[ply].Killers == m ? 99_999 : 0;
         score += history[m.Color][m.value & 0xfffu];
 
         return score;

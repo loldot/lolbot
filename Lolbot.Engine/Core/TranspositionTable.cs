@@ -49,7 +49,7 @@ public class TranspositionTable
     {
         var index = hash & Mask;
 
-        Debug.Assert(eval < short.MaxValue);
+        Debug.Assert(eval <= Search.Mate);
 
 #if DEBUG
         var current = entries[index];
