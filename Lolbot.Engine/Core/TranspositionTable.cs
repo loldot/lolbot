@@ -14,6 +14,12 @@ public class TranspositionTable
     public const byte LowerBound = 2;
     public const byte Exact = 3;
 
+    public const byte GenerationMask = 0x3f;
+
+    public byte Generation { get; private set; }
+
+    public void Age() => Generation = (byte)((Generation + 1) & GenerationMask);
+
 #if DEBUG
     public int set_count = 0;
     public int collision_count = 0;
@@ -23,23 +29,26 @@ public class TranspositionTable
 #endif
 
 
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public readonly struct Entry
     {
-        public readonly ulong Key;
-        public readonly Move Move;
-
-        public readonly byte Type;
+        public readonly byte Flags;
+        public readonly byte Type => (byte)((Flags & 0xC0) >> 6);
+        public readonly byte Generation => (byte)(Flags & GenerationMask);
         public readonly byte Depth;
         public readonly short Evaluation;
+        public readonly Move Move;
+        public readonly ulong Key;
+
         public readonly bool IsSet => Key != 0;
 
-        public Entry(ulong key, int depth, int eval, byte type, Move move)
+        public Entry(int depth, byte type, byte generation, int eval, Move move, ulong key)
         {
-            Key = key;
-            Move = move;
-            Type = type;
+            Flags = (byte)((type << 6) | (generation & GenerationMask));
             Depth = (byte)depth;
-            Evaluation = (short)eval;            
+            Evaluation = (short)eval;
+            Move = move;
+            Key = key;
         }
     }
 
@@ -58,8 +67,18 @@ public class TranspositionTable
         else if (hash == current.Key) rewrite_count++;
         else if (hash != current.Key) collision_count++;
 #endif
+        ref var entry = ref entries[index];
+        if (type == Exact || entry.Key == 0 || entry.Depth <= depth || IsAncient(entry))
+        {
+            entry = new Entry(depth, type, Generation, eval, move, hash);
+        }
+        return entry;
+    }
+    public bool IsAncient(Entry entry)
+    {
+        int age = unchecked (Generation - entry.Generation) & GenerationMask;
 
-        return entries[index] = new Entry(hash, depth, eval, type, move);
+        return age > entry.Depth;
     }
 
     public Entry Get(ulong hash)
@@ -70,7 +89,7 @@ public class TranspositionTable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref Entry GetRef(ulong hash) 
+    public ref Entry GetRef(ulong hash)
         => ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), (int)hash & Mask);
 
     public bool Probe(ulong hash,

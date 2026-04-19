@@ -1,6 +1,3 @@
-using System.Buffers;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static System.Math;
 
@@ -14,17 +11,9 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     const int Max_History = 38_400;
     const int Max_Depth = 64;
 
-    private const int FutilityMargin = 130;
-    private const int ReverseFutilityMargin = 117;
-
-    private const int InternalIterativeReductionDepth = 4;
 
     private readonly MutablePosition position = game.CurrentPosition;
     private readonly RepetitionTable history = game.RepetitionTable;
-
-
-    private int nodes = 0;
-    private int qnodes = 0;
 
     private int contempt = 50;
     private CancellationToken ct;
@@ -64,7 +53,8 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     public Move IterativeDeepening(int maxSearchDepth, CancellationToken ct)
     {
         this.ct = ct;
-
+        tt.Age();
+        
         mainWorker = SearchWorker.Create(position, history, tt, historyHeuristic, ct);
         for (int i = 0; i < parallelWorkers.Length; i++)
         {
@@ -87,10 +77,6 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         var delta = 64 / Clamp(depth - 3, 1, 4);
 
         var start = DateTime.Now;
-
-        this.nodes = 0;
-        this.qnodes = 0;
-
 
         var (alpha, beta) = depth <= 1
             ? (-Inf, Inf)
@@ -130,6 +116,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             delta <<= 1;
             if (delta >= 100) (alpha, beta) = (-(Inf + delta), Inf + delta);
         }
+        var nodes = mainWorker.nodes + parallelWorkers.Sum(w => w.nodes);
 
         if (!ct.IsCancellationRequested)
         {
@@ -163,7 +150,7 @@ public class SearchWorker
     Move[] rootMoves;
     int rootScore;
 
-    int nodes, qnodes;
+    public int nodes, qnodes;
 
 
     public bool IsCompleted { get; private set; }
@@ -208,13 +195,18 @@ public class SearchWorker
         {
             sorted[i] = movePicker.SelectMove(i);
         }
+        var clonedHistory = new int[historyHeuristic.Length][];
+        for (int i = 0; i < historyHeuristic.Length; i++)        {
+            clonedHistory[i] = new int[historyHeuristic[i].Length];
+            Array.Copy(historyHeuristic[i], clonedHistory[i], historyHeuristic[i].Length);
+        }
 
         return new SearchWorker(
             position.Clone(),
             sorted,
             repetitions.Clone(),
             tt,
-            historyHeuristic,
+            clonedHistory,
             searchStack,
             ct);
     }
@@ -235,6 +227,8 @@ public class SearchWorker
     {
         // Console.WriteLine($"Worker {Thread.CurrentThread.ManagedThreadId} searching depth {depth} with alpha {alpha} and beta {beta}");
         IsCompleted = false;
+        nodes = 0;
+        qnodes = 0;
 
         if (position.IsCheck) depth++;
 
@@ -242,33 +236,8 @@ public class SearchWorker
         Move bestMove = rootMoves[0];
         rootScore = -Inf;
 
-        if (tt.TryGet(position.Hash, out var ttEntry))
-        {
-            if (ttEntry.Depth >= depth)
-            {
-                int ttEval = FromTT(ttEntry.Evaluation, 0);
-
-                switch (ttEntry.Type)
-                {
-                    case TranspositionTable.Exact:
-                        rootScore = ttEval;
-                        return;
-                    case TranspositionTable.LowerBound:
-                        alpha = Max(alpha, ttEval);
-                        break;
-                    case TranspositionTable.UpperBound:
-                        beta = Min(beta, ttEval);
-                        break;
-                }
-
-                if (alpha >= beta)
-                {
-                    rootScore = ttEval;
-                    return;
-                }
-            }
-        }
-        else if (depth > InternalIterativeReductionDepth) depth--;
+        if (!tt.TryGet(position.Hash, out var _) 
+            && depth > InternalIterativeReductionDepth) depth--;
 
         int i = 0;
         for (; i < rootMoves.Length; i++)
@@ -470,7 +439,7 @@ public class SearchWorker
         else if (best >= beta) flag = TranspositionTable.LowerBound;
 
         if (best > -Inf && best < Inf)
-            ttEntry = new TranspositionTable.Entry(position.Hash, depth, ToTT(best, ply), flag, ttMove);
+            ttEntry = new TranspositionTable.Entry(depth, flag, tt.Generation, ToTT(best, ply), ttMove, position.Hash);
 
         return best;
     }
