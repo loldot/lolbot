@@ -70,15 +70,15 @@ public class TranspositionTable
         ref var entry = ref entries[index];
         if (type == Exact || entry.Key == 0 || entry.Depth <= depth || IsAncient(entry))
         {
-            entry = new Entry(depth, type, Generation, eval, move, hash);
+            entry = new Entry(depth, type, (byte)(Generation + 4), eval, move, hash);
         }
         return entry;
     }
     public bool IsAncient(Entry entry)
     {
-        int age = unchecked (Generation - entry.Generation) & GenerationMask;
+        int age = unchecked(Generation - entry.Generation) & GenerationMask;
 
-        return age > entry.Depth;
+        return age > 0;
     }
 
     public Entry Get(ulong hash)
@@ -147,5 +147,10 @@ public class TranspositionTable
         collision_count = 0;
         rewrite_count = 0;
 #endif
+    }
+
+    internal void NewGame()
+    {
+        Generation += 4;
     }
 }

@@ -10,13 +10,19 @@ public static class Engine
         new int[4096], new int[4096]
     ];
 
+    public static Options Options { get; } = new Options();
+
     public static void Init()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "nnue_weights_64.bin");
         NNUE.Initialize(path);
     }
 
-    public static Game NewGame() => new Game(new MutablePosition());
+    public static Game NewGame()
+    {
+        tt.NewGame();
+        return new Game(new MutablePosition());
+    }
 
     public static Game FromPosition(string fenstring)
     {
@@ -110,7 +116,7 @@ public static class Engine
         // Age history heuristic
         AgeHistory();
 
-        var search = new Search(game, tt, historyHeuristic)
+        var search = new Search(game, tt, historyHeuristic, Options.Threads)
         {
             OnSearchProgress = onProgress ?? Uci.PrintProgress
         };
@@ -122,7 +128,7 @@ public static class Engine
         // Age history heuristic
         AgeHistory();
 
-        var search = new Search(game, tt, historyHeuristic)
+        var search = new Search(game, tt, historyHeuristic, Options.Threads)
         {
             OnSearchProgress = Uci.PrintProgress
         };

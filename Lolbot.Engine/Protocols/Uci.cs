@@ -74,9 +74,21 @@ private static void Init()
 #if NNUE
         Console.WriteLine("info NNUE enabled");
 #endif
-        Console.WriteLine("option name SyzygyPath type string default");
-        Console.WriteLine("option name SyzygyMaxPieces type spin default 7 min 2 max 7");
+        DescribeOptions();
         Console.WriteLine("uciok");
+    }
+
+    private static void DescribeOptions()
+    {
+        var options = typeof(Options).GetProperties()
+            .Select(p => (Property: p, Attribute: p.GetCustomAttributes(typeof(UciOption), false).FirstOrDefault() as UciOption))
+            .Where(x => x.Attribute != null);
+
+        foreach (var (property, attribute) in options)
+        {
+            var value = property.GetValue(Engine.Options);
+            Console.WriteLine($"option name {attribute.Name} type {attribute.Type} default {value} {(attribute.MaxValuePropName != null ? $"max {property.DeclaringType.GetProperty(attribute.MaxValuePropName)?.GetValue(Engine.Options)}" : "")} {(attribute.MinValuePropName != null ? $"min {property.DeclaringType.GetProperty(attribute.MinValuePropName)?.GetValue(Engine.Options)}" : "")}");
+        }
     }
 
     private static void SetOption(string command)

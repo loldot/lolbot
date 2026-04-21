@@ -3,7 +3,7 @@ using static System.Math;
 
 namespace Lolbot.Core;
 
-public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeuristic)
+public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeuristic, int threads = 0)
 {
     public const int Inf = short.MaxValue;
     public const int Mate = short.MaxValue / 2;
@@ -47,15 +47,15 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
     }
 
     SearchWorker mainWorker = null!;
-    SearchWorker[] parallelWorkers = new SearchWorker[3];
+    SearchWorker[] parallelWorkers = new SearchWorker[Max(0, threads - 1)];
     int rootScore = -Inf;
 
     public Move IterativeDeepening(int maxSearchDepth, CancellationToken ct)
     {
         this.ct = ct;
         tt.Age();
-        
-        mainWorker = SearchWorker.Create(position, history, tt, historyHeuristic, ct);
+
+        mainWorker = SearchWorker.CreateMain(position, history, tt, historyHeuristic, ct);
         for (int i = 0; i < parallelWorkers.Length; i++)
         {
             parallelWorkers[i] = SearchWorker.Create(position, history, tt, historyHeuristic, ct);
@@ -84,25 +84,24 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
         while (true)
         {
-            if (depth > 1)
+            bool isParallel = depth > 1 && parallelWorkers.Length > 0;
+            if (isParallel)
             {
-                using (var countdownEvent = new CountdownEvent(parallelWorkers.Length))
-                {
+                using var countdownEvent = new CountdownEvent(parallelWorkers.Length);
 
-                    for (int i = 0; i < parallelWorkers.Length; i++)
+                for (int i = 0; i < parallelWorkers.Length; i++)
+                {
+                    var worker = parallelWorkers[i];
+                    ThreadPool.QueueUserWorkItem(_ =>
                     {
-                        var worker = parallelWorkers[i];
-                        ThreadPool.QueueUserWorkItem(_ =>
-                        {
-                            worker.SearchRoot(depth, alpha, beta);
-                            countdownEvent.Signal();
-                        });
-                    }
-                    mainWorker.SearchRoot(depth, alpha, beta);
-                    countdownEvent.Wait();
+                        worker.SearchRoot(depth, alpha, beta);
+                        countdownEvent.Signal();
+                    });
                 }
+                mainWorker.SearchRoot(depth, alpha, beta);
+                countdownEvent.Wait();
             }
-            else 
+            else
             {
                 mainWorker.SearchRoot(depth, alpha, beta);
             }
@@ -124,421 +123,476 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             OnSearchProgress?.Invoke(new SearchProgress(depth, mainWorker.BestMove, mainWorker.Eval, nodes, s));
         }
     }
-}
 
-public class SearchWorker
-{
-    public const int Inf = short.MaxValue;
-    public const int Mate = short.MaxValue / 2;
-
-    const int Max_History = 38_400;
-    const int Max_Depth = 64;
-
-    private const int FutilityMargin = 130;
-    private const int ReverseFutilityMargin = 117;
-
-    private const int InternalIterativeReductionDepth = 4;
-
-    readonly CancellationToken ct;
-
-    readonly MutablePosition position;
-    readonly RepetitionTable repetitions;
-    readonly TranspositionTable tt;
-    int[][] historyHeuristic;
-    readonly SearchStack[] searchStack;
-
-    Move[] rootMoves;
-    int rootScore;
-
-    public int nodes, qnodes;
-
-
-    public bool IsCompleted { get; private set; }
-    public Move BestMove => rootMoves[0];
-    public int Eval => rootScore;
-
-    public SearchWorker(
-        MutablePosition position,
-        Move[] rootMoves,
-        RepetitionTable repetitions,
-        TranspositionTable tt,
-        int[][] historyHeuristic,
-        SearchStack[] searchStack,
-        CancellationToken ct)
+    private sealed class SearchWorker
     {
-        this.position = position.Clone();
-        this.rootMoves = rootMoves;
-        this.repetitions = repetitions.Clone();
-        this.tt = tt;
-        this.historyHeuristic = historyHeuristic;
-        this.ct = ct;
-        this.nodes = 0;
-        this.qnodes = 0;
-        this.searchStack = searchStack;
-    }
+        public const int Inf = short.MaxValue;
+        public const int Mate = short.MaxValue / 2;
 
-    public static SearchWorker Create(
-        MutablePosition position,
-        RepetitionTable repetitions,
-        TranspositionTable tt,
-        int[][] historyHeuristic,
-        CancellationToken ct)
-    {
-        var searchStack = CreateSearchStack(position);
-        Span<Move> rootMoves = new Move[256];
-        var rootMoveCount = MoveGenerator.Legal(position, ref rootMoves);
+        const int Max_History = 38_400;
+        const int Max_Depth = 64;
 
-        Move[] sorted = new Move[rootMoveCount];
-        var movePicker = new MovePicker(in searchStack, ref historyHeuristic, ref rootMoves, position, Move.Null, 0);
+        private const int FutilityMargin = 130;
+        private const int ReverseFutilityMargin = 117;
 
-        for (int i = 0; i < rootMoveCount; i++)
+        private const int InternalIterativeReductionDepth = 4;
+
+        readonly CancellationToken ct;
+
+        readonly MutablePosition position;
+        readonly RepetitionTable repetitions;
+        readonly TranspositionTable tt;
+        int[][] historyHeuristic;
+        readonly SearchStack[] searchStack;
+
+        Move[] rootMoves;
+        int rootScore;
+
+        public int nodes, qnodes;
+
+
+        public bool IsCompleted { get; private set; }
+        public Move BestMove => rootMoves[0];
+        public int Eval => rootScore;
+
+        public SearchWorker(
+            MutablePosition position,
+            Move[] rootMoves,
+            RepetitionTable repetitions,
+            TranspositionTable tt,
+            int[][] historyHeuristic,
+            SearchStack[] searchStack,
+            CancellationToken ct)
         {
-            sorted[i] = movePicker.SelectMove(i);
+            this.position = position.Clone();
+            this.rootMoves = rootMoves;
+            this.repetitions = repetitions.Clone();
+            this.tt = tt;
+            this.historyHeuristic = historyHeuristic;
+            this.ct = ct;
+            this.nodes = 0;
+            this.qnodes = 0;
+            this.searchStack = searchStack;
         }
-        var clonedHistory = new int[historyHeuristic.Length][];
-        for (int i = 0; i < historyHeuristic.Length; i++)        {
-            clonedHistory[i] = new int[historyHeuristic[i].Length];
-            Array.Copy(historyHeuristic[i], clonedHistory[i], historyHeuristic[i].Length);
-        }
+        public static SearchWorker CreateMain(
+            MutablePosition position,
+            RepetitionTable repetitions,
+            TranspositionTable tt,
+            int[][] historyHeuristic,
+            CancellationToken ct) => Create(position, repetitions, tt, historyHeuristic, isMain: true, ct);
+        public static SearchWorker Create(
+            MutablePosition position,
+            RepetitionTable repetitions,
+            TranspositionTable tt,
+            int[][] historyHeuristic,
+            CancellationToken ct) => Create(position, repetitions, tt, historyHeuristic, isMain: false, ct);
 
-        return new SearchWorker(
-            position.Clone(),
-            sorted,
-            repetitions.Clone(),
-            tt,
-            clonedHistory,
-            searchStack,
-            ct);
-    }
-
-    private static SearchStack[] CreateSearchStack(MutablePosition position)
-    {
-        var stack = new SearchStack[2 * Max_Depth];
-        for (int i = 0; i < stack.Length; i++)
+        public static SearchWorker Create(
+            MutablePosition position,
+            RepetitionTable repetitions,
+            TranspositionTable tt,
+            int[][] historyHeuristic,
+            bool isMain,
+            CancellationToken ct)
         {
-            stack[i] = new SearchStack { Accumulator = new NNUE.Accumulator() };
-        }
-        stack[0].Accumulator = NNUE.Accumulator.Create(position);
+            var searchStack = CreateSearchStack(position);
+            Span<Move> rootMoves = new Move[256];
+            var rootMoveCount = MoveGenerator.Legal(position, ref rootMoves);
 
-        return stack;
-    }
+            Move[] sorted = new Move[rootMoveCount];
 
-    public void SearchRoot(int depth, int alpha = -Inf, int beta = Inf)
-    {
-        // Console.WriteLine($"Worker {Thread.CurrentThread.ManagedThreadId} searching depth {depth} with alpha {alpha} and beta {beta}");
-        IsCompleted = false;
-        nodes = 0;
-        qnodes = 0;
+            var ttMove = tt.TryGet(position.Hash, out var entry) ? entry.Move : Move.Null;
+            var movePicker = new MovePicker(in searchStack, ref historyHeuristic, ref rootMoves, position, ttMove, 0);
 
-        if (position.IsCheck) depth++;
-
-        var originalAlpha = alpha;
-        Move bestMove = rootMoves[0];
-        rootScore = -Inf;
-
-        if (!tt.TryGet(position.Hash, out var _) 
-            && depth > InternalIterativeReductionDepth) depth--;
-
-        int i = 0;
-        for (; i < rootMoves.Length; i++)
-        {
-            var move = rootMoves[i];
-            position.Move(in move);
-            repetitions.Update(move, position.Hash);
-
-            searchStack[0].Accumulator.CopyTo(ref searchStack[1].Accumulator);
-            searchStack[1].Accumulator.Move(in move);
-
-            int value;
-            if (i == 0)
+            for (int i = 0; i < rootMoveCount; i++)
             {
-                value = -EvaluateMove<PvNode>(depth - 1, 1, -beta, -alpha);
+                sorted[i] = movePicker.SelectMove(i);
             }
-            else
-            {
-                int reduction = Lmr((byte)depth, (byte)i);
-                value = -EvaluateMove<NonPvNode>(depth - reduction, 1, -alpha - 1, -alpha);
-                if (value > alpha && Abs(value) != Inf)
-                    value = -EvaluateMove<PvNode>(depth - 1, 1, -beta, -alpha); // re-search
-            }
-            position.Undo(in move);
-            repetitions.Unwind();
 
-            if (value > alpha && Abs(value) < Inf)
+            if (isMain)
             {
-                if (i != 0) Array.Copy(rootMoves, 0, rootMoves, 1, i);
-                rootScore = alpha = value;
-                rootMoves[0] = bestMove = move;
+                return new SearchWorker(
+                  position,
+                  sorted,
+                  repetitions,
+                  tt,
+                  historyHeuristic,
+                  searchStack,
+                  ct);
             }
+
+            var clonedHistory = new int[historyHeuristic.Length][];
+            for (int i = 0; i < historyHeuristic.Length; i++)
+            {
+                clonedHistory[i] = new int[historyHeuristic[i].Length];
+                Array.Copy(historyHeuristic[i], clonedHistory[i], historyHeuristic[i].Length);
+            }
+
+            return new SearchWorker(
+                position.Clone(),
+                sorted,
+                repetitions.Clone(),
+                tt,
+                clonedHistory,
+                searchStack,
+                ct);
         }
-        nodes += i;
 
-        var flag = TranspositionTable.Exact;
-        if (alpha <= originalAlpha) flag = TranspositionTable.UpperBound;
-        else if (alpha >= beta) flag = TranspositionTable.LowerBound;
-
-        if (alpha > -Inf && alpha < Inf)
-            tt.Add(position.Hash, depth, ToTT(alpha, 0), flag, bestMove);
-
-        IsCompleted = true;
-        // Console.WriteLine($"Worker {Thread.CurrentThread.ManagedThreadId} completed depth {depth} with best move {bestMove} and eval {alpha}");
-    }
-
-    public int EvaluateMove<TNode>(int depth, int ply, int alpha, int beta, bool isNullAllowed = true)
-       where TNode : struct, NodeType
-    {
-        if (ct.IsCancellationRequested) return Inf;
-        if (position.IsCheck) depth++;
-        if (depth <= 0) return QuiesenceSearch<TNode>(position, ply, alpha, beta);
-
-        var originalAlpha = alpha;
-
-        alpha = Max(alpha, -Mate + ply);
-        beta = Min(beta, Mate - ply - 1);
-        if (alpha >= beta) return alpha;
-
-        if (repetitions.IsDraw(position.Hash)) return 0; // return contempt * (position.CurrentPlayer == Colors.White ? -1 : 1);
-
-        var ttMove = Move.Null;
-        var eval = 0;
-
-        ref var ttEntry = ref tt.GetRef(position.Hash);
-
-        if (ttEntry.Key == position.Hash)
+        private static SearchStack[] CreateSearchStack(MutablePosition position)
         {
-            ttMove = ttEntry.Move;
-            eval = FromTT(ttEntry.Evaluation, ply);
-
-            if (ttEntry.Depth >= depth)
+            var stack = new SearchStack[2 * Max_Depth];
+            for (int i = 0; i < stack.Length; i++)
             {
-                switch (ttEntry.Type)
+                stack[i] = new SearchStack { Accumulator = new NNUE.Accumulator() };
+            }
+            stack[0].Accumulator = NNUE.Accumulator.Create(position);
+
+            return stack;
+        }
+
+        public void SearchRoot(int depth, int alpha = -Inf, int beta = Inf)
+        {
+            // Console.WriteLine($"Worker {Thread.CurrentThread.ManagedThreadId} searching depth {depth} with alpha {alpha} and beta {beta}");
+            IsCompleted = false;
+            nodes = 0;
+            qnodes = 0;
+
+            if (position.IsCheck) depth++;
+
+            var originalAlpha = alpha;
+            Move bestMove = rootMoves[0];
+            rootScore = -Inf;
+
+            if (tt.TryGet(position.Hash, out var ttEntry))
+            {
+                if (ttEntry.Depth >= depth)
                 {
-                    case TranspositionTable.Exact:
-                        return eval;
-                    case TranspositionTable.LowerBound:
-                        alpha = Max(alpha, eval);
-                        break;
-                    case TranspositionTable.UpperBound:
-                        beta = Min(beta, eval);
-                        break;
+                    int ttEval = FromTT(ttEntry.Evaluation, 0);
+
+                    switch (ttEntry.Type)
+                    {
+                        case TranspositionTable.Exact:
+                            rootScore = ttEval;
+                            return;
+                        case TranspositionTable.LowerBound:
+                            alpha = Max(alpha, ttEval);
+                            break;
+                        case TranspositionTable.UpperBound:
+                            beta = Min(beta, ttEval);
+                            break;
+                    }
+
+                    if (alpha >= beta)
+                    {
+                        rootScore = ttEval;
+                        return;
+                    }
                 }
-                if (alpha >= beta) return eval;
             }
-        }
-        else if (depth > InternalIterativeReductionDepth) depth--;
+            else if (depth > InternalIterativeReductionDepth) depth--;
 
-        bool isPruningAllowed = !TNode.IsPv && !position.IsCheck;
-
-        if (isPruningAllowed)
-        {
-            if (!ttEntry.IsSet || ttEntry.Type != TranspositionTable.Exact)
+            int i = 0;
+            for (; i < rootMoves.Length; i++)
             {
+                var move = rootMoves[i];
+                position.Move(in move);
+                repetitions.Update(move, position.Hash);
+
+                searchStack[0].Accumulator.CopyTo(ref searchStack[1].Accumulator);
+                searchStack[1].Accumulator.Move(in move);
+
+                int value;
+                if (i == 0)
+                {
+                    value = -EvaluateMove<PvNode>(depth - 1, 1, -beta, -alpha);
+                }
+                else
+                {
+                    int reduction = Lmr((byte)depth, (byte)i);
+                    value = -EvaluateMove<NonPvNode>(depth - reduction, 1, -alpha - 1, -alpha);
+                    if (value > alpha && Abs(value) != Inf)
+                        value = -EvaluateMove<PvNode>(depth - 1, 1, -beta, -alpha); // re-search
+                }
+                position.Undo(in move);
+                repetitions.Unwind();
+
+                if (value > alpha && Abs(value) < Inf)
+                {
+                    if (i != 0) Array.Copy(rootMoves, 0, rootMoves, 1, i);
+                    rootScore = alpha = value;
+                    rootMoves[0] = bestMove = move;
+                }
+            }
+            nodes += i;
+
+            var flag = TranspositionTable.Exact;
+            if (alpha <= originalAlpha) flag = TranspositionTable.UpperBound;
+            else if (alpha >= beta) flag = TranspositionTable.LowerBound;
+
+            if (alpha > -Inf && alpha < Inf)
+                tt.Add(position.Hash, depth, ToTT(alpha, 0), flag, bestMove);
+
+            IsCompleted = true;
+            // Console.WriteLine($"Worker {Thread.CurrentThread.ManagedThreadId} completed depth {depth} with best move {bestMove} and eval {alpha}");
+        }
+
+        public int EvaluateMove<TNode>(int depth, int ply, int alpha, int beta, bool isNullAllowed = true)
+           where TNode : struct, NodeType
+        {
+            if (ct.IsCancellationRequested) return Inf;
+            if (position.IsCheck) depth++;
+            if (depth <= 0) return QuiesenceSearch<TNode>(position, ply, alpha, beta);
+
+            var originalAlpha = alpha;
+
+            alpha = Max(alpha, -Mate + ply);
+            beta = Min(beta, Mate - ply - 1);
+            if (alpha >= beta) return alpha;
+
+            if (repetitions.IsDraw(position.Hash)) return 0; // return contempt * (position.CurrentPlayer == Colors.White ? -1 : 1);
+
+            var ttMove = Move.Null;
+            var eval = 0;
+
+            ref var ttEntry = ref tt.GetRef(position.Hash);
+
+            if (ttEntry.Key == position.Hash)
+            {
+                ttMove = ttEntry.Move;
+                eval = FromTT(ttEntry.Evaluation, ply);
+
+                if (ttEntry.Depth >= depth)
+                {
+                    switch (ttEntry.Type)
+                    {
+                        case TranspositionTable.Exact:
+                            return eval;
+                        case TranspositionTable.LowerBound:
+                            alpha = Max(alpha, eval);
+                            break;
+                        case TranspositionTable.UpperBound:
+                            beta = Min(beta, eval);
+                            break;
+                    }
+                    if (alpha >= beta) return eval;
+                }
+            }
+            else if (depth > InternalIterativeReductionDepth) depth--;
+
+            bool isPruningAllowed = !TNode.IsPv && !position.IsCheck;
+
+            if (isPruningAllowed)
+            {
+                if (!ttEntry.IsSet || ttEntry.Type != TranspositionTable.Exact)
+                {
 #if NNUE
-                eval = searchStack[ply].Eval = searchStack[ply].Accumulator.Read(position.CurrentPlayer);
+                    eval = searchStack[ply].Eval = searchStack[ply].Accumulator.Read(position.CurrentPlayer);
 #else
                 eval = Heuristics.StaticEvaluation(position);
 #endif
-            }
+                }
 
-            var margin = ReverseFutilityMargin * depth;
+                var margin = ReverseFutilityMargin * depth;
 
-            // Reverse futility pruning
-            if (depth <= 5 && eval - margin >= beta) return eval - margin;
+                // Reverse futility pruning
+                if (depth <= 5 && eval - margin >= beta) return eval - margin;
 
-            // Adaptive null move pruning
-            if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
-            {
-                position.SkipTurn();
-                searchStack[ply].Accumulator.CopyTo(ref searchStack[ply + 1].Accumulator);
-                var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
-                var score = -EvaluateMove<NonPvNode>(depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
-                position.UndoSkipTurn();
-
-                if (score >= beta)
+                // Adaptive null move pruning
+                if (eval >= beta - 21 * depth + 421 && isNullAllowed && !position.IsEndgame)
                 {
-                    return eval;
+                    position.SkipTurn();
+                    searchStack[ply].Accumulator.CopyTo(ref searchStack[ply + 1].Accumulator);
+                    var r = Clamp(depth * (eval - beta) / Heuristics.KnightValue, 1, 7);
+                    var score = -EvaluateMove<NonPvNode>(depth - r, ply + 1, -beta, -beta + 1, isNullAllowed: false);
+                    position.UndoSkipTurn();
+
+                    if (score >= beta)
+                    {
+                        return eval;
+                    }
                 }
             }
-        }
-        var best = -Inf;
-        byte i = 0;
-        Span<Move> moves = stackalloc Move[256];
-        var movepicker = new MovePicker(in searchStack, ref historyHeuristic, ref moves, position, ttMove, ply);
-        var move = movepicker.SelectMove(i);
+            var best = -Inf;
+            byte i = 0;
+            Span<Move> moves = stackalloc Move[256];
+            var movepicker = new MovePicker(in searchStack, ref historyHeuristic, ref moves, position, ttMove, ply);
+            var move = movepicker.SelectMove(i);
 
-        // No legal moves
-        if (move.IsNull) return position.IsCheck ? -Mate + ply : 0;
+            // No legal moves
+            if (move.IsNull) return position.IsCheck ? -Mate + ply : 0;
 
-        while (!move.IsNull)
-        {
-            position.Move(in move);
-            repetitions.Update(move, position.Hash);
-            searchStack[ply].Accumulator.CopyTo(ref searchStack[ply + 1].Accumulator);
-            searchStack[ply + 1].Accumulator.Move(in move);
-
-            int score;
-            if (TNode.IsPv && i == 0)
+            while (!move.IsNull)
             {
-                score = -EvaluateMove<PvNode>(depth - 1, ply + 1, -beta, -alpha);
-            }
-            else
-            {
-                int reduction = Lmr((byte)depth, i);
-                score = -EvaluateMove<NonPvNode>(depth - reduction, ply + 1, -alpha - 1, -alpha);
+                position.Move(in move);
+                repetitions.Update(move, position.Hash);
+                searchStack[ply].Accumulator.CopyTo(ref searchStack[ply + 1].Accumulator);
+                searchStack[ply + 1].Accumulator.Move(in move);
 
-                if (TNode.IsPv && score > alpha && score < beta)
-                    score = -EvaluateMove<PvNode>(depth - 1, ply + 1, -beta, -alpha); // re-search
-            }
-
-            repetitions.Unwind();
-            position.Undo(in move);
-
-            if (score > best && score < Inf)
-            {
-                best = score;
-                ttMove = (ttMove.IsNull || best > originalAlpha) ? move : ttMove;
-            }
-
-            if (score > alpha && score < Inf)
-            {
-                alpha = score;
-                if (alpha >= beta)
+                int score;
+                if (TNode.IsPv && i == 0)
                 {
-                    if (move.CapturePiece == Piece.None)
+                    score = -EvaluateMove<PvNode>(depth - 1, ply + 1, -beta, -alpha);
+                }
+                else
+                {
+                    int reduction = Lmr((byte)depth, i);
+                    score = -EvaluateMove<NonPvNode>(depth - reduction, ply + 1, -alpha - 1, -alpha);
+
+                    if (TNode.IsPv && score > alpha && score < beta)
+                        score = -EvaluateMove<PvNode>(depth - 1, ply + 1, -beta, -alpha); // re-search
+                }
+
+                repetitions.Unwind();
+                position.Undo(in move);
+
+                if (score > best && score < Inf)
+                {
+                    best = score;
+                    ttMove = (ttMove.IsNull || best > originalAlpha) ? move : ttMove;
+                }
+
+                if (score > alpha && score < Inf)
+                {
+                    alpha = score;
+                    if (alpha >= beta)
                     {
-                        searchStack[ply].Killers = move;
-
-                        var historyBonus = 300 * depth - 250;
-                        UpdateHistory(move, historyBonus);
-
-                        for (int q = 0; q < i; q++)
+                        if (move.CapturePiece == Piece.None)
                         {
-                            if (moves[q].CapturePiece == Piece.None)
+                            searchStack[ply].Killers = move;
+
+                            var historyBonus = 300 * depth - 250;
+                            UpdateHistory(move, historyBonus);
+
+                            for (int q = 0; q < i; q++)
                             {
-                                UpdateHistory(moves[q], -historyBonus);
+                                if (moves[q].CapturePiece == Piece.None)
+                                {
+                                    UpdateHistory(moves[q], -historyBonus);
+                                }
                             }
                         }
+                        break;
                     }
-                    break;
                 }
+
+                // Futility pruning
+                if (isPruningAllowed && depth <= 3
+                    && move.CapturePiece == Piece.None
+                    && !position.IsEndgame
+                    && Abs(alpha) < Mate - Max_Depth
+                    && eval + FutilityMargin * depth <= alpha) break;
+
+                move = movepicker.SelectMove(++i);
             }
+            nodes += i;
 
-            // Futility pruning
-            if (isPruningAllowed && depth <= 3
-                && move.CapturePiece == Piece.None
-                && !position.IsEndgame
-                && Abs(alpha) < Mate - Max_Depth
-                && eval + FutilityMargin * depth <= alpha) break;
+            var flag = TranspositionTable.Exact;
+            if (best <= originalAlpha) flag = TranspositionTable.UpperBound;
+            else if (best >= beta) flag = TranspositionTable.LowerBound;
 
-            move = movepicker.SelectMove(++i);
+            if (best > -Inf && best < Inf)
+                ttEntry = new TranspositionTable.Entry(depth, flag, tt.Generation, ToTT(best, ply), ttMove, position.Hash);
+
+            return best;
         }
-        nodes += i;
 
-        var flag = TranspositionTable.Exact;
-        if (best <= originalAlpha) flag = TranspositionTable.UpperBound;
-        else if (best >= beta) flag = TranspositionTable.LowerBound;
-
-        if (best > -Inf && best < Inf)
-            ttEntry = new TranspositionTable.Entry(depth, flag, tt.Generation, ToTT(best, ply), ttMove, position.Hash);
-
-        return best;
-    }
-
-    private int QuiesenceSearch<TNode>(MutablePosition position, int ply, int alpha, int beta) where TNode : struct, NodeType
-    {
-        int i = 0;
-        Move move, ttMove = Move.Null;
-        int[] deltas = [0, 180, 390, 442, 718, 1332, 88888]; // Piece values for delta pruning
-
-        if (!TNode.IsPv && tt.TryGet(position.Hash, out var ttEntry))
+        private int QuiesenceSearch<TNode>(MutablePosition position, int ply, int alpha, int beta) where TNode : struct, NodeType
         {
-            ttMove = ttEntry.Move;
-            switch (ttEntry.Type)
-            {
-                case TranspositionTable.Exact:
-                    return ttEntry.Evaluation;
-                case TranspositionTable.LowerBound:
-                    alpha = Max(alpha, ttEntry.Evaluation);
-                    break;
-                case TranspositionTable.UpperBound:
-                    beta = Min(beta, ttEntry.Evaluation);
-                    break;
-            }
-            if (alpha >= beta) return ttEntry.Evaluation;
-        }
+            int i = 0;
+            Move move, ttMove = Move.Null;
+            int[] deltas = [0, 180, 390, 442, 718, 1332, 88888]; // Piece values for delta pruning
 
-        Span<Move> moves = stackalloc Move[256];
+            if (!TNode.IsPv && tt.TryGet(position.Hash, out var ttEntry))
+            {
+                ttMove = ttEntry.Move;
+                switch (ttEntry.Type)
+                {
+                    case TranspositionTable.Exact:
+                        return ttEntry.Evaluation;
+                    case TranspositionTable.LowerBound:
+                        alpha = Max(alpha, ttEntry.Evaluation);
+                        break;
+                    case TranspositionTable.UpperBound:
+                        beta = Min(beta, ttEntry.Evaluation);
+                        break;
+                }
+                if (alpha >= beta) return ttEntry.Evaluation;
+            }
+
+            Span<Move> moves = stackalloc Move[256];
 
 #if NNUE
-        var standPat = searchStack[ply].Eval = searchStack[ply].Accumulator.Read(position.CurrentPlayer);
+            var standPat = searchStack[ply].Eval = searchStack[ply].Accumulator.Read(position.CurrentPlayer);
 #else
         var standPat = Heuristics.StaticEvaluation(position);
 #endif
 
-        if (standPat >= beta) return beta;
-        if (alpha < standPat) alpha = standPat;
+            if (standPat >= beta) return beta;
+            if (alpha < standPat) alpha = standPat;
 
-        var movepicker = new MovePicker(in searchStack, ref historyHeuristic, ref moves, position, ttMove, 0);
+            var movepicker = new MovePicker(in searchStack, ref historyHeuristic, ref moves, position, ttMove, 0);
 
-        while ((move = movepicker.PickCapture(i++)) != Move.Null)
-        {
-            if (standPat + deltas[(byte)move.CapturePieceType] < alpha)
+            while ((move = movepicker.PickCapture(i++)) != Move.Null)
             {
-                if (!TNode.IsPv) return alpha;
-                else continue;
+                if (standPat + deltas[(byte)move.CapturePieceType] < alpha)
+                {
+                    if (!TNode.IsPv) return alpha;
+                    else continue;
+                }
+
+                if (position.SEE(move) < -45)
+                    continue;
+
+                qnodes++;
+
+
+                position.Move(in move);
+                searchStack[ply].Accumulator.CopyTo(ref searchStack[ply + 1].Accumulator);
+                searchStack[ply + 1].Accumulator.Move(in move);
+
+                int eval = -QuiesenceSearch<TNode>(position, ply + 1, -beta, -alpha);
+                position.Undo(in move);
+
+                if (eval >= beta) return beta;
+
+                alpha = Max(alpha, eval);
             }
+            nodes += i;
 
-            if (position.SEE(move) < -45)
-                continue;
-
-            qnodes++;
-
-
-            position.Move(in move);
-            searchStack[ply].Accumulator.CopyTo(ref searchStack[ply + 1].Accumulator);
-            searchStack[ply + 1].Accumulator.Move(in move);
-
-            int eval = -QuiesenceSearch<TNode>(position, ply + 1, -beta, -alpha);
-            position.Undo(in move);
-
-            if (eval >= beta) return beta;
-
-            alpha = Max(alpha, eval);
+            return alpha;
         }
-        nodes += i;
 
-        return alpha;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void UpdateHistory(Move m, int bonus)
+        {
+            var index = m.value & 0xfff;
+            bonus = Clamp(bonus, -Max_History, Max_History);
+            historyHeuristic[m.Color][index] += bonus - historyHeuristic[m.Color][index] * Abs(bonus) / Max_History;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static int Lmr(byte depth, byte move) => 1 + ((Search.LogTable[depth] * Search.LogTable[move + 1]) >> 15);
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ToTT(int score, int ply)
+        {
+            // Shift mate scores so closer mates are preferred from deeper nodes
+            if (score > Mate - Max_Depth) return score + ply;
+            if (score < -Mate + Max_Depth) return score - ply;
+            return score;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int FromTT(int score, int ply)
+        {
+            if (score > Mate - Max_Depth) return score - ply;
+            if (score < -Mate + Max_Depth) return score + ply;
+            return score;
+        }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UpdateHistory(Move m, int bonus)
-    {
-        var index = m.value & 0xfff;
-        bonus = Clamp(bonus, -Max_History, Max_History);
-        historyHeuristic[m.Color][index] += bonus - historyHeuristic[m.Color][index] * Abs(bonus) / Max_History;
-    }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static int Lmr(byte depth, byte move) => 1 + ((Search.LogTable[depth] * Search.LogTable[move + 1]) >> 15);
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ToTT(int score, int ply)
-    {
-        // Shift mate scores so closer mates are preferred from deeper nodes
-        if (score > Mate - Max_Depth) return score + ply;
-        if (score < -Mate + Max_Depth) return score - ply;
-        return score;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int FromTT(int score, int ply)
-    {
-        if (score > Mate - Max_Depth) return score - ply;
-        if (score < -Mate + Max_Depth) return score + ply;
-        return score;
-    }
 }
 
 public struct SearchStack
