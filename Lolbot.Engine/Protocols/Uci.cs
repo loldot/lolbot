@@ -24,9 +24,13 @@ public class Uci
             else if (command.StartsWith("ucinewgame")) Reset();
             else if (command.StartsWith("eval")) Evaluate();
             else if (command.StartsWith("setoption")) SetOption(command);
+            else if (command.StartsWith("datagen")) GenerateData(command);
+            else if (command.Contains("help")) Help();
             else Unknown(command);
         }
     }
+
+    
 
     private void Evaluate()
     {
@@ -188,7 +192,24 @@ private static void Init()
         Console.WriteLine($"bestmove {Move(move.Value)}");
     }
 
+    private void GenerateData(string command)
+    {
+        var tokens = Regex.Split(command, @"\s");
+        var output = tokens.Length > 1 ? tokens[1] : "training-data.bin";
+      
+        var generator = new SelfPlayDataGenerator();
 
+        var onCancel = new ConsoleCancelEventHandler((sender, e) =>
+        {
+            Console.WriteLine("Generation interrupted, saving data...");
+            generator.Stop();
+            e.Cancel = true;
+        });
+        Console.CancelKeyPress += onCancel;
+
+        generator.Generate(output);        
+        Console.CancelKeyPress -= onCancel;
+    }
 
     private static void Unknown(string command)
     {

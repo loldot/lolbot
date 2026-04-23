@@ -12,7 +12,7 @@ public class TrainingDataTests
         var inputPath = "./Testdata/lichess-3.pgn";
         var outputPath = "./Testdata/training-data-test-output.bin";
 
-        GenTrainingData.Generate(inputPath, outputPath).Wait();
+        SelfPlayDataGenerator.Generate(inputPath, outputPath).Wait();
 
         File.Exists(outputPath).Should().BeTrue();
         File.Delete(outputPath);
@@ -26,7 +26,7 @@ public class TrainingDataTests
         var inputPath = "./Testdata/lichess-multi.pgn";
         var outputPath = "./Testdata/training-data-test-multi.bin";
 
-        await GenTrainingData.Generate(inputPath, outputPath);
+        await SelfPlayDataGenerator.Generate(inputPath, outputPath);
 
         File.Exists(outputPath).Should().BeTrue();
         File.Delete(outputPath);

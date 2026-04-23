@@ -38,7 +38,7 @@ public class RepetitionTable
 
     public bool IsDraw(ulong key)
     {
-        // if (moveCount - irreversible[moveCount - 1] >= 100) return true;
+        if (moveCount > 100 && moveCount - irreversible[moveCount - 1] >= 100) return true;
 
         for (int i = moveCount - 2; i > 0 && i >= irreversible[moveCount - 1]; i--)
         {

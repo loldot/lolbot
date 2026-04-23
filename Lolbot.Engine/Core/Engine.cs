@@ -99,6 +99,12 @@ public static class Engine
         return count;
     }
 
+    internal static (Move?, int staticEval, int score, int quiescenceScore) SelectMove(Game game, CancellationToken ct)
+    {
+        var search = new Search(game, tt, historyHeuristic, Options.Threads);
+        return search.SelectMove(ct);
+    }
+
     public static Move? BestMove(Game game)
     {
         var timer = new CancellationTokenSource(2_000);

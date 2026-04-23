@@ -54,9 +54,9 @@ public static class SyzygyTablebase
         var knights = position.WhiteKnights | position.BlackKnights;
         var pawns = position.WhitePawns | position.BlackPawns;
         
-        // Debug.Assert(white != 0 || black != 0, "No pieces on the board");
-        // Debug.Assert(kings != 0, "No kings on the board");
-        // Debug.Assert(System.Numerics.BitOperations.PopCount(kings) == 2, "There must be exactly 2 kings on the board");
+        Debug.Assert(white != 0 || black != 0, "No pieces on the board");
+        Debug.Assert(kings != 0, "No kings on the board");
+        Debug.Assert(System.Numerics.BitOperations.PopCount(kings) == 2, "There must be exactly 2 kings on the board");
 
 
         var ep = position.EnPassant;

@@ -7,6 +7,7 @@ public sealed class Game
     private readonly RepetitionTable repetitions = new();
     private readonly MutablePosition position;
     private readonly Stack<Move> moves = [];
+    public int HalfMoveCount => moves.Count;
     public Move[] Moves => moves.Reverse().ToArray();
 
     public Colors CurrentPlayer => position.CurrentPlayer;

@@ -29,6 +29,12 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
     public Action<SearchProgress>? OnSearchProgress { get; set; }
 
+    internal (Move?, int staticEval, int score, int quiescenceScore) SelectMove(CancellationToken ct)
+    {
+        var move = BestMove(ct);
+        return (move, mainWorker.searchStack[0].Eval, rootScore, QuiescenceScore());
+    }
+
     public Move BestMove()
     {
         var timer = new CancellationTokenSource(2_000);
@@ -48,7 +54,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
     SearchWorker mainWorker = null!;
     SearchWorker[] parallelWorkers = new SearchWorker[Max(0, threads - 1)];
-    int rootScore = -Inf;
+    internal int rootScore = -Inf;
 
     public Move IterativeDeepening(int maxSearchDepth, CancellationToken ct)
     {
@@ -124,6 +130,11 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         }
     }
 
+    internal int QuiescenceScore()
+    {
+        return mainWorker.QuiesenceSearch<PvNode>(position, 0, -Inf, Inf);
+    }
+
     private sealed class SearchWorker
     {
         public const int Inf = short.MaxValue;
@@ -143,7 +154,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
         readonly RepetitionTable repetitions;
         readonly TranspositionTable tt;
         int[][] historyHeuristic;
-        readonly SearchStack[] searchStack;
+        internal readonly SearchStack[] searchStack;
 
         Move[] rootMoves;
         int rootScore;
@@ -496,7 +507,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
             return best;
         }
 
-        private int QuiesenceSearch<TNode>(MutablePosition position, int ply, int alpha, int beta) where TNode : struct, NodeType
+        internal int QuiesenceSearch<TNode>(MutablePosition position, int ply, int alpha, int beta) where TNode : struct, NodeType
         {
             int i = 0;
             Move move, ttMove = Move.Null;
@@ -524,7 +535,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 #if NNUE
             var standPat = searchStack[ply].Eval = searchStack[ply].Accumulator.Read(position.CurrentPlayer);
 #else
-        var standPat = Heuristics.StaticEvaluation(position);
+            var standPat = Heuristics.StaticEvaluation(position);
 #endif
 
             if (standPat >= beta) return beta;
@@ -572,7 +583,7 @@ public sealed class Search(Game game, TranspositionTable tt, int[][] historyHeur
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static int Lmr(byte depth, byte move) => 1 + ((Search.LogTable[depth] * Search.LogTable[move + 1]) >> 15);
+        static int Lmr(byte depth, byte move) => 1 + ((LogTable[depth] * LogTable[move + 1]) >> 15);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
